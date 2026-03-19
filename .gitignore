@@ -1,0 +1,14 @@
+venv/
+.claude/
+
+# Python 캐시
+__pycache__/
+*.pyc
+*.pyo
+
+# DB (로컬 데이터)
+money.db
+
+# OS
+.DS_Store
+Thumbs.db

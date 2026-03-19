@@ -1,0 +1,61 @@
+from sqlalchemy import Column, Integer, String, Float, DateTime, Text, ForeignKey, UniqueConstraint
+from sqlalchemy.orm import relationship
+from datetime import datetime
+from database import Base
+
+
+class Stock(Base):
+    __tablename__ = "stocks"
+
+    ticker              = Column(String(20), primary_key=True)
+    name                = Column(String(200))
+    shares_outstanding  = Column(Float, default=0)   # millions
+    current_price       = Column(Float, default=0)   # USD
+    fiscal_note         = Column(String(100))
+    forecasts_json      = Column(Text, default="[]")   # JSON list of forecast dicts
+    fetched_at          = Column(DateTime)
+
+    fiscal_years = relationship(
+        "FiscalYear", back_populates="stock",
+        cascade="all, delete-orphan",
+        order_by="FiscalYear.year_key",
+    )
+    portfolio = relationship("Portfolio", back_populates="stock", uselist=False)
+
+
+class FiscalYear(Base):
+    __tablename__ = "fiscal_years"
+
+    id          = Column(Integer, primary_key=True, autoincrement=True)
+    ticker      = Column(String(20), ForeignKey("stocks.ticker", ondelete="CASCADE"), nullable=False)
+    year_key    = Column(String(10), nullable=False)   # e.g. "fy2024"
+    label       = Column(String(10), nullable=False)   # e.g. "FY2024"
+    end_date    = Column(String(10))                   # e.g. "2024-01" (YYYY-MM)
+    revenue     = Column(Float, default=0)    # millions USD
+    operating   = Column(Float, default=0)   # millions USD
+    net         = Column(Float, default=0)   # millions USD
+    shares      = Column(Float, default=0)   # millions shares
+    eps         = Column(Float)              # USD per share
+    roe         = Column(Float)              # ratio (e.g. 0.25 = 25%)
+    roi         = Column(Float)              # ratio (net/assets)
+
+    stock = relationship("Stock", back_populates="fiscal_years")
+
+    __table_args__ = (
+        UniqueConstraint("ticker", "year_key", name="uq_ticker_year"),
+    )
+
+
+class Portfolio(Base):
+    __tablename__ = "portfolio"
+
+    id            = Column(Integer, primary_key=True, autoincrement=True)
+    ticker        = Column(String(20), ForeignKey("stocks.ticker"), unique=True, nullable=False)
+    shares_owned  = Column(Float, nullable=False, default=0)
+    avg_price     = Column(Float, default=0)    # USD
+    memo          = Column(String(500), default="")
+    display_order = Column(Integer, default=0)
+    created_at    = Column(DateTime, default=datetime.utcnow)
+    updated_at    = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+
+    stock = relationship("Stock", back_populates="portfolio")

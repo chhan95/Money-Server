@@ -1,0 +1,135 @@
+{% extends "base.html" %}
+{% block title %}포트폴리오 — 💰 Money{% endblock %}
+{% block content %}
+
+<div class="page-header">
+  <h1>포트폴리오 관리</h1>
+  <p class="clr-muted">보유 종목을 추가 · 수정 · 삭제합니다</p>
+</div>
+
+<!-- ── 종목 추가 폼 ───────────────────────────────────── -->
+<div class="form-card">
+  <div class="highlight-title" style="margin-bottom:12px;">종목 추가 / 수정</div>
+  <form method="post" action="/portfolio/add" id="addForm">
+    <div class="form-grid">
+      <div>
+        <label class="form-label">티커 (Ticker)</label>
+        <input type="text" name="ticker" id="f-ticker" class="form-input"
+               placeholder="NVDA" required maxlength="12"
+               style="text-transform:uppercase; width:100%;" />
+      </div>
+      <div>
+        <label class="form-label">보유 주식 수</label>
+        <input type="number" name="shares_owned" id="f-shares" class="form-input"
+               placeholder="100" min="0" step="0.01" required style="width:100%;" />
+      </div>
+      <div>
+        <label class="form-label">평균 매수단가 ($)</label>
+        <input type="number" name="avg_price" id="f-price" class="form-input"
+               placeholder="0.00" min="0" step="0.01" style="width:100%;" />
+      </div>
+    </div>
+    <div style="margin-bottom:10px;">
+      <label class="form-label">메모 (선택)</label>
+      <input type="text" name="memo" id="f-memo" class="form-input"
+             placeholder="메모..." maxlength="200" style="width:100%;" />
+    </div>
+    <div style="display:flex; gap:8px;">
+      <button type="submit" class="btn btn-primary">저장</button>
+      <button type="button" class="btn btn-ghost" onclick="resetForm()">초기화</button>
+    </div>
+  </form>
+</div>
+
+<!-- ── 보유 종목 목록 ─────────────────────────────────── -->
+{% if items %}
+<div class="highlight-card">
+  <div class="highlight-title">보유 종목 ({{ items | length }}개)</div>
+  <div class="income-table-wrap">
+    <table class="p-table">
+      <thead>
+        <tr>
+          <th>종목</th>
+          <th style="text-align:right;">보유주</th>
+          <th style="text-align:right;">평균 단가</th>
+          <th style="text-align:right;">현재가</th>
+          <th style="text-align:right;">손익</th>
+          <th style="text-align:right;">메모</th>
+          <th></th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for item in items %}
+        {% set gain_pct = ((item.current_price - item.avg_price) / item.avg_price * 100) if item.avg_price > 0 else 0 %}
+        <tr>
+          <td>
+            <strong>{{ item.ticker }}</strong><br>
+            <span class="clr-muted" style="font-size:11px;">{{ item.name }}</span>
+          </td>
+          <td style="text-align:right;">{{ item.shares_owned | int if item.shares_owned == (item.shares_owned | int) else item.shares_owned }}</td>
+          <td style="text-align:right;" class="clr-muted">
+            {% if item.avg_price > 0 %} ${{ "%.2f"|format(item.avg_price) }} {% else %} — {% endif %}
+          </td>
+          <td style="text-align:right;">
+            {% if item.current_price > 0 %} ${{ "%.2f"|format(item.current_price) }} {% else %} — {% endif %}
+          </td>
+          <td style="text-align:right;">
+            {% if item.avg_price > 0 and item.current_price > 0 %}
+              <span class="{{ 'clr-green' if gain_pct >= 0 else 'clr-red' }} fw-600">
+                {{ '+' if gain_pct >= 0 else '' }}{{ "%.1f"|format(gain_pct) }}%
+              </span>
+            {% else %} — {% endif %}
+          </td>
+          <td style="text-align:right; font-size:11px;" class="clr-muted">{{ item.memo or '—' }}</td>
+          <td style="text-align:right; white-space:nowrap;">
+            <button class="btn btn-ghost" style="padding:4px 10px;font-size:11px;"
+                    onclick="editItem('{{ item.ticker }}', {{ item.shares_owned }}, {{ item.avg_price }}, '{{ item.memo }}')">
+              수정
+            </button>
+            <form method="post" action="/portfolio/delete/{{ item.id }}"
+                  style="display:inline;"
+                  onsubmit="return confirm('{{ item.ticker }} 종목을 삭제하시겠습니까?')">
+              <button type="submit" class="btn btn-danger" style="padding:4px 10px;font-size:11px;">삭제</button>
+            </form>
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+{% else %}
+<div class="empty-state">
+  <p>보유 종목이 없습니다. 위 폼에서 종목을 추가하세요.</p>
+</div>
+{% endif %}
+
+<div class="disclaimer">
+  ※ 종목 추가 시 Yahoo Finance에서 재무 데이터를 자동으로 가져옵니다.
+  데이터는 24시간 캐시됩니다.
+</div>
+
+<script>
+function editItem(ticker, shares, price, memo) {
+  document.getElementById('f-ticker').value = ticker;
+  document.getElementById('f-shares').value = shares;
+  document.getElementById('f-price').value  = price || '';
+  document.getElementById('f-memo').value   = memo  || '';
+  document.getElementById('addForm').scrollIntoView({ behavior: 'smooth' });
+  document.getElementById('f-ticker').focus();
+}
+
+function resetForm() {
+  document.getElementById('f-ticker').value = '';
+  document.getElementById('f-shares').value = '';
+  document.getElementById('f-price').value  = '';
+  document.getElementById('f-memo').value   = '';
+}
+
+// 티커 자동 대문자
+document.getElementById('f-ticker').addEventListener('input', function() {
+  this.value = this.value.toUpperCase();
+});
+</script>
+
+{% endblock %}

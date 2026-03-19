@@ -1,0 +1,330 @@
+{% extends "base.html" %}
+{% block title %}홈 — 💰 Money{% endblock %}
+{% block content %}
+
+<div class="page-header">
+  <h1>내 포트폴리오</h1>
+  <p id="pageDate" class="clr-muted"></p>
+</div>
+
+{% if not has_items %}
+<div class="empty-state">
+  <p>아직 보유 종목이 없습니다.</p>
+  <p class="mt-1"><a href="/portfolio">포트폴리오 관리</a>에서 종목을 추가하세요.</p>
+</div>
+{% else %}
+
+<!-- 요약 카드 -->
+<div class="summary-grid" id="summaryGrid">
+  <div class="summary-card">
+    <div class="summary-label">보유 종목</div>
+    <div class="summary-value" id="s-count">—</div>
+  </div>
+  <div class="summary-card">
+    <div class="summary-label">총 평가액</div>
+    <div class="summary-value" id="s-value">—</div>
+    <div class="summary-sub clr-muted" id="s-value-krw">—</div>
+  </div>
+  <div class="summary-card">
+    <div class="summary-label">통합 월 소득</div>
+    <div class="summary-value clr-green" id="s-income">—</div>
+    <div class="summary-sub clr-muted">순이익 기준</div>
+  </div>
+  <div class="summary-card">
+    <div class="summary-label">예상 월 소득 <span style="font-size:10px;opacity:.7;">애널리스트</span></div>
+    <div class="summary-value" id="s-forecast" style="color:var(--accent);">—</div>
+    <div class="summary-sub clr-muted" id="s-forecast-label">내년 FY 예상</div>
+  </div>
+</div>
+
+<!-- 파이 차트 -->
+<div class="card mb-section" style="margin-bottom:1.25rem;">
+  <div class="chart-label">포트폴리오 구성 (평가액 기준)</div>
+  <div class="pie-wrap"><canvas id="pieChart"></canvas></div>
+</div>
+
+<!-- 연도별 월 소득 비교 차트 -->
+<div class="card mb-section" style="margin-bottom:1.25rem;">
+  <div class="chart-label">연도별 포트폴리오 월 소득 합계 (순이익 기준)</div>
+  <div style="display:flex; gap:12px; margin:6px 0 10px; flex-wrap:wrap;">
+    <span style="display:flex; align-items:center; gap:4px; font-size:12px; color:var(--text2);">
+      <span style="display:inline-block; width:10px; height:10px; border-radius:2px; background:rgba(59,109,17,0.75);"></span>실적
+    </span>
+    <span style="display:flex; align-items:center; gap:4px; font-size:12px; color:var(--text2);">
+      <span style="display:inline-block; width:10px; height:10px; border-radius:2px; background:rgba(24,95,165,0.4); border:1.5px dashed rgba(24,95,165,0.7);"></span>애널리스트 예상
+    </span>
+  </div>
+  <div class="chart-wrapper"><canvas id="portfolioBarChart"></canvas></div>
+</div>
+
+<div id="refreshBanner" class="data-badge" style="margin-bottom:1.25rem; display:none;">
+  ⏳ 데이터 갱신 중... 완료 후 자동으로 새로고침됩니다
+</div>
+<div id="fxBadge" class="data-badge live" style="margin-bottom:1.25rem;">
+  💱 적용 환율: {{ fx_default|int }}원/$ (Yahoo Finance 실시간)
+</div>
+
+<!-- 지분 소득 내역 테이블 -->
+<div class="highlight-card">
+  <div class="highlight-title">지분비례 월 소득 내역 (순이익 기준, 최신 회계연도)</div>
+  <div class="income-table-wrap">
+    <table class="p-table">
+      <thead>
+        <tr>
+          <th>종목</th>
+          <th style="text-align:right;">보유주</th>
+          <th style="text-align:right;">지분율</th>
+          <th style="text-align:right;">월 소득 (KRW)</th>
+          <th style="text-align:right;">예상 월 소득 (KRW)</th>
+        </tr>
+      </thead>
+      <tbody id="incomeTableBody"></tbody>
+    </table>
+  </div>
+</div>
+
+
+{% endif %}
+
+<script>
+const ITEMS        = {{ items_json | safe }};
+const STALE        = {{ stale_tickers | safe }};
+let fxRate         = {{ fx_default|int }};
+let pieChart       = null;
+
+const TICKER_COLORS = {
+  "AAPL": "#000000",
+  "MSFT": "#0078D4",
+  "GOOGL": "#FBBC05",
+  "AMZN": "#FF9900",
+  "META": "#0866FF",
+  "NVDA": "#76B900",
+  "TSLA": "#E31937",
+  "NFLX": "#E50914",
+  "ADBE": "#FF0000",
+  "CRM":  "#00A1E0",
+  "TSM":  "#EB0029",
+  "KLAC": "#0071C5",
+};
+const PIE_FALLBACK = [
+  '#185FA5','#3B6D11','#E67E22','#8E44AD','#C0392B',
+  '#16A085','#D35400','#2C3E50','#2980B9','#27AE60',
+];
+let _fallbackIdx = 0;
+function tickerColor(ticker) {
+  if (TICKER_COLORS[ticker]) return TICKER_COLORS[ticker];
+  return PIE_FALLBACK[_fallbackIdx++ % PIE_FALLBACK.length];
+}
+
+// ── 포맷 헬퍼 ──────────────────────────────────────────────
+function fmtUSD(usdM) {
+  const v = Math.abs(usdM) * 1e6;
+  const sign = usdM < 0 ? '-' : '';
+  if (v >= 1e9) return sign + '$' + (v/1e9).toFixed(3) + 'B';
+  if (v >= 1e6) return sign + '$' + (v/1e6).toFixed(3) + 'M';
+  if (v >= 1e3) return sign + '$' + (v/1e3).toFixed(2) + 'K';
+  if (v >= 1)   return sign + '$' + v.toFixed(2);
+  return sign + '$' + v.toFixed(4);
+}
+function fmtKRWraw(w) {
+  const sign = w < 0 ? '-' : '', a = Math.abs(w);
+  if (a >= 1e12) return sign + (a/1e12).toFixed(2) + '조원';
+  if (a >= 1e8)  return sign + (a/1e8 ).toFixed(2) + '억원';
+  if (a >= 1e4)  return sign + Math.round(a/1e4).toLocaleString() + '만원';
+  return sign + Math.round(a).toLocaleString() + '원';
+}
+function fmtKRW(usdM) { return fmtKRWraw(usdM * 1e6 * fxRate); }
+
+// ── 계산 ──────────────────────────────────────────────────
+function getMonthlyNet(item) {
+  const lat = item.latest || {};
+  const sharesM = lat.shares || 1;
+  const pct = item.shares_owned / (sharesM * 1e6);
+  return (lat.net || 0) * pct / 12;  // millions USD
+}
+function getForecastMonthlyNet(item) {
+  const fc = item.forecast;
+  if (!fc || fc.net == null) return null;
+  const sharesM = (item.latest || {}).shares || 1;
+  const pct = item.shares_owned / (sharesM * 1e6);
+  return fc.net * pct / 12;  // millions USD
+}
+
+// ── 연도별 포트폴리오 차트 ─────────────────────────────────
+let portfolioBarChart = null;
+function renderPortfolioChart() {
+  const histMap = new Map(); // "FY2024" -> total (만원)
+  const fcMap   = new Map(); // "현재 FY 예상" -> total, 삽입 순서 유지
+
+  ITEMS.forEach(item => {
+    const fd = item.fiscal_data || {};
+    const yearKeys = item.year_keys || [];
+    const fcKeys   = item.forecast_keys || [];
+
+    yearKeys.forEach(k => {
+      const d = fd[k];
+      if (!d || !d.shares) return;
+      const man = (d.net || 0) * (item.shares_owned / (d.shares * 1e6)) / 12 * 1e6 * fxRate / 1e4;
+      if (!histMap.has(d.label)) histMap.set(d.label, 0);
+      histMap.set(d.label, histMap.get(d.label) + man);
+    });
+
+    fcKeys.forEach(k => {
+      const d = fd[k];
+      if (!d || !d.shares) return;
+      const man = (d.net || 0) * (item.shares_owned / (d.shares * 1e6)) / 12 * 1e6 * fxRate / 1e4;
+      if (!fcMap.has(d.label)) fcMap.set(d.label, 0);
+      fcMap.set(d.label, fcMap.get(d.label) + man);
+    });
+  });
+
+  // 실적: 알파벳 오름차순(FY2022→FY2024), 예상: Map 삽입 순서(현재→내년)
+  const histEntries = [...histMap.entries()].sort((a, b) => a[0] < b[0] ? -1 : 1);
+  const fcEntries   = [...fcMap.entries()];
+  if (histEntries.length === 0 && fcEntries.length === 0) return;
+
+  const labels = [...histEntries.map(([l]) => l), ...fcEntries.map(([l]) => l)];
+  const data   = [...histEntries.map(([,v]) => +v.toFixed(2)), ...fcEntries.map(([,v]) => +v.toFixed(2))];
+  const isFc   = [...histEntries.map(() => false), ...fcEntries.map(() => true)];
+
+  const ctx = document.getElementById('portfolioBarChart').getContext('2d');
+  if (portfolioBarChart) portfolioBarChart.destroy();
+  portfolioBarChart = new Chart(ctx, {
+    type: 'bar',
+    data: {
+      labels,
+      datasets: [{
+        label: '월 소득 합계',
+        data,
+        backgroundColor: isFc.map(f => f ? 'rgba(24,95,165,0.45)' : 'rgba(59,109,17,0.55)'),
+        borderColor:     isFc.map(f => f ? 'rgba(24,95,165,0.9)'   : '#3B6D11'),
+        borderWidth: 1.5, borderRadius: 4,
+      }],
+    },
+    options: {
+      responsive: true, maintainAspectRatio: false,
+      plugins: {
+        legend: { display: false },
+        tooltip: { callbacks: { label: c => '월 소득' + (isFc[c.dataIndex] ? ' (예상)' : '') + ': ' + fmtKRWraw(c.parsed.y * 1e4) + '/월' } },
+      },
+      scales: {
+        y: { ticks: { callback: v => v.toLocaleString() + '만', font: { size: 11 } }, grid: { color: 'rgba(128,128,128,0.08)' } },
+        x: { grid: { display: false }, ticks: { font: { size: 12 } } },
+      },
+    },
+  });
+}
+
+// ── 전체 렌더 ──────────────────────────────────────────────
+function renderAll() {
+  document.getElementById('pageDate').textContent =
+    new Date().toLocaleDateString('ko-KR', {year:'numeric',month:'long',day:'numeric'}) + ' 기준';
+
+  const totalValue = ITEMS.reduce((s, i) => s + i.shares_owned * i.current_price, 0);
+  const totalMonthlyUsd = ITEMS.reduce((s, i) => s + getMonthlyNet(i), 0);
+  const fcItems = ITEMS.filter(i => getForecastMonthlyNet(i) !== null);
+  const totalFcUsd = fcItems.reduce((s, i) => s + getForecastMonthlyNet(i), 0);
+
+  document.getElementById('s-count').textContent    = ITEMS.length + '개';
+  document.getElementById('s-value').textContent    = '$' + Math.round(totalValue).toLocaleString();
+  document.getElementById('s-value-krw').textContent = '≈ ' + fmtKRWraw(totalValue * fxRate);
+  document.getElementById('s-income').textContent   = fmtKRW(totalMonthlyUsd) + '/월';
+  if (fcItems.length > 0) {
+    document.getElementById('s-forecast').textContent = fmtKRW(totalFcUsd) + '/월';
+  } else {
+    document.getElementById('s-forecast').textContent = '데이터 없음';
+  }
+
+  renderPie(totalValue);
+  renderPortfolioChart();
+  renderTable(fcItems, totalMonthlyUsd);
+}
+
+function renderPie(totalValue) {
+  _fallbackIdx = 0;
+  const ctx = document.getElementById('pieChart').getContext('2d');
+  if (pieChart) pieChart.destroy();
+  pieChart = new Chart(ctx, {
+    type: 'doughnut',
+    data: {
+      labels: ITEMS.map(i => i.ticker),
+      datasets: [{
+        data: ITEMS.map(i => i.shares_owned * i.current_price),
+        backgroundColor: ITEMS.map(i => tickerColor(i.ticker)),
+        borderWidth: 2, borderColor: '#fff',
+      }],
+    },
+    options: {
+      responsive: true, maintainAspectRatio: false,
+      plugins: {
+        legend: { position: 'right', labels: { font:{size:12}, boxWidth:12 } },
+        tooltip: {
+          callbacks: {
+            label: ctx => {
+              const pct = ((ctx.parsed / totalValue) * 100).toFixed(1);
+              return ctx.label + ': $' + Math.round(ctx.parsed).toLocaleString() + ' (' + pct + '%)';
+            },
+          },
+        },
+      },
+    },
+  });
+}
+
+function renderTable(fcItems, totalMonthlyUsd) {
+  const tbody = document.getElementById('incomeTableBody');
+  tbody.innerHTML = '';
+
+  let totalUsd = 0, totalKrw = 0;
+  ITEMS.forEach(item => {
+    const mUsd = getMonthlyNet(item);
+    const mKrw = mUsd * 1e6 * fxRate;
+    const sharesM = (item.latest?.shares || 1);
+    const pct = item.shares_owned / (sharesM * 1e6);
+    totalUsd += mUsd; totalKrw += mKrw;
+
+    const fcUsd = getForecastMonthlyNet(item);
+    const fcKrw = fcUsd !== null ? fcUsd * 1e6 * fxRate : null;
+    const fcCell = fcKrw !== null
+      ? `<span style="color:var(--accent);" class="fw-600">${fmtKRWraw(fcKrw)}</span><br><span class="clr-muted" style="font-size:10px;">${item.forecast?.label || ''}</span>`
+      : `<span class="clr-muted">—</span>`;
+
+    const tr = document.createElement('tr');
+    tr.innerHTML = `
+      <td>
+        <strong>${item.ticker}</strong><br>
+        <span class="clr-muted" style="font-size:11px;">${item.name}</span>
+      </td>
+      <td style="text-align:right;">${item.shares_owned.toLocaleString()}</td>
+      <td style="text-align:right; font-size:11px;" class="clr-muted">${(pct*100).toExponential(3)}%</td>
+      <td style="text-align:right;" class="clr-accent fw-600">${fmtKRWraw(mKrw)}</td>
+      <td style="text-align:right;">${fcCell}</td>
+    `;
+    tbody.appendChild(tr);
+  });
+
+  // 합계 행
+  const totalTr = document.createElement('tr');
+  totalTr.className = 'total-row';
+  const totalFcKrw = fcItems.reduce((s, i) => s + getForecastMonthlyNet(i) * 1e6 * fxRate, 0);
+  totalTr.innerHTML = `
+    <td colspan="3"><strong>합계</strong></td>
+    <td style="text-align:right;" class="clr-green fw-600">${fmtKRWraw(totalKrw)}/월</td>
+    <td style="text-align:right;" style="color:var(--accent);" class="fw-600">${fcItems.length > 0 ? fmtKRWraw(totalFcKrw)+'/월' : '—'}</td>
+  `;
+  tbody.appendChild(totalTr);
+}
+
+document.addEventListener('DOMContentLoaded', () => {
+  if (ITEMS.length > 0) renderAll();
+
+  if (STALE.length > 0) {
+    document.getElementById('refreshBanner').style.display = 'block';
+    document.getElementById('fxBadge').style.display = 'none';
+    Promise.all(STALE.map(t => fetch(`/api/stock/${t}`).catch(() => null)))
+      .then(() => location.reload());
+  }
+});
+</script>
+
+{% endblock %}
