@@ -106,6 +106,7 @@ def fetch_stock(ticker: str) -> dict | None:
             return float("nan")
 
         years = []
+        last_valid_dil_shares = shares_m * 1e6  # 직전 연도까지 유효했던 희석주식수
         for col in reversed(list(fin.columns[:4])):   # 오래된 연도부터
             try:
                 rev = rev_row[col]
@@ -114,12 +115,16 @@ def fetch_stock(ticker: str) -> dict | None:
                 if pd.isna(rev) or pd.isna(net):
                     continue
 
-                # EPS: 희석 주식수 우선, 없으면 현재 발행주식수 사용
+                # EPS: 손익계산서 희석주식수 우선.
+                # NaN이면 직전 유효값 사용 (다중 클래스 주식에서 최신 연도가 NaN인 경우 대응).
                 dil_shares = float("nan")
                 if dil_row is not None:
                     dil_shares = dil_row.get(col, float("nan"))
-                eps_shares = float(dil_shares) if not pd.isna(dil_shares) and dil_shares > 0 \
-                             else shares_m * 1e6
+                if not pd.isna(dil_shares) and float(dil_shares) > 0:
+                    eps_shares = float(dil_shares)
+                    last_valid_dil_shares = eps_shares
+                else:
+                    eps_shares = last_valid_dil_shares
                 eps = float(net) / eps_shares if eps_shares > 0 else None
 
                 # ROE = 순이익 / 자기자본
@@ -138,7 +143,7 @@ def fetch_stock(ticker: str) -> dict | None:
                     "revenue":   float(rev) / 1e6,
                     "operating": float(op)  / 1e6 if not pd.isna(op) else 0.0,
                     "net":       float(net) / 1e6,
-                    "shares":    shares_m,
+                    "shares":    round(eps_shares / 1e6, 3),  # 희석주식수 우선 (다중 클래스 주식 대응)
                     "eps":       round(eps, 4) if eps is not None else None,
                     "roe":       round(roe, 6) if roe is not None else None,
                     "roi":       round(roi, 6) if roi is not None else None,
@@ -148,6 +153,9 @@ def fetch_stock(ticker: str) -> dict | None:
 
         if not years:
             return None
+
+        # 예상 순이익 계산용 희석주식수: 루프에서 수집한 마지막 유효값 사용
+        forecast_dil_shares = last_valid_dil_shares
 
         # ── 애널리스트 예상치 (현재 FY / 다음 FY) ─────────────
         forecasts = []
@@ -165,7 +173,7 @@ def fetch_stock(ticker: str) -> dict | None:
                     rv = re_est.loc[period].get("avg")
                     if rv is not None and not pd.isna(rv):
                         rev_avg = float(rv)
-                net_est = float(eps_avg) * shares_m * 1e6   # 총 순이익 (USD)
+                net_est = float(eps_avg) * forecast_dil_shares   # 총 순이익 (USD)
                 forecasts.append({
                     "period":  period,
                     "label":   label,
@@ -217,6 +225,7 @@ def fetch_stock_quick(ticker: str) -> dict | None:
         rev_row = _get_row(fin, _REVENUE_KEYS)
         net_row = _get_row(fin, _NET_KEYS)
         op_row  = _get_row(fin, _OPERATING_KEYS)
+        dil_row = _get_row(fin, _DIL_SHARES_KEYS)
 
         if rev_row is None or net_row is None:
             return None
@@ -229,12 +238,17 @@ def fetch_stock_quick(ticker: str) -> dict | None:
         if pd.isna(rev) or pd.isna(net):
             return None
 
+        # 희석주식수: 손익계산서 우선, 없으면 fast_info 값 (다중 클래스 주식 대응)
+        dil_shares = dil_row.get(col, float("nan")) if dil_row is not None else float("nan")
+        actual_shares_m = float(dil_shares) / 1e6 \
+            if not pd.isna(dil_shares) and float(dil_shares) > 0 else shares_m
+
         yr = col.year
         return {
             "ticker":        ticker.upper(),
             "name":          ticker.upper(),   # fast_info에 회사명 없음
             "current_price": price,
-            "shares_m":      shares_m,
+            "shares_m":      actual_shares_m,
             "years": [{
                 "year_key":  f"fy{yr}",
                 "label":     f"FY{yr}",
@@ -242,7 +256,7 @@ def fetch_stock_quick(ticker: str) -> dict | None:
                 "revenue":   float(rev) / 1e6,
                 "operating": float(op) / 1e6 if not pd.isna(op) else 0.0,
                 "net":       float(net) / 1e6,
-                "shares":    shares_m,
+                "shares":    round(actual_shares_m, 3),
                 "eps": None, "roe": None, "roi": None,
             }],
             "forecasts": [],
