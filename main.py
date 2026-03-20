@@ -80,6 +80,13 @@ def get_or_refresh(ticker: str, db: Session) -> models.Stock | None:
         stock.current_price      = data["current_price"]
         stock.shares_outstanding = data["shares_m"]
         stock.forecasts_json     = json.dumps(data.get("forecasts", []), ensure_ascii=False)
+        stock.dividend_yield     = data.get("dividend_yield", 0)
+        stock.dividend_rate      = data.get("dividend_rate", 0)
+        stock.market_cap         = data.get("market_cap", 0)
+        stock.trailing_pe        = data.get("trailing_pe")
+        stock.pb_ratio           = data.get("pb_ratio")
+        stock.trailing_roe       = data.get("trailing_roe")
+        stock.trailing_eps       = data.get("trailing_eps")
         stock.fetched_at         = _now()
 
         # 기존 연도 데이터 교체
@@ -97,6 +104,7 @@ def get_or_refresh(ticker: str, db: Session) -> models.Stock | None:
                 eps       = y.get("eps"),
                 roe       = y.get("roe"),
                 roi       = y.get("roi"),
+                bvps      = y.get("bvps"),
             ))
 
         db.commit()
@@ -121,6 +129,7 @@ def stock_to_dict(stock: models.Stock) -> dict:
             "eps":        round(f.eps, 2)  if f.eps  is not None else None,
             "roe":        round(f.roe, 4)  if f.roe  is not None else None,
             "roi":        round(f.roi, 4)  if f.roi  is not None else None,
+            "bvps":       round(f.bvps, 4) if f.bvps is not None else None,
             "isForecast": False,
         }
         for f in fyears
@@ -146,13 +155,20 @@ def stock_to_dict(stock: models.Stock) -> dict:
         forecast_keys.append(fc_key)
 
     return {
-        "ticker":       stock.ticker,
-        "name":         stock.name or stock.ticker,
-        "price":        stock.current_price or 0,
-        "updated":      stock.fetched_at.strftime("%Y-%m-%d %H:%M") if stock.fetched_at else "—",
-        "fiscalData":   fiscal_data,
-        "yearKeys":     [f.year_key for f in fyears],
-        "forecastKeys": forecast_keys,
+        "ticker":         stock.ticker,
+        "name":           stock.name or stock.ticker,
+        "price":          stock.current_price or 0,
+        "updated":        stock.fetched_at.strftime("%Y-%m-%d %H:%M") if stock.fetched_at else "—",
+        "fiscalData":     fiscal_data,
+        "yearKeys":       [f.year_key for f in fyears],
+        "forecastKeys":   forecast_keys,
+        "dividendYield":  stock.dividend_yield or 0,
+        "dividendRate":   stock.dividend_rate  or 0,
+        "marketCap":      stock.market_cap     or 0,
+        "trailingPE":     stock.trailing_pe,
+        "pbRatio":        stock.pb_ratio,
+        "trailingRoe":    stock.trailing_roe,
+        "trailingEps":    stock.trailing_eps,
     }
 
 

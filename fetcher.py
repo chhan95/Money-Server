@@ -59,6 +59,13 @@ def fetch_stock(ticker: str) -> dict | None:
         name  = info.get("longName") or info.get("shortName") or ticker.upper()
         price = float(info.get("currentPrice") or info.get("regularMarketPrice") or 0)
         shares_m = float(info.get("sharesOutstanding") or 0) / 1e6
+        dividend_rate  = float(info.get("trailingAnnualDividendRate") or info.get("dividendRate") or 0)
+        dividend_yield = float(info.get("dividendYield") or info.get("trailingAnnualDividendYield") or 0)
+        market_cap     = float(info.get("marketCap")     or 0)   # 시가총액 USD
+        trailing_pe    = info.get("trailingPE")                   # TTM P/E
+        pb_ratio       = info.get("priceToBook")                  # TTM P/B
+        trailing_roe   = info.get("returnOnEquity")               # TTM ROE
+        trailing_eps   = info.get("trailingEps")                  # TTM EPS
 
         # 재무제표 가져오기 (income_stmt 우선, financials 폴백)
         fin: pd.DataFrame | None = None
@@ -135,6 +142,9 @@ def fetch_stock(ticker: str) -> dict | None:
                 assets = _bs_val(assets_row, col)
                 roi = float(net) / assets if not pd.isna(assets) and assets > 0 else None
 
+                # BVPS = 자기자본 / 희석주식수
+                bvps = float(eq) / eps_shares if not pd.isna(eq) and eq > 0 and eps_shares > 0 else None
+
                 yr = col.year
                 years.append({
                     "year_key":  f"fy{yr}",
@@ -147,6 +157,7 @@ def fetch_stock(ticker: str) -> dict | None:
                     "eps":       round(eps, 4) if eps is not None else None,
                     "roe":       round(roe, 6) if roe is not None else None,
                     "roi":       round(roi, 6) if roi is not None else None,
+                    "bvps":      round(bvps, 4) if bvps is not None else None,
                 })
             except Exception as e:
                 logger.debug("[%s] %s 열 처리 오류: %s", ticker, col, e)
@@ -189,6 +200,13 @@ def fetch_stock(ticker: str) -> dict | None:
             "name":          name,
             "current_price": price,
             "shares_m":      shares_m,
+            "dividend_yield": dividend_yield,
+            "dividend_rate":  dividend_rate,
+            "market_cap":    market_cap,
+            "trailing_pe":   float(trailing_pe)  if trailing_pe  is not None else None,
+            "pb_ratio":      float(pb_ratio)     if pb_ratio     is not None else None,
+            "trailing_roe":  float(trailing_roe) if trailing_roe is not None else None,
+            "trailing_eps":  float(trailing_eps) if trailing_eps is not None else None,
             "years":         years,
             "forecasts":     forecasts,
         }

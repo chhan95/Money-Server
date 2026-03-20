@@ -1,5 +1,5 @@
 {% extends "base.html" %}
-{% block title %}계산기 — 💰 Money{% endblock %}
+{% block title %}💰 Money — 계산기{% endblock %}
 {% block content %}
 
 <!-- ── 티커 검색 ─────────────────────────────────────── -->
@@ -92,22 +92,59 @@
     </div>
   </div>
 
-  <!-- ROE / ROI / EPS -->
+  
+
+  <!-- 재무지표 -->
   <div id="ratioCard" class="highlight-card" style="margin-bottom:1rem;">
     <div class="highlight-title">재무 지표 (회계연도 기준)</div>
     <div class="metrics-grid" style="margin-top:0.75rem;">
+      <div class="metric-card">
+        <div class="metric-label">시가총액</div>
+        <div class="metric-annual" id="mktCapVal">—</div>
+      </div>
+      <div class="metric-card">
+        <div class="metric-label">배당율 <span class="clr-muted" style="font-size:10px;">배당금/주가</span></div>
+        <div class="metric-annual" id="divYieldVal">—</div>
+      </div>
+      <div class="metric-card">
+        <div class="metric-label">PBR <span class="clr-muted" style="font-size:10px;">주가/장부가</span></div>
+        <div class="metric-annual" id="pbrVal">—</div>
+      </div>
+      <div class="metric-card">
+        <div class="metric-label">PER <span class="clr-muted" style="font-size:10px;">주가/EPS</span></div>
+        <div class="metric-annual" id="perVal">—</div>
+      </div>
       <div class="metric-card">
         <div class="metric-label">ROE <span class="clr-muted" style="font-size:10px;">순이익/자기자본</span></div>
         <div class="metric-annual" id="roeVal">—</div>
       </div>
       <div class="metric-card">
-        <div class="metric-label">ROA <span class="clr-muted" style="font-size:10px;">순이익/총자산</span></div>
-        <div class="metric-annual" id="roiVal">—</div>
-      </div>
-      <div class="metric-card">
         <div class="metric-label">EPS <span class="clr-muted" style="font-size:10px;">주당순이익</span></div>
         <div class="metric-annual" id="epsVal">—</div>
       </div>
+    </div>
+  </div>
+
+  <!-- 배당 카드 -->
+  <div id="dividendCard" class="highlight-card" style="margin-bottom:1rem; display:none;">
+    <div class="highlight-title">배당 정보</div>
+    <div class="metrics-grid" style="margin-top:0.75rem;">
+      <div class="metric-card">
+        <div class="metric-label">배당율 <span class="clr-muted" style="font-size:10px;">배당금/주가</span></div>
+        <div class="metric-annual" id="divYield">—</div>
+      </div>
+      <div class="metric-card">
+        <div class="metric-label">주당 연간 배당금</div>
+        <div class="metric-annual" id="divRate">—</div>
+      </div>
+      <div class="metric-card">
+        <div class="metric-label">보유 주식 월 배당 <span class="clr-muted" style="font-size:10px;">연간÷12</span></div>
+        <div class="metric-annual clr-green" id="divMonthlyKrw">—</div>
+        <div class="metric-monthly-usd" id="divMonthlyUsd">—</div>
+      </div>
+    </div>
+    <div style="margin-top:0.5rem; font-size:11px; color:var(--text2);">
+      ※ 실제 지급 배당금 기준 (지분비례 추정이 아닌 직접 수령액)
     </div>
   </div>
 
@@ -331,6 +368,22 @@ function calculate() {
   const d      = stockData.fiscalData[currentYear];
   const pct    = shares / (d.shares * 1e6);
 
+  // 배당 카드
+  const divRate  = stockData.dividendRate  || 0;
+  const divCard  = document.getElementById('dividendCard');
+  if (divRate > 0) {
+    divCard.style.display = '';
+    const divYieldRaw = stockData.dividendYield || 0;
+    setText('divYield', divYieldRaw > 0 ? (divYieldRaw * 100).toFixed(2) + '%' : '—');
+    setText('divRate',       '$' + divRate.toFixed(4) + ' / 주');
+    const annualDiv  = divRate * shares;                  // USD
+    const monthlyDiv = annualDiv / 12;
+    setText('divMonthlyUsd', '$' + monthlyDiv.toFixed(4) + '/월');
+    setText('divMonthlyKrw', fmtKRWraw(monthlyDiv * fxRate) + '/월');
+  } else {
+    divCard.style.display = 'none';
+  }
+
   setText('ownershipPct',    (pct * 100).toExponential(4) + '%');
   setText('totalSharesLabel', fmtShares(d.shares));
 
@@ -364,16 +417,30 @@ function calculate() {
   setText('sum-op-krw',  fmtKRW(opM)  + '/월');
   setText('sum-net-krw', fmtKRW(netM) + '/월');
 
-  // ROE / ROI / EPS — 예상 탭이면 카드 숨김 (실적 데이터 없음)
+  // 재무지표
   const ratioCard = document.getElementById('ratioCard');
-  if (d.isForecast) {
-    ratioCard.style.display = 'none';
-  } else {
-    ratioCard.style.display = '';
-    setText('roeVal', d.roe != null ? (d.roe * 100).toFixed(1) + '%' : '—');
-    setText('roiVal', d.roi != null ? (d.roi * 100).toFixed(1) + '%' : '—');
-    setText('epsVal', d.eps != null ? '$' + d.eps.toFixed(2) : '—');
-  }
+  ratioCard.style.display = '';
+
+  // 시가총액 · 배당율 — FY 무관, 항상 최신값
+  const mc = stockData.marketCap || 0;
+  let mcStr = '—';
+  if (mc >= 1e12)      mcStr = '$' + (mc / 1e12).toFixed(2) + 'T';
+  else if (mc >= 1e9)  mcStr = '$' + (mc / 1e9 ).toFixed(2) + 'B';
+  else if (mc >= 1e6)  mcStr = '$' + (mc / 1e6 ).toFixed(2) + 'M';
+  else if (mc > 0)     mcStr = '$' + mc.toFixed(0);
+  setText('mktCapVal',  mcStr);
+  const dy = stockData.dividendYield || 0;
+  setText('divYieldVal', dy > 0 ? (dy).toFixed(2) + '%' : '—');
+
+  // PBR · PER · ROE · EPS — TTM 기준 (FY 탭 무관)
+  const tPE  = stockData.trailingPE;
+  const tPBR = stockData.pbRatio;
+  const tROE = stockData.trailingRoe;
+  const tEPS = stockData.trailingEps;
+  setText('perVal', tPE  != null ? Number(tPE ).toFixed(2) + 'x' : '—');
+  setText('pbrVal', tPBR != null ? Number(tPBR).toFixed(2) + 'x' : '—');
+  setText('roeVal', tROE != null ? (Number(tROE) * 100).toFixed(1) + '%' : '—');
+  setText('epsVal', tEPS != null ? '$' + Number(tEPS).toFixed(2) : '—');
 
   const fcTag = d.isForecast ? ' [애널리스트 예상]' : '';
   setText('yearNote',

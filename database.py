@@ -26,7 +26,7 @@ def create_tables():
             "eps FLOAT",
             "roe FLOAT",
             "roi FLOAT",
-            # stocks 테이블
+            "bvps FLOAT",
         ]:
             try:
                 conn.execute(text(f"ALTER TABLE fiscal_years ADD COLUMN {col_def}"))
@@ -35,9 +35,41 @@ def create_tables():
                 pass
         for col_def in [
             "forecasts_json TEXT",
+            "dividend_yield FLOAT",
+            "dividend_rate FLOAT",
+            "market_cap FLOAT",
+            "trailing_pe FLOAT",
+            "pb_ratio FLOAT",
+            "trailing_roe FLOAT",
+            "trailing_eps FLOAT",
         ]:
             try:
                 conn.execute(text(f"ALTER TABLE stocks ADD COLUMN {col_def}"))
                 conn.commit()
             except Exception:
                 pass  # 이미 존재하면 무시
+        # divi_ver 컬럼 추가 (배당율 단위 마이그레이션 버전 관리)
+        try:
+            conn.execute(text("ALTER TABLE stocks ADD COLUMN divi_ver INT DEFAULT 0"))
+            conn.commit()
+        except Exception:
+            pass
+        # 신규 TTM 필드가 없는 캐시 → 한 번만 무효화
+        try:
+            conn.execute(text(
+                "UPDATE stocks SET fetched_at = NULL "
+                "WHERE (trailing_roe IS NULL OR market_cap IS NULL OR market_cap = 0) "
+                "AND fetched_at IS NOT NULL"
+            ))
+            conn.commit()
+        except Exception:
+            pass
+        # 배당율 단위 오류 수정 — rate/price로 잘못 계산된 캐시 재조회 (일회성)
+        try:
+            conn.execute(text(
+                "UPDATE stocks SET fetched_at = NULL, divi_ver = 1 "
+                "WHERE divi_ver = 0 OR divi_ver IS NULL"
+            ))
+            conn.commit()
+        except Exception:
+            pass

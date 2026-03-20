@@ -13,6 +13,13 @@ class Stock(Base):
     current_price       = Column(Float, default=0)   # USD
     fiscal_note         = Column(String(100))
     forecasts_json      = Column(Text, default="[]")   # JSON list of forecast dicts
+    dividend_yield      = Column(Float, default=0)     # 배당율 (e.g. 0.025 = 2.5%)
+    dividend_rate       = Column(Float, default=0)     # 연간 주당 배당금 USD
+    market_cap          = Column(Float, default=0)     # 시가총액 USD
+    trailing_pe         = Column(Float)                # TTM P/E
+    pb_ratio            = Column(Float)                # TTM P/B
+    trailing_roe        = Column(Float)                # TTM ROE
+    trailing_eps        = Column(Float)                # TTM EPS
     fetched_at          = Column(DateTime)
 
     fiscal_years = relationship(
@@ -38,6 +45,7 @@ class FiscalYear(Base):
     eps         = Column(Float)              # USD per share
     roe         = Column(Float)              # ratio (e.g. 0.25 = 25%)
     roi         = Column(Float)              # ratio (net/assets)
+    bvps        = Column(Float)              # book value per share (USD)
 
     stock = relationship("Stock", back_populates="fiscal_years")
 
