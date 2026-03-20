@@ -173,6 +173,72 @@ def stock_to_dict(stock: models.Stock) -> dict:
 
 
 # ════════════════════════════════════════════════════════════
+# 일별 스냅샷
+# ════════════════════════════════════════════════════════════
+
+def save_daily_snapshot(db: Session) -> None:
+    """오늘 스냅샷을 생성(없으면) 또는 갱신(있으면). 홈 로드 시 호출."""
+    from datetime import date as _date
+    today = _date.today()
+
+    portfolio = db.query(models.Portfolio).all()
+    if not portfolio:
+        return
+
+    try:
+        fx_rate = fetcher.fetch_krw_rate()
+    except Exception:
+        fx_rate = 1380.0
+
+    total_value_usd = 0.0
+    monthly_revenue_usd = 0.0
+    monthly_op_usd = 0.0
+    monthly_net_usd = 0.0
+    unrealized_gain_usd = 0.0
+
+    for p in portfolio:
+        stock = db.query(models.Stock).filter(models.Stock.ticker == p.ticker).first()
+        if not stock or not stock.fiscal_years:
+            continue
+        price  = stock.current_price or 0
+        shares = p.shares_owned
+        avg    = p.avg_price or 0
+
+        total_value_usd += price * shares
+        if avg > 0:
+            unrealized_gain_usd += (price - avg) * shares
+
+        fyears = sorted(stock.fiscal_years, key=lambda f: f.year_key)
+        latest = fyears[-1]
+        shares_m = latest.shares or 1
+        pct = shares / (shares_m * 1e6)
+
+        monthly_revenue_usd += (latest.revenue  or 0) * pct / 12
+        monthly_op_usd      += (latest.operating or 0) * pct / 12
+        monthly_net_usd     += (latest.net       or 0) * pct / 12
+
+    snap = db.query(models.DailySnapshot).filter(
+        models.DailySnapshot.snapshot_date == today
+    ).first()
+    if snap is None:
+        snap = models.DailySnapshot(snapshot_date=today)
+        db.add(snap)
+
+    snap.total_value_krw     = total_value_usd * fx_rate
+    snap.monthly_revenue_krw = monthly_revenue_usd * 1e6 * fx_rate
+    snap.monthly_op_krw      = monthly_op_usd * 1e6 * fx_rate
+    snap.monthly_net_krw     = monthly_net_usd * 1e6 * fx_rate
+    snap.unrealized_gain_krw = unrealized_gain_usd * fx_rate
+    snap.unrealized_gain_usd = unrealized_gain_usd
+    snap.fx_rate             = fx_rate
+    try:
+        db.commit()
+    except Exception as e:
+        db.rollback()
+        logger.warning("스냅샷 저장 실패: %s", e)
+
+
+# ════════════════════════════════════════════════════════════
 # 페이지 라우트 (HTML)
 # ════════════════════════════════════════════════════════════
 
@@ -232,6 +298,12 @@ def page_home(request: Request, db: Session = Depends(get_db)):
         fx_rate = fetcher.fetch_krw_rate()
     except Exception:
         fx_rate = 1380.0
+
+    # 오늘 스냅샷 저장 (최신 가격 기준)
+    try:
+        save_daily_snapshot(db)
+    except Exception as e:
+        logger.warning("스냅샷 저장 실패: %s", e)
 
     return templates.TemplateResponse("index.html", {
         "request":       request,
@@ -295,9 +367,46 @@ def page_portfolio(request: Request, db: Session = Depends(get_db)):
     })
 
 
+@app.get("/history", response_class=HTMLResponse)
+def page_history(request: Request):
+    return templates.TemplateResponse("history.html", {
+        "request": request,
+        "active":  "history",
+    })
+
+
 # ════════════════════════════════════════════════════════════
 # API 라우트 (JSON)
 # ════════════════════════════════════════════════════════════
+
+@app.get("/api/history")
+def api_history(db: Session = Depends(get_db)):
+    """월별 스냅샷 데이터 반환 (각 월의 마지막 스냅샷 기준)."""
+    snapshots = (
+        db.query(models.DailySnapshot)
+        .order_by(models.DailySnapshot.snapshot_date)
+        .all()
+    )
+    # 월별 마지막 스냅샷만 (덮어쓰기)
+    monthly: dict = {}
+    for s in snapshots:
+        month_key = s.snapshot_date.strftime("%Y-%m")
+        monthly[month_key] = s
+
+    result = []
+    for month_key in sorted(monthly.keys()):
+        s = monthly[month_key]
+        result.append({
+            "month":              month_key,
+            "totalValueKrw":     s.total_value_krw     or 0,
+            "monthlyRevenueKrw": s.monthly_revenue_krw or 0,
+            "monthlyOpKrw":      s.monthly_op_krw      or 0,
+            "monthlyNetKrw":     s.monthly_net_krw     or 0,
+            "unrealizedGainKrw": s.unrealized_gain_krw or 0,
+            "unrealizedGainUsd": s.unrealized_gain_usd or 0,
+        })
+    return result
+
 
 @app.get("/api/stock/{ticker}/quick")
 def api_get_stock_quick(ticker: str, db: Session = Depends(get_db)):

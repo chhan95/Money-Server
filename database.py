@@ -73,3 +73,15 @@ def create_tables():
             conn.commit()
         except Exception:
             pass
+        # portfolio avg_price 컬럼
+        try:
+            conn.execute(text("ALTER TABLE portfolio ADD COLUMN avg_price FLOAT DEFAULT 0"))
+            conn.commit()
+        except Exception:
+            pass
+        # daily_snapshots unrealized_gain_usd 컬럼
+        try:
+            conn.execute(text("ALTER TABLE daily_snapshots ADD COLUMN unrealized_gain_usd FLOAT DEFAULT 0"))
+            conn.commit()
+        except Exception:
+            pass

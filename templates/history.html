@@ -1,0 +1,200 @@
+{% extends "base.html" %}
+{% block title %}💰 Money — 히스토리{% endblock %}
+{% block content %}
+
+<div class="page-header">
+  <h1>📈 투자 히스토리</h1>
+  <p class="clr-muted" id="historyNote">매일 홈 화면 접속 시 자동 저장됩니다</p>
+</div>
+
+<div id="noDataMsg" style="display:none;" class="highlight-card">
+  <div style="text-align:center; padding:2rem; color:var(--text2);">
+    <div style="font-size:2rem; margin-bottom:0.5rem;">📭</div>
+    <div style="font-weight:600; margin-bottom:0.25rem;">아직 데이터가 없습니다</div>
+    <div style="font-size:13px;">홈 화면을 방문하면 오늘부터 데이터가 쌓이기 시작합니다</div>
+  </div>
+</div>
+
+<div id="chartsWrap" style="display:none;">
+
+  <!-- 포트폴리오 평가액 -->
+  <div class="highlight-card" style="margin-bottom:1.25rem;">
+    <div style="display:flex; justify-content:space-between; align-items:baseline; margin-bottom:0.75rem;">
+      <div class="highlight-title" style="margin:0;">📊 포트폴리오 평가액</div>
+      <div id="val-total" style="font-size:1.1rem; font-weight:700; color:var(--accent);"></div>
+    </div>
+    <canvas id="chart-total" height="90"></canvas>
+  </div>
+
+  <!-- 평가이익 -->
+  <div class="highlight-card" style="margin-bottom:1.25rem;">
+    <div style="display:flex; justify-content:space-between; align-items:baseline; margin-bottom:0.75rem;">
+      <div class="highlight-title" style="margin:0;">💹 평가이익</div>
+      <div id="val-gain" style="font-size:1.1rem; font-weight:700;"></div>
+    </div>
+    <canvas id="chart-gain" height="90"></canvas>
+  </div>
+
+  <!-- 월 매출 / 영업이익 / 순이익 (3개 합쳐서 1차트) -->
+  <div class="highlight-card" style="margin-bottom:1.25rem;">
+    <div style="display:flex; justify-content:space-between; align-items:baseline; margin-bottom:0.75rem;">
+      <div class="highlight-title" style="margin:0;">📋 지분비례 월 손익</div>
+      <div style="display:flex; gap:12px; font-size:12px;">
+        <span style="color:#3B82F6;">● 매출</span>
+        <span style="color:#10B981;">● 영업이익</span>
+        <span style="color:#F59E0B;">● 순이익</span>
+      </div>
+    </div>
+    <canvas id="chart-income" height="100"></canvas>
+  </div>
+
+
+</div>
+
+<script>
+// ── 포맷 헬퍼 ─────────────────────────────────────────────
+function fmtW(w) {
+  const sign = w < 0 ? '-' : '', a = Math.abs(w);
+  if (a >= 1e12) return sign + (a/1e12).toFixed(2) + '조원';
+  if (a >= 1e8)  return sign + (a/1e8 ).toFixed(2) + '억원';
+  if (a >= 1e4)  return sign + Math.round(a/1e4).toLocaleString() + '만원';
+  return sign + Math.round(a).toLocaleString() + '원';
+}
+function fmtUSD(v) {
+  const sign = v < 0 ? '-' : '', a = Math.abs(v);
+  if (a >= 1e9) return sign + '$' + (a/1e9).toFixed(2) + 'B';
+  if (a >= 1e6) return sign + '$' + (a/1e6).toFixed(2) + 'M';
+  if (a >= 1e3) return sign + '$' + (a/1e3).toFixed(2) + 'K';
+  return sign + '$' + a.toFixed(2);
+}
+
+function gainColor(v) {
+  return v >= 0 ? '#10B981' : '#EF4444';
+}
+
+// ── 차트 공통 옵션 ────────────────────────────────────────
+function baseOptions(fmt, colorFn) {
+  return {
+    responsive: true,
+    maintainAspectRatio: true,
+    interaction: { mode: 'index', intersect: false },
+    plugins: {
+      legend: { display: false },
+      tooltip: {
+        callbacks: {
+          label: ctx => ' ' + fmtW(ctx.parsed.y),
+        }
+      }
+    },
+    scales: {
+      x: {
+        grid: { display: false },
+        ticks: {
+          font: { size: 11 },
+          maxTicksLimit: 12,
+          callback: function(val, idx) {
+            const lbl = this.getLabelForValue(val);
+            return lbl ? lbl.slice(2) : '';   // "2025-03" → "25.03"
+          }
+        }
+      },
+      y: {
+        grid: { color: 'rgba(128,128,128,0.08)' },
+        ticks: {
+          font: { size: 11 },
+          callback: v => fmtW(v),
+        }
+      }
+    }
+  };
+}
+
+function makeDataset(data, color, fill = true) {
+  return {
+    data,
+    borderColor: color,
+    backgroundColor: fill ? color + '18' : 'transparent',
+    borderWidth: 2,
+    pointRadius: data.length <= 12 ? 3 : 0,
+    pointHoverRadius: 5,
+    fill,
+    tension: 0.3,
+  };
+}
+
+// ── 데이터 로드 & 렌더 ────────────────────────────────────
+fetch('/api/history')
+  .then(r => r.json())
+  .then(data => {
+    if (!data || data.length === 0) {
+      document.getElementById('noDataMsg').style.display = '';
+      return;
+    }
+    document.getElementById('chartsWrap').style.display = '';
+
+    const months  = data.map(d => d.month);
+    const total   = data.map(d => d.totalValueKrw);
+    const revenue = data.map(d => d.monthlyRevenueKrw);
+    const op      = data.map(d => d.monthlyOpKrw);
+    const net     = data.map(d => d.monthlyNetKrw);
+    const gain    = data.map(d => d.unrealizedGainUsd);
+
+    const last = data[data.length - 1];
+
+    // 최신값 표시
+    document.getElementById('val-total').textContent = fmtW(last.totalValueKrw);
+    const gainEl = document.getElementById('val-gain');
+    gainEl.textContent = fmtUSD(last.unrealizedGainUsd);
+    gainEl.style.color = gainColor(last.unrealizedGainKrw);
+
+    // 데이터 개수 안내
+    if (data.length === 1) {
+      document.getElementById('historyNote').textContent =
+        '데이터 1개월 — 매일 홈 접속 시 자동으로 쌓입니다';
+    } else {
+      document.getElementById('historyNote').textContent =
+        `${data.length}개월 데이터 기록됨`;
+    }
+
+    const ctx = id => document.getElementById(id).getContext('2d');
+
+    // 1. 평가액
+    new Chart(ctx('chart-total'), {
+      type: 'line',
+      data: { labels: months, datasets: [makeDataset(total, '#3B82F6')] },
+      options: baseOptions(),
+    });
+
+    // 2. 평가이익 (달러, 양수/음수 색상)
+    const gainOpts = baseOptions();
+    gainOpts.plugins.tooltip.callbacks.label = ctx2 => ' ' + fmtUSD(ctx2.parsed.y);
+    gainOpts.scales.y.ticks.callback = v => fmtUSD(v);
+    new Chart(ctx('chart-gain'), {
+      type: 'line',
+      data: { labels: months, datasets: [{
+        ...makeDataset(gain, '#10B981'),
+        segment: { borderColor: ctx2 => gainColor(ctx2.p1.parsed.y) }
+      }]},
+      options: gainOpts,
+    });
+
+    // 3. 통합 손익 차트
+    new Chart(ctx('chart-income'), {
+      type: 'line',
+      data: { labels: months, datasets: [
+        makeDataset(revenue, '#3B82F6', false),
+        makeDataset(op,      '#10B981', false),
+        makeDataset(net,     '#F59E0B', false),
+      ]},
+      options: { ...baseOptions(), plugins: {
+        ...baseOptions().plugins,
+        legend: { display: false },
+      }},
+    });
+
+  })
+  .catch(() => {
+    document.getElementById('noDataMsg').style.display = '';
+  });
+</script>
+{% endblock %}

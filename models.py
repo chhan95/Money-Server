@@ -1,4 +1,4 @@
-from sqlalchemy import Column, Integer, String, Float, DateTime, Text, ForeignKey, UniqueConstraint
+from sqlalchemy import Column, Integer, String, Float, DateTime, Text, ForeignKey, UniqueConstraint, Date
 from sqlalchemy.orm import relationship
 from datetime import datetime
 from database import Base
@@ -67,3 +67,18 @@ class Portfolio(Base):
     updated_at    = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
 
     stock = relationship("Stock", back_populates="portfolio")
+
+
+class DailySnapshot(Base):
+    """포트폴리오 일별 스냅샷 — 히스토리 차트용"""
+    __tablename__ = "daily_snapshots"
+
+    id                  = Column(Integer, primary_key=True, autoincrement=True)
+    snapshot_date       = Column(Date, unique=True, nullable=False)  # YYYY-MM-DD
+    total_value_krw     = Column(Float, default=0)   # 포트폴리오 평가액 (KRW)
+    monthly_revenue_krw = Column(Float, default=0)   # 지분비례 월 매출 (KRW)
+    monthly_op_krw      = Column(Float, default=0)   # 지분비례 월 영업이익 (KRW)
+    monthly_net_krw     = Column(Float, default=0)   # 지분비례 월 순이익 (KRW)
+    unrealized_gain_krw = Column(Float, default=0)   # 평가이익 (KRW)
+    unrealized_gain_usd = Column(Float, default=0)   # 평가이익 (USD)
+    fx_rate             = Column(Float, default=0)   # 적용 환율
