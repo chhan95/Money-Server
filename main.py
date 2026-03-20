@@ -1,4 +1,3 @@
-import os
 from fastapi import FastAPI, Depends, HTTPException, Request, Form
 from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
@@ -10,7 +9,6 @@ import json, logging
 
 import models, database, fetcher
 from database import get_db
-from paths import BUNDLE_DIR
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
@@ -19,8 +17,8 @@ logger = logging.getLogger(__name__)
 database.create_tables()
 
 app = FastAPI(title="💰 Money Dashboard", docs_url="/docs")
-app.mount("/static", StaticFiles(directory=os.path.join(BUNDLE_DIR, "static")), name="static")
-templates = Jinja2Templates(directory=os.path.join(BUNDLE_DIR, "templates"))
+app.mount("/static", StaticFiles(directory="static"), name="static")
+templates = Jinja2Templates(directory="templates")
 
 CACHE_HOURS = 24
 
