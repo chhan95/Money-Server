@@ -20,6 +20,7 @@ class Stock(Base):
     pb_ratio            = Column(Float)                # TTM P/B
     trailing_roe        = Column(Float)                # TTM ROE
     trailing_eps        = Column(Float)                # TTM EPS
+    fin_currency        = Column(String(10))               # 재무제표 통화 (e.g. "USD", "TWD")
     fetched_at          = Column(DateTime)
 
     fiscal_years = relationship(

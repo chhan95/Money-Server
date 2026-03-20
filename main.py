@@ -1,3 +1,4 @@
+import os
 from fastapi import FastAPI, Depends, HTTPException, Request, Form
 from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
@@ -9,6 +10,7 @@ import json, logging
 
 import models, database, fetcher
 from database import get_db
+from paths import BUNDLE_DIR
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
@@ -17,8 +19,8 @@ logger = logging.getLogger(__name__)
 database.create_tables()
 
 app = FastAPI(title="💰 Money Dashboard", docs_url="/docs")
-app.mount("/static", StaticFiles(directory="static"), name="static")
-templates = Jinja2Templates(directory="templates")
+app.mount("/static", StaticFiles(directory=os.path.join(BUNDLE_DIR, "static")), name="static")
+templates = Jinja2Templates(directory=os.path.join(BUNDLE_DIR, "templates"))
 
 CACHE_HOURS = 24
 
@@ -87,6 +89,7 @@ def get_or_refresh(ticker: str, db: Session) -> models.Stock | None:
         stock.pb_ratio           = data.get("pb_ratio")
         stock.trailing_roe       = data.get("trailing_roe")
         stock.trailing_eps       = data.get("trailing_eps")
+        stock.fin_currency       = data.get("fin_currency", "USD")
         stock.fetched_at         = _now()
 
         # 기존 연도 데이터 교체

@@ -5,45 +5,67 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>{% block title %}💰 Holding Company{% endblock %}</title>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.js"></script>
-  <link rel="stylesheet" href="/static/style.css?v=3">
+  <link rel="stylesheet" href="/static/style.css?v=5">
   {% block head %}{% endblock %}
 </head>
 <body>
+<script>
+(function() {
+  const saved = localStorage.getItem('theme') || 'light';
+  document.documentElement.setAttribute('data-theme', saved);
+})();
+</script>
 
-<nav class="nav">
-  <div class="nav-inner">
-    <a href="/" class="nav-brand">💰 Holding Company</a>
-    <div style="display:flex; align-items:center; gap:6px;">
-      <div class="nav-links">
-        <a href="/"           class="nav-link {% if active == 'home'       %}active{% endif %}">홈</a>
-        <a href="/calculator" class="nav-link {% if active == 'calculator' %}active{% endif %}">계산기</a>
-        <a href="/portfolio"  class="nav-link {% if active == 'portfolio'  %}active{% endif %}">포트폴리오</a>
-        <a href="/history"    class="nav-link {% if active == 'history'    %}active{% endif %}">히스토리</a>
-      </div>
+<div class="layout">
+
+  <!-- ── 사이드바 ── -->
+  <nav class="sidebar">
+    <div class="sidebar-brand">💰 Holding Company</div>
+
+    <!-- 자산관리 -->
+    <div class="sidebar-section">
+      <div class="sidebar-section-title">자산관리</div>
+      <div class="sidebar-empty">준비 중</div>
+    </div>
+
+    <!-- 해외 투자 -->
+    <div class="sidebar-section">
+      <div class="sidebar-section-title">해외 투자</div>
+      <a href="/"           class="sidebar-link {% if active == 'home'       %}active{% endif %}">🏠 홈</a>
+      <a href="/calculator" class="sidebar-link {% if active == 'calculator' %}active{% endif %}">🧮 계산기</a>
+      <a href="/portfolio"  class="sidebar-link {% if active == 'portfolio'  %}active{% endif %}">📂 포트폴리오</a>
+      <a href="/history"    class="sidebar-link {% if active == 'history'    %}active{% endif %}">📈 히스토리</a>
+    </div>
+
+    <div class="sidebar-footer">
+      <span style="font-size:12px; color:var(--text2);">테마</span>
       <button class="theme-toggle" id="themeToggle" title="테마 전환">🌙</button>
     </div>
-  </div>
-</nav>
+  </nav>
+
+  <!-- ── 메인 콘텐츠 ── -->
+  <main class="main-content">
+    <div class="page-wrap">
+      {% block content %}{% endblock %}
+    </div>
+  </main>
+
+</div>
 
 <script>
 (function() {
   const saved = localStorage.getItem('theme') || 'light';
   document.documentElement.setAttribute('data-theme', saved);
-  document.getElementById('themeToggle').textContent = saved === 'dark' ? '☀️' : '🌙';
-
-  document.getElementById('themeToggle').addEventListener('click', function() {
-    const current = document.documentElement.getAttribute('data-theme');
-    const next = current === 'dark' ? 'light' : 'dark';
+  const btn = document.getElementById('themeToggle');
+  btn.textContent = saved === 'dark' ? '☀️' : '🌙';
+  btn.addEventListener('click', function() {
+    const next = document.documentElement.getAttribute('data-theme') === 'dark' ? 'light' : 'dark';
     document.documentElement.setAttribute('data-theme', next);
     localStorage.setItem('theme', next);
     this.textContent = next === 'dark' ? '☀️' : '🌙';
   });
 })();
 </script>
-
-<main class="page-wrap">
-  {% block content %}{% endblock %}
-</main>
 
 </body>
 </html>

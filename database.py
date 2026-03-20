@@ -1,7 +1,9 @@
+import os
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker, DeclarativeBase
+from paths import DATA_DIR
 
-DATABASE_URL = "sqlite:///./money.db"
+DATABASE_URL = f"sqlite:///{os.path.join(DATA_DIR, 'money.db')}"
 
 engine = create_engine(DATABASE_URL, connect_args={"check_same_thread": False})
 SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
@@ -82,6 +84,21 @@ def create_tables():
         # daily_snapshots unrealized_gain_usd 컬럼
         try:
             conn.execute(text("ALTER TABLE daily_snapshots ADD COLUMN unrealized_gain_usd FLOAT DEFAULT 0"))
+            conn.commit()
+        except Exception:
+            pass
+        # 재무제표 통화 컬럼 (비USD 종목 환산 지원)
+        try:
+            conn.execute(text("ALTER TABLE stocks ADD COLUMN fin_currency VARCHAR(10)"))
+            conn.commit()
+        except Exception:
+            pass
+        # fin_currency 미설정 종목 → 재조회 (TWD 등 비USD 환산 적용)
+        try:
+            conn.execute(text(
+                "UPDATE stocks SET fetched_at = NULL "
+                "WHERE fin_currency IS NULL AND fetched_at IS NOT NULL"
+            ))
             conn.commit()
         except Exception:
             pass

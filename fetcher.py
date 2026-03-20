@@ -60,6 +60,21 @@ def fetch_stock(ticker: str) -> dict | None:
         price = float(info.get("currentPrice") or info.get("regularMarketPrice") or 0)
         shares_m = float(info.get("sharesOutstanding") or 0) / 1e6
         dividend_rate  = float(info.get("trailingAnnualDividendRate") or info.get("dividendRate") or 0)
+
+        # 재무제표 통화 → USD 환산 (TSM=TWD, 삼성=KRW 등)
+        fin_currency = info.get("financialCurrency") or "USD"
+        fin_conv = 1.0
+        if fin_currency != "USD":
+            try:
+                fx_pair = f"{fin_currency}USD=X"
+                rate = float(yf.Ticker(fx_pair).fast_info.get("lastPrice") or 0)
+                if rate > 0:
+                    fin_conv = rate
+                    logger.info("[%s] 재무제표 통화 %s→USD 환율: %.6f", ticker, fin_currency, rate)
+                else:
+                    logger.warning("[%s] %s 환율 0, fin_conv=1 fallback", ticker, fx_pair)
+            except Exception as e:
+                logger.warning("[%s] 환율 조회 실패 (%s): %s", ticker, fin_currency, e)
         dividend_yield = float(info.get("dividendYield") or info.get("trailingAnnualDividendYield") or 0)
         market_cap     = float(info.get("marketCap")     or 0)   # 시가총액 USD
         trailing_pe    = info.get("trailingPE")                   # TTM P/E
@@ -132,7 +147,7 @@ def fetch_stock(ticker: str) -> dict | None:
                     last_valid_dil_shares = eps_shares
                 else:
                     eps_shares = last_valid_dil_shares
-                eps = float(net) / eps_shares if eps_shares > 0 else None
+                eps = float(net) * fin_conv / eps_shares if eps_shares > 0 else None
 
                 # ROE = 순이익 / 자기자본
                 eq = _bs_val(eq_row, col)
@@ -142,17 +157,17 @@ def fetch_stock(ticker: str) -> dict | None:
                 assets = _bs_val(assets_row, col)
                 roi = float(net) / assets if not pd.isna(assets) and assets > 0 else None
 
-                # BVPS = 자기자본 / 희석주식수
-                bvps = float(eq) / eps_shares if not pd.isna(eq) and eq > 0 and eps_shares > 0 else None
+                # BVPS = 자기자본 / 희석주식수 (USD 환산)
+                bvps = float(eq) * fin_conv / eps_shares if not pd.isna(eq) and eq > 0 and eps_shares > 0 else None
 
                 yr = col.year
                 years.append({
                     "year_key":  f"fy{yr}",
                     "label":     f"FY{yr}",
                     "end_date":  col.strftime("%Y-%m"),
-                    "revenue":   float(rev) / 1e6,
-                    "operating": float(op)  / 1e6 if not pd.isna(op) else 0.0,
-                    "net":       float(net) / 1e6,
+                    "revenue":   float(rev) / 1e6 * fin_conv,
+                    "operating": float(op)  / 1e6 * fin_conv if not pd.isna(op) else 0.0,
+                    "net":       float(net) / 1e6 * fin_conv,
                     "shares":    round(eps_shares / 1e6, 3),  # 희석주식수 우선 (다중 클래스 주식 대응)
                     "eps":       round(eps, 4) if eps is not None else None,
                     "roe":       round(roe, 6) if roe is not None else None,
@@ -183,7 +198,7 @@ def fetch_stock(ticker: str) -> dict | None:
                 if re_est is not None and period in re_est.index:
                     rv = re_est.loc[period].get("avg")
                     if rv is not None and not pd.isna(rv):
-                        rev_avg = float(rv)
+                        rev_avg = float(rv) * fin_conv   # 비USD 통화 환산
                 net_est = float(eps_avg) * forecast_dil_shares   # 총 순이익 (USD)
                 forecasts.append({
                     "period":  period,
@@ -200,6 +215,7 @@ def fetch_stock(ticker: str) -> dict | None:
             "name":          name,
             "current_price": price,
             "shares_m":      shares_m,
+            "fin_currency":  fin_currency,
             "dividend_yield": dividend_yield,
             "dividend_rate":  dividend_rate,
             "market_cap":    market_cap,
