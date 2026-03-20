@@ -83,3 +83,74 @@ class DailySnapshot(Base):
     unrealized_gain_krw = Column(Float, default=0)   # 평가이익 (KRW)
     unrealized_gain_usd = Column(Float, default=0)   # 평가이익 (USD)
     fx_rate             = Column(Float, default=0)   # 적용 환율
+
+
+class Milestone(Base):
+    """인생 마일스톤"""
+    __tablename__ = "milestones"
+
+    id            = Column(Integer, primary_key=True, autoincrement=True)
+    title         = Column(String(200), nullable=False)
+    status        = Column(String(20), default='in_progress')  # completed / in_progress
+    category      = Column(String(50), default='')  # 카테고리
+    note          = Column(String(500), default='')
+    milestone_date = Column(String(20))   # 완료일 or 목표일 (YYYY-MM-DD)
+    display_order = Column(Integer, default=0)
+
+
+class AppSetting(Base):
+    """앱 설정 키-값 저장소"""
+    __tablename__ = "app_settings"
+    key   = Column(String(100), primary_key=True)
+    value = Column(Text, default='')
+
+
+class CustomAccount(Base):
+    """사용자 정의 계좌 (built-in 외 추가 통장)"""
+    __tablename__ = "custom_accounts"
+
+    id            = Column(Integer, primary_key=True, autoincrement=True)
+    name          = Column(String(100), nullable=False)
+    category      = Column(String(20),  nullable=False)  # pension/invest/savings/liquid/loan
+    display_order = Column(Integer, default=0)
+
+
+class AssetSnapshot(Base):
+    """자산관리 월별 스냅샷"""
+    __tablename__ = "asset_snapshots"
+
+    id              = Column(Integer, primary_key=True, autoincrement=True)
+    snapshot_date   = Column(String(10), unique=True, nullable=False, index=True)  # YYYY/MM/DD
+
+    # 연금
+    dc              = Column(Float, default=0)   # 퇴직연금 DC
+    irp_miraeasset  = Column(Float, default=0)   # IRP(미래에셋)
+    irp_samsung     = Column(Float, default=0)   # IRP(삼성)
+    personal_pension = Column(Float, default=0)  # 개인연금(미래에셋)
+    pension_cma     = Column(Float, default=0)   # 연금 CMA(삼성)
+
+    # 투자
+    isa             = Column(Float, default=0)   # ISA
+    miraeasset      = Column(Float, default=0)   # 종합(미래에셋증권)
+    samsung_trading = Column(Float, default=0)   # 종합매매(삼성증권)
+    toss_securities = Column(Float, default=0)   # 토스증권
+
+    # 저축
+    hana_salary_savings  = Column(Float, default=0)  # 급여 하나 월복리 적금
+    hana_home_savings    = Column(Float, default=0)  # 내집마련더블업적금(하나)
+    housing_subscription = Column(Float, default=0)  # 주택청약종합저축
+    fixed_deposit        = Column(Float, default=0)  # 정기예금합
+
+    # 자유입출금
+    young_hana    = Column(Float, default=0)  # Young하나통장
+    naverpay_hana = Column(Float, default=0)  # 네이버페이 머니 하나 통장
+    shinhan       = Column(Float, default=0)  # 신한 주거래 우대통장
+    toss_savings  = Column(Float, default=0)  # 토스 자유입출금
+
+    # 대출 (양수로 저장)
+    hana_loan = Column(Float, default=0)  # 하나은행 대출
+
+    # 커스텀 계좌 값 {"account_id": value, ...}
+    extra_json = Column(Text, default='{}')
+
+    note = Column(String(500), default="")

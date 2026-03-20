@@ -2,134 +2,382 @@
 {% block title %}💰 Money — 포트폴리오{% endblock %}
 {% block content %}
 
-<div class="page-header">
-  <h1>포트폴리오 관리</h1>
-  <p class="clr-muted">보유 종목을 추가 · 수정 · 삭제합니다</p>
+<!-- ── 헤더 ── -->
+<div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:1.5rem;flex-wrap:wrap;gap:10px;">
+  <div>
+    <h1 style="font-size:18px;font-weight:600;margin-bottom:4px;">📂 해외 포트폴리오</h1>
+    <p class="clr-muted" style="font-size:13px;">{{ items | length }}개 종목 보유</p>
+  </div>
+  <button class="btn btn-primary" onclick="openModal(null)" style="display:flex;align-items:center;gap:6px;">
+    <span style="font-size:16px;line-height:1;">+</span> 종목 추가
+  </button>
 </div>
 
-<!-- ── 종목 추가 폼 ───────────────────────────────────── -->
-<div class="form-card">
-  <div class="highlight-title" style="margin-bottom:12px;">종목 추가 / 수정</div>
-  <form method="post" action="/portfolio/add" id="addForm">
-    <div class="form-grid">
-      <div>
-        <label class="form-label">티커 (Ticker)</label>
-        <input type="text" name="ticker" id="f-ticker" class="form-input"
-               placeholder="NVDA" required maxlength="12"
-               style="text-transform:uppercase; width:100%;" />
-      </div>
-      <div>
-        <label class="form-label">보유 주식 수</label>
-        <input type="number" name="shares_owned" id="f-shares" class="form-input"
-               placeholder="100" min="0" step="0.01" required style="width:100%;" />
-      </div>
-      <div>
-        <label class="form-label">평균 매수단가 ($)</label>
-        <input type="number" name="avg_price" id="f-price" class="form-input"
-               placeholder="0.00" min="0" step="0.01" style="width:100%;" />
-      </div>
-    </div>
-    <div style="margin-bottom:10px;">
-      <label class="form-label">메모 (선택)</label>
-      <input type="text" name="memo" id="f-memo" class="form-input"
-             placeholder="메모..." maxlength="200" style="width:100%;" />
-    </div>
-    <div style="display:flex; gap:8px;">
-      <button type="submit" class="btn btn-primary">저장</button>
-      <button type="button" class="btn btn-ghost" onclick="resetForm()">초기화</button>
-    </div>
-  </form>
-</div>
-
-<!-- ── 보유 종목 목록 ─────────────────────────────────── -->
 {% if items %}
-<div class="highlight-card">
-  <div class="highlight-title">보유 종목 ({{ items | length }}개)</div>
-  <div class="income-table-wrap">
-    <table class="p-table">
-      <thead>
-        <tr>
-          <th>종목</th>
-          <th style="text-align:right;">보유주</th>
-          <th style="text-align:right;">평균 단가</th>
-          <th style="text-align:right;">현재가</th>
-          <th style="text-align:right;">손익</th>
-          <th style="text-align:right;">메모</th>
-          <th></th>
-        </tr>
-      </thead>
-      <tbody>
-        {% for item in items %}
-        {% set gain_pct = ((item.current_price - item.avg_price) / item.avg_price * 100) if item.avg_price > 0 else 0 %}
-        <tr>
-          <td>
-            <strong>{{ item.ticker }}</strong><br>
-            <span class="clr-muted" style="font-size:11px;">{{ item.name }}</span>
-          </td>
-          <td style="text-align:right;">{{ item.shares_owned | int if item.shares_owned == (item.shares_owned | int) else item.shares_owned }}</td>
-          <td style="text-align:right;" class="clr-muted">
-            {% if item.avg_price > 0 %} ${{ "%.2f"|format(item.avg_price) }} {% else %} — {% endif %}
-          </td>
-          <td style="text-align:right;">
-            {% if item.current_price > 0 %} ${{ "%.2f"|format(item.current_price) }} {% else %} — {% endif %}
-          </td>
-          <td style="text-align:right;">
-            {% if item.avg_price > 0 and item.current_price > 0 %}
-              <span class="{{ 'clr-green' if gain_pct >= 0 else 'clr-red' }} fw-600">
-                {{ '+' if gain_pct >= 0 else '' }}{{ "%.1f"|format(gain_pct) }}%
-              </span>
-            {% else %} — {% endif %}
-          </td>
-          <td style="text-align:right; font-size:11px;" class="clr-muted">{{ item.memo or '—' }}</td>
-          <td style="text-align:right; white-space:nowrap;">
-            <button class="btn btn-ghost" style="padding:4px 10px;font-size:11px;"
-                    onclick="editItem('{{ item.ticker }}', {{ item.shares_owned }}, {{ item.avg_price }}, '{{ item.memo }}')">
-              수정
-            </button>
-            <form method="post" action="/portfolio/delete/{{ item.id }}"
-                  style="display:inline;"
-                  onsubmit="return confirm('{{ item.ticker }} 종목을 삭제하시겠습니까?')">
-              <button type="submit" class="btn btn-danger" style="padding:4px 10px;font-size:11px;">삭제</button>
-            </form>
-          </td>
-        </tr>
-        {% endfor %}
-      </tbody>
-    </table>
+
+<!-- ── 요약 배너 ── -->
+<div style="display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin-bottom:1.75rem;">
+  <div class="pf-summary-card" style="background:linear-gradient(135deg,var(--accent) 0%,#1a6ec0 100%);color:white;border:none;">
+    <div style="font-size:10px;opacity:.75;text-transform:uppercase;letter-spacing:.07em;margin-bottom:8px;">보유 종목</div>
+    <div style="font-size:26px;font-weight:700;line-height:1;">{{ items | length }}<span style="font-size:14px;font-weight:500;opacity:.8;">개</span></div>
+    <div style="position:absolute;bottom:-8px;right:-4px;font-size:56px;opacity:.1;pointer-events:none;">📂</div>
+  </div>
+  <div class="pf-summary-card" style="background:linear-gradient(135deg,#0f766e 0%,#0d9488 100%);color:white;border:none;">
+    <div style="font-size:10px;opacity:.75;text-transform:uppercase;letter-spacing:.07em;margin-bottom:8px;">총 평가액</div>
+    <div style="font-size:22px;font-weight:700;line-height:1;" id="bannerTotal">—</div>
+    <div style="position:absolute;bottom:-8px;right:-4px;font-size:56px;opacity:.1;pointer-events:none;">💵</div>
+  </div>
+  <div class="pf-summary-card">
+    <div style="font-size:10px;color:var(--text2);text-transform:uppercase;letter-spacing:.07em;margin-bottom:8px;">평균 수익률</div>
+    <div style="font-size:26px;font-weight:700;line-height:1;" id="bannerGain">—</div>
   </div>
 </div>
+
+<!-- ── 종목 카드 그리드 ── -->
+<div style="display:grid;grid-template-columns:repeat(2,1fr);gap:14px;margin-bottom:1.75rem;">
+  {% for item in items %}
+  {% set gain_pct = ((item.current_price - item.avg_price) / item.avg_price * 100) if item.avg_price > 0 and item.current_price > 0 else none %}
+  {% set eval_usd = item.shares_owned * item.current_price if item.current_price > 0 else 0 %}
+  <div class="pf-card"
+       data-shares="{{ item.shares_owned }}"
+       data-avg="{{ item.avg_price }}"
+       data-cur="{{ item.current_price }}">
+
+    <!-- 게인 컬러 바 (상단) -->
+    <div class="pf-gain-bar"></div>
+
+    <!-- 카드 바디 -->
+    <div style="padding:16px;">
+
+      <!-- 상단: 로고 + 티커 + 뱃지 -->
+      <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:14px;">
+        <div style="display:flex;align-items:center;gap:10px;">
+          <div class="pf-logo">
+            <img src="/resources/icons/{{ item.ticker }}.png"
+                 style="width:100%;height:100%;object-fit:contain;border-radius:6px;"
+                 onerror="this.style.display='none';this.parentElement.querySelector('.pf-logo-fallback').style.display='flex';" />
+            <div class="pf-logo-fallback" style="display:none;width:100%;height:100%;border-radius:6px;background:var(--accent);color:white;align-items:center;justify-content:center;font-size:11px;font-weight:700;letter-spacing:-.01em;">
+              {{ item.ticker[:2] }}
+            </div>
+          </div>
+          <div>
+            <div style="font-size:16px;font-weight:700;letter-spacing:.02em;line-height:1.2;">{{ item.ticker }}</div>
+            <div style="font-size:11px;color:var(--text2);margin-top:2px;max-width:110px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">{{ item.name or '—' }}</div>
+          </div>
+        </div>
+
+        {% if gain_pct is not none %}
+        <div class="pf-gain-badge" data-gain="{{ '%.2f'|format(gain_pct) }}">
+          {{ '+' if gain_pct >= 0 else '' }}{{ "%.1f"|format(gain_pct) }}%
+        </div>
+        {% endif %}
+      </div>
+
+      <!-- 구분선 -->
+      <div style="height:1px;background:var(--border2);margin-bottom:12px;"></div>
+
+      <!-- 수치 그리드 -->
+      <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:6px;margin-bottom:10px;">
+        <div class="pf-stat">
+          <div class="pf-stat-label">보유주</div>
+          <div class="pf-stat-value">{{ item.shares_owned | int if item.shares_owned == (item.shares_owned | int) else item.shares_owned }}</div>
+        </div>
+        <div class="pf-stat">
+          <div class="pf-stat-label">평균단가</div>
+          <div class="pf-stat-value">{% if item.avg_price > 0 %}${{ "%.2f"|format(item.avg_price) }}{% else %}—{% endif %}</div>
+        </div>
+        <div class="pf-stat">
+          <div class="pf-stat-label">현재가</div>
+          <div class="pf-stat-value">{% if item.current_price > 0 %}${{ "%.2f"|format(item.current_price) }}{% else %}—{% endif %}</div>
+        </div>
+      </div>
+
+      <!-- 평가액 배너 -->
+      {% if eval_usd > 0 %}
+      <div class="pf-eval-row">
+        <span style="font-size:11px;color:var(--text2);">평가액</span>
+        <span class="pf-eval-value">${{ "{:,.0f}".format(eval_usd) }}</span>
+      </div>
+      {% endif %}
+
+      <!-- 메모 -->
+      {% if item.memo %}
+      <div class="pf-memo">{{ item.memo }}</div>
+      {% endif %}
+
+      <!-- 버튼 -->
+      <div style="display:flex;gap:6px;margin-top:12px;">
+        <button class="btn btn-ghost" style="flex:1;font-size:12px;padding:6px 0;"
+                data-ticker="{{ item.ticker }}"
+                data-shares="{{ item.shares_owned }}"
+                data-avg="{{ item.avg_price }}"
+                data-memo="{{ item.memo or '' }}"
+                onclick="openModalFromBtn(this)">✏️ 수정</button>
+        <form method="post" action="/portfolio/delete/{{ item.id }}" style="flex:1;"
+              onsubmit="return confirm('{{ item.ticker }} 종목을 삭제하시겠습니까?')">
+          <button type="submit" class="btn btn-ghost"
+                  style="width:100%;font-size:12px;padding:6px 0;color:var(--red);border-color:rgba(239,68,68,.25);">🗑️ 삭제</button>
+        </form>
+      </div>
+
+    </div><!-- /card body -->
+  </div>
+  {% endfor %}
+</div>
+
 {% else %}
-<div class="empty-state">
-  <p>보유 종목이 없습니다. 위 폼에서 종목을 추가하세요.</p>
+<div class="empty-state" style="padding:60px 20px;">
+  <div style="font-size:48px;margin-bottom:14px;">📭</div>
+  <div style="font-weight:600;font-size:15px;margin-bottom:6px;">보유 종목이 없습니다</div>
+  <div style="font-size:13px;color:var(--text2);margin-bottom:20px;">상단 "+ 종목 추가" 버튼으로 첫 종목을 추가하세요.</div>
+  <button class="btn btn-primary" onclick="openModal(null)">+ 종목 추가</button>
 </div>
 {% endif %}
 
 <div class="disclaimer">
-  ※ 종목 추가 시 Yahoo Finance에서 재무 데이터를 자동으로 가져옵니다.
-  데이터는 24시간 캐시됩니다.
+  ※ 종목 추가 시 Yahoo Finance에서 재무 데이터를 자동으로 가져옵니다. 데이터는 24시간 캐시됩니다.
 </div>
 
-<script>
-function editItem(ticker, shares, price, memo) {
-  document.getElementById('f-ticker').value = ticker;
-  document.getElementById('f-shares').value = shares;
-  document.getElementById('f-price').value  = price || '';
-  document.getElementById('f-memo').value   = memo  || '';
-  document.getElementById('addForm').scrollIntoView({ behavior: 'smooth' });
-  document.getElementById('f-ticker').focus();
+<!-- ── 추가/수정 모달 ── -->
+<div id="modal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:200;overflow-y:auto;backdrop-filter:blur(4px);">
+  <div style="max-width:440px;margin:80px auto;background:var(--bg);border-radius:16px;box-shadow:0 20px 60px rgba(0,0,0,.2);overflow:hidden;">
+    <!-- 모달 헤더 -->
+    <div style="padding:20px 24px 16px;border-bottom:1px solid var(--border);display:flex;justify-content:space-between;align-items:center;">
+      <h2 id="modalTitle" style="font-size:15px;font-weight:700;">종목 추가</h2>
+      <button onclick="closeModal()" style="background:var(--bg2);border:none;width:28px;height:28px;border-radius:50%;cursor:pointer;color:var(--text2);font-size:14px;display:flex;align-items:center;justify-content:center;">✕</button>
+    </div>
+    <!-- 모달 바디 -->
+    <div style="padding:20px 24px 24px;">
+      <form method="post" action="/portfolio/add" id="addForm">
+        <div style="margin-bottom:14px;">
+          <label class="form-label">티커 (Ticker)</label>
+          <input type="text" name="ticker" id="f-ticker" class="form-input"
+                 placeholder="NVDA" required maxlength="12"
+                 style="text-transform:uppercase;width:100%;font-size:20px;font-weight:700;letter-spacing:.06em;padding:10px 14px;" />
+        </div>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:14px;">
+          <div>
+            <label class="form-label">보유 주식 수</label>
+            <input type="number" name="shares_owned" id="f-shares" class="form-input"
+                   placeholder="100" min="0" step="0.01" required style="width:100%;" />
+          </div>
+          <div>
+            <label class="form-label">평균 매수단가 ($)</label>
+            <input type="number" name="avg_price" id="f-price" class="form-input"
+                   placeholder="0.00" min="0" step="0.01" style="width:100%;" />
+          </div>
+        </div>
+        <div style="margin-bottom:20px;">
+          <label class="form-label">메모 (선택)</label>
+          <input type="text" name="memo" id="f-memo" class="form-input"
+                 placeholder="메모..." maxlength="200" style="width:100%;" />
+        </div>
+        <div style="display:flex;gap:8px;justify-content:flex-end;">
+          <button type="button" class="btn btn-ghost" onclick="closeModal()">취소</button>
+          <button type="submit" class="btn btn-primary" style="min-width:80px;">저장</button>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
+
+<style>
+/* ── 포트폴리오 전용 스타일 ── */
+.pf-summary-card {
+  background: var(--bg2);
+  border: 0.5px solid var(--border);
+  border-radius: var(--r-lg);
+  padding: 16px;
+  position: relative;
+  overflow: hidden;
 }
 
-function resetForm() {
+.pf-card {
+  background: var(--bg);
+  border: 0.5px solid var(--border);
+  border-radius: var(--r-lg);
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  transition: box-shadow .2s, transform .2s;
+  box-shadow: 0 1px 4px rgba(0,0,0,.04);
+}
+.pf-card:hover {
+  box-shadow: 0 4px 16px rgba(0,0,0,.08);
+  transform: translateY(-1px);
+}
+
+.pf-gain-bar {
+  height: 4px;
+  width: 100%;
+  background: var(--border2);
+}
+
+.pf-logo {
+  width: 40px;
+  height: 40px;
+  flex-shrink: 0;
+  position: relative;
+}
+
+.pf-gain-badge {
+  padding: 5px 11px;
+  border-radius: 99px;
+  font-size: 13px;
+  font-weight: 700;
+  line-height: 1;
+  white-space: nowrap;
+}
+
+.pf-stat {
+  background: var(--bg2);
+  border-radius: var(--r-md);
+  padding: 8px 10px;
+}
+.pf-stat-label {
+  font-size: 9px;
+  color: var(--text2);
+  text-transform: uppercase;
+  letter-spacing: .05em;
+  margin-bottom: 4px;
+}
+.pf-stat-value {
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.pf-eval-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  background: var(--bg2);
+  border-radius: var(--r-md);
+  padding: 8px 10px;
+  margin-bottom: 0;
+}
+.pf-eval-value {
+  font-size: 14px;
+  font-weight: 700;
+  color: var(--accent);
+}
+
+.pf-memo {
+  font-size: 11px;
+  color: var(--text2);
+  margin-top: 8px;
+  padding: 6px 10px;
+  background: var(--bg2);
+  border-radius: var(--r-md);
+  border-left: 2px solid var(--accent);
+}
+</style>
+
+<script>
+function openModal(ticker) {
+  document.getElementById('modalTitle').textContent = '종목 추가';
   document.getElementById('f-ticker').value = '';
+  document.getElementById('f-ticker').readOnly = false;
+  document.getElementById('f-ticker').style.opacity = '1';
   document.getElementById('f-shares').value = '';
   document.getElementById('f-price').value  = '';
   document.getElementById('f-memo').value   = '';
+  document.getElementById('modal').style.display = 'block';
+  setTimeout(function() { document.getElementById('f-ticker').focus(); }, 50);
 }
 
-// 티커 자동 대문자
+function openModalFromBtn(btn) {
+  var ticker = btn.dataset.ticker;
+  document.getElementById('modalTitle').textContent = ticker + ' 수정';
+  document.getElementById('f-ticker').value = ticker;
+  document.getElementById('f-ticker').readOnly = true;
+  document.getElementById('f-ticker').style.opacity = '0.5';
+  document.getElementById('f-shares').value = btn.dataset.shares;
+  document.getElementById('f-price').value  = btn.dataset.avg;
+  document.getElementById('f-memo').value   = btn.dataset.memo;
+  document.getElementById('modal').style.display = 'block';
+}
+
+function closeModal() {
+  document.getElementById('modal').style.display = 'none';
+}
+
+document.getElementById('modal').addEventListener('click', function(e) {
+  if (e.target === this) closeModal();
+});
+
 document.getElementById('f-ticker').addEventListener('input', function() {
   this.value = this.value.toUpperCase();
 });
+
+// ── 카드 색상 + 요약 배너 계산 ──
+(function() {
+  var cards = document.querySelectorAll('[data-shares][data-avg][data-cur]');
+  var totalVal = 0, totalCost = 0, totalCur = 0;
+
+  cards.forEach(function(card) {
+    var shares = parseFloat(card.dataset.shares) || 0;
+    var avg    = parseFloat(card.dataset.avg)    || 0;
+    var cur    = parseFloat(card.dataset.cur)    || 0;
+
+    if (cur > 0) totalVal += shares * cur;
+    if (cur > 0 && avg > 0) {
+      totalCost += shares * avg;
+      totalCur  += shares * cur;
+    }
+
+    var isGain = cur >= avg;
+
+    // 게인 바
+    var bar = card.querySelector('.pf-gain-bar');
+    if (bar && cur > 0 && avg > 0) {
+      bar.style.background = isGain
+        ? 'linear-gradient(90deg,#10b981,#34d399)'
+        : 'linear-gradient(90deg,#ef4444,#f87171)';
+    }
+
+    // 뱃지
+    var badge = card.querySelector('.pf-gain-badge');
+    if (badge) {
+      var gain = parseFloat(badge.dataset.gain);
+      if (gain >= 0) {
+        badge.style.background = 'rgba(16,185,129,.13)';
+        badge.style.color = '#059669';
+        badge.style.border = '1px solid rgba(16,185,129,.25)';
+      } else {
+        badge.style.background = 'rgba(239,68,68,.1)';
+        badge.style.color = '#ef4444';
+        badge.style.border = '1px solid rgba(239,68,68,.2)';
+      }
+    }
+  });
+
+  // 배너 업데이트
+  var bannerTotal = document.getElementById('bannerTotal');
+  var bannerGain  = document.getElementById('bannerGain');
+  if (bannerTotal && totalVal > 0) {
+    bannerTotal.textContent = '$' + Math.round(totalVal).toLocaleString();
+  }
+  if (bannerGain && totalCost > 0) {
+    var pct = (totalCur - totalCost) / totalCost * 100;
+    bannerGain.textContent = (pct >= 0 ? '+' : '') + pct.toFixed(1) + '%';
+    bannerGain.style.color = pct >= 0 ? 'rgba(255,255,255,.95)' : '#fca5a5';
+    // 배너 카드 색상
+    var gainCard = bannerGain.closest('.pf-summary-card');
+    if (gainCard) {
+      if (pct >= 0) {
+        gainCard.style.background = 'linear-gradient(135deg,#059669 0%,#10b981 100%)';
+        gainCard.style.color = 'white';
+        gainCard.style.border = 'none';
+        gainCard.querySelector('div').style.opacity = '.75';
+        gainCard.querySelector('div').style.color = 'rgba(255,255,255,.75)';
+      } else {
+        gainCard.style.background = 'linear-gradient(135deg,#dc2626 0%,#ef4444 100%)';
+        gainCard.style.color = 'white';
+        gainCard.style.border = 'none';
+      }
+    }
+  }
+})();
 </script>
 
 {% endblock %}

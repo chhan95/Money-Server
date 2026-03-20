@@ -365,6 +365,14 @@ body {
 .clr-muted  { color: var(--text2);  }
 .fw-600 { font-weight: 600; }
 
+/* ── 포트폴리오 카드 다크모드 ── */
+[data-theme="dark"] .pf-card {
+  box-shadow: 0 1px 4px rgba(0,0,0,.2);
+}
+[data-theme="dark"] .pf-card:hover {
+  box-shadow: 0 4px 20px rgba(0,0,0,.35);
+}
+
 /* ── 빈 상태 ── */
 .empty-state {
   text-align: center; padding: 40px 20px;

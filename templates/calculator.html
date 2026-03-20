@@ -1,16 +1,21 @@
 {% extends "base.html" %}
-{% block title %}💰 Money — 계산기{% endblock %}
+{% block title %}주주 지분 소득 계산기{% endblock %}
 {% block content %}
 
+<div class="page-header">
+  <h1>🧮 주주 지분 소득 계산기</h1>
+  <p class="clr-muted">보유 주식 수 기준 지분 비례 소득 계산</p>
+</div>
+
 <!-- ── 티커 검색 ─────────────────────────────────────── -->
-<div class="ticker-section">
-  <div class="ticker-search-row">
-    <input type="text" class="ticker-input" id="tickerInput"
+<div class="card" style="margin-bottom:1.25rem;">
+  <div style="display:flex;gap:8px;margin-bottom:12px;">
+    <input type="text" class="form-input" id="tickerInput" style="flex:1;font-size:15px;font-weight:600;letter-spacing:.05em;"
            placeholder="AAPL" value="{{ ticker }}" maxlength="12"
            onkeydown="if(event.key==='Enter') loadTicker()" />
-    <button class="search-btn" id="searchBtn" onclick="loadTicker()">조회</button>
+    <button class="btn btn-primary" id="searchBtn" onclick="loadTicker()" style="padding:0 20px;">조회</button>
   </div>
-  <div class="quick-tickers">
+  <div style="display:flex;flex-wrap:wrap;gap:6px;">
     {% for sym in ['NVDA','AAPL','MSFT','GOOGL','AMZN','META','TSLA','TSM','ASML','AMD','COST'] %}
     <button class="quick-btn {% if ticker == sym %}active{% endif %}"
             data-ticker="{{ sym }}" onclick="quickLoad(this,'{{ sym }}')">{{ sym }}</button>
@@ -18,101 +23,116 @@
   </div>
 </div>
 
-<!-- ── 상태 박스 (로딩 / 에러) ──────────────────────── -->
+<!-- ── 상태 박스 ──────────────────────────────────────── -->
 <div class="status-box hidden" id="statusBox">
   <div class="spinner" id="spinner"></div>
   <div id="statusMsg"></div>
 </div>
 
-<!-- ── 메인 컨텐츠 ──────────────────────────────────── -->
+<!-- ── 메인 컨텐츠 ──────────────────────────────────────── -->
 <div id="mainContent" class="{% if not stock_json %}hidden{% endif %}">
 
-  <div class="page-header">
-    <h1 id="stockTitle">{{ ticker }} 주주 지분 소득 계산기</h1>
-    <p id="stockSubtitle" class="clr-muted">보유 주식 수 · 환율 조정으로 지분 비례 소득을 계산합니다</p>
+  <!-- 종목명 + 배지 -->
+  <div style="display:flex;align-items:center;gap:10px;margin-bottom:1rem;flex-wrap:wrap;">
+    <h2 id="stockTitle" style="font-size:16px;font-weight:700;margin:0;"></h2>
+    <div class="data-badge hidden" id="dataBadge"></div>
   </div>
-
-  <div class="data-badge hidden" id="dataBadge"></div>
 
   <!-- FY 탭 -->
-  <div class="fiscal-tabs" id="fiscalTabs" style="display:flex; gap:6px; margin-bottom:1.25rem; flex-wrap:wrap;"></div>
+  <div class="fiscal-tabs" id="fiscalTabs" style="display:flex;gap:6px;margin-bottom:1.25rem;flex-wrap:wrap;"></div>
 
-  <!-- 입력 섹션 -->
-  <div class="input-section">
-    <div class="input-row" style="margin-bottom:6px;">
-      <span class="input-label">현재가</span>
-      <span class="fw-600" id="currentPrice">—</span>
-      <span class="clr-muted" style="font-size:11px;" id="currentPriceKrw">—</span>
-    </div>
-    <div class="input-row" style="margin-bottom:6px;">
-      <span class="input-label">적용 환율</span>
-      <span class="fw-600" id="fxDisplay2">{{ fx_default|int }}원/$</span>
-      <span class="clr-muted" style="font-size:11px;">(Yahoo Finance 실시간)</span>
-    </div>
-    <div class="divider"></div>
-    <div class="input-row">
-      <span class="input-label">보유 주식</span>
-      <input type="number" class="shares-input" id="sharesInput" value="100" min="1" oninput="calculate()" />
-      <span class="unit-badge">주 (shares)</span>
-    </div>
-    <div class="input-row" style="margin-top:6px;">
-      <span class="input-label clr-muted" style="font-size:12px;">총 평가액</span>
-      <span class="fw-600" id="totalValue">—</span>
-      <span class="clr-muted" style="font-size:11px;" id="totalValueKrw">—</span>
-    </div>
-    <div class="divider"></div>
-    <div class="ownership-display">
-      <span class="ownership-label">지분율</span>
-      <span class="ownership-value" id="ownershipPct">—</span>
-      <span class="ownership-label" style="margin-left:4px;">(총 발행주식</span>
-      <span class="ownership-label" id="totalSharesLabel">—</span>
-      <span class="ownership-label">)</span>
-    </div>
-  </div>
+  <!-- ── Row 1: 설정 + 월 소득 요약 ── -->
+  <div style="display:grid;grid-template-columns:1fr 1fr;gap:1rem;margin-bottom:1rem;">
 
-  <!-- 메트릭 카드 -->
-  <div class="metrics-grid">
-    <div class="metric-card">
-      <div class="metric-label">매출 기여분</div>
-      <div class="metric-annual" id="revAnnual">—</div>
-      <div class="metric-monthly-usd" id="revMonthlyUsd">월 —</div>
-      <div class="metric-monthly-krw" id="revMonthlyKrw">—</div>
-    </div>
-    <div class="metric-card">
-      <div class="metric-label">영업이익 기여분</div>
-      <div class="metric-annual" id="opAnnual">—</div>
-      <div class="metric-monthly-usd" id="opMonthlyUsd">월 —</div>
-      <div class="metric-monthly-krw" id="opMonthlyKrw">—</div>
-    </div>
-    <div class="metric-card">
-      <div class="metric-label">순이익 기여분</div>
-      <div class="metric-annual" id="netAnnual">—</div>
-      <div class="metric-monthly-usd" id="netMonthlyUsd">월 —</div>
-      <div class="metric-monthly-krw" id="netMonthlyKrw">—</div>
-    </div>
-  </div>
+    <!-- 보유 주식 설정 -->
+    <div class="card" style="display:flex;flex-direction:column;gap:10px;">
+      <div class="chart-label" style="margin-bottom:0;">보유 주식 설정</div>
 
-  
+      <div style="display:flex;align-items:center;gap:8px;">
+        <input type="number" class="form-input" id="sharesInput"
+               value="100" min="1" oninput="calculate()"
+               style="font-size:20px;font-weight:700;text-align:right;width:100%;"/>
+        <span style="font-size:13px;color:var(--text2);white-space:nowrap;">주</span>
+      </div>
 
-  <!-- 재무지표 -->
-  <div id="ratioCard" class="highlight-card" style="margin-bottom:1rem;">
-    <div class="highlight-title">재무 지표 (회계연도 기준)</div>
-    <div class="metrics-grid" style="margin-top:0.75rem;">
+      <div style="height:1px;background:var(--border);"></div>
+
+      <div style="display:grid;grid-template-columns:auto 1fr;gap:4px 10px;font-size:13px;align-items:center;">
+        <span class="clr-muted">현재가</span>
+        <div style="text-align:right;">
+          <span class="fw-600" id="currentPrice">—</span>
+          <span class="clr-muted" style="font-size:11px;margin-left:4px;" id="currentPriceKrw"></span>
+        </div>
+        <span class="clr-muted">환율</span>
+        <div style="text-align:right;">
+          <span class="fw-600" id="fxDisplay2">{{ fx_default|int }}원/$</span>
+        </div>
+        <span class="clr-muted">총 평가액</span>
+        <div style="text-align:right;">
+          <span class="fw-600" id="totalValue">—</span>
+          <span class="clr-muted" style="font-size:11px;margin-left:4px;" id="totalValueKrw"></span>
+        </div>
+        <span class="clr-muted">지분율</span>
+        <div style="text-align:right;">
+          <span class="fw-600" id="ownershipPct">—</span>
+          <span class="clr-muted" style="font-size:11px;margin-left:4px;">(<span id="totalSharesLabel">—</span>)</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- 월 소득 요약 -->
+    <div class="card" style="display:flex;flex-direction:column;gap:8px;">
+      <div class="chart-label" style="margin-bottom:0;">지분비례 월 소득</div>
+
+      <div style="flex:1;display:flex;flex-direction:column;justify-content:space-around;gap:6px;">
+        <!-- 매출 -->
+        <div style="background:var(--bg2);border-radius:var(--r-md);padding:10px 14px;">
+          <div style="font-size:11px;color:var(--text2);margin-bottom:4px;">매출 기준</div>
+          <div style="display:flex;justify-content:space-between;align-items:baseline;flex-wrap:wrap;gap:4px;">
+            <span class="fw-600" id="sum-rev-krw" style="font-size:15px;">—</span>
+            <span style="font-size:12px;color:var(--text2);" id="sum-rev-usd">—</span>
+          </div>
+        </div>
+        <!-- 영업이익 -->
+        <div style="background:var(--bg2);border-radius:var(--r-md);padding:10px 14px;">
+          <div style="font-size:11px;color:var(--text2);margin-bottom:4px;">영업이익 기준</div>
+          <div style="display:flex;justify-content:space-between;align-items:baseline;flex-wrap:wrap;gap:4px;">
+            <span class="fw-600" id="sum-op-krw" style="font-size:15px;">—</span>
+            <span style="font-size:12px;color:var(--text2);" id="sum-op-usd">—</span>
+          </div>
+        </div>
+        <!-- 순이익 -->
+        <div style="background:var(--bg2);border-radius:var(--r-md);padding:10px 14px;">
+          <div style="font-size:11px;color:var(--text2);margin-bottom:4px;">순이익 기준</div>
+          <div style="display:flex;justify-content:space-between;align-items:baseline;flex-wrap:wrap;gap:4px;">
+            <span class="fw-600 clr-green" id="sum-net-krw" style="font-size:15px;">—</span>
+            <span style="font-size:12px;color:var(--text2);" id="sum-net-usd">—</span>
+          </div>
+        </div>
+      </div>
+    </div>
+
+  </div><!-- /Row 1 -->
+
+  <!-- ── Row 2: 재무지표 ── -->
+  <div class="highlight-card" id="ratioCard" style="margin-bottom:1rem;">
+    <div class="highlight-title">재무 지표 (TTM)</div>
+    <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-top:0.75rem;">
       <div class="metric-card">
         <div class="metric-label">시가총액</div>
         <div class="metric-annual" id="mktCapVal">—</div>
       </div>
       <div class="metric-card">
-        <div class="metric-label">배당율 <span class="clr-muted" style="font-size:10px;">배당금/주가</span></div>
+        <div class="metric-label">배당율</div>
         <div class="metric-annual" id="divYieldVal">—</div>
-      </div>
-      <div class="metric-card">
-        <div class="metric-label">PBR <span class="clr-muted" style="font-size:10px;">주가/장부가</span></div>
-        <div class="metric-annual" id="pbrVal">—</div>
       </div>
       <div class="metric-card">
         <div class="metric-label">PER <span class="clr-muted" style="font-size:10px;">주가/EPS</span></div>
         <div class="metric-annual" id="perVal">—</div>
+      </div>
+      <div class="metric-card">
+        <div class="metric-label">PBR <span class="clr-muted" style="font-size:10px;">주가/장부가</span></div>
+        <div class="metric-annual" id="pbrVal">—</div>
       </div>
       <div class="metric-card">
         <div class="metric-label">ROE <span class="clr-muted" style="font-size:10px;">순이익/자기자본</span></div>
@@ -125,12 +145,38 @@
     </div>
   </div>
 
-  <!-- 배당 카드 -->
-  <div id="dividendCard" class="highlight-card" style="margin-bottom:1rem; display:none;">
+  <!-- ── Row 3: 연도별 기여분 상세 ── -->
+  <div class="card" style="margin-bottom:1rem;">
+    <div class="chart-label" style="margin-bottom:0.75rem;">연도별 기여분 상세</div>
+    <div class="metrics-grid">
+      <div class="metric-card">
+        <div class="metric-label">매출 기여분</div>
+        <div class="metric-annual" id="revAnnual">—</div>
+        <div class="metric-monthly-usd" id="revMonthlyUsd">—</div>
+        <div class="metric-monthly-krw" id="revMonthlyKrw">—</div>
+      </div>
+      <div class="metric-card">
+        <div class="metric-label">영업이익 기여분</div>
+        <div class="metric-annual" id="opAnnual">—</div>
+        <div class="metric-monthly-usd" id="opMonthlyUsd">—</div>
+        <div class="metric-monthly-krw" id="opMonthlyKrw">—</div>
+      </div>
+      <div class="metric-card">
+        <div class="metric-label">순이익 기여분</div>
+        <div class="metric-annual" id="netAnnual">—</div>
+        <div class="metric-monthly-usd" id="netMonthlyUsd">—</div>
+        <div class="metric-monthly-krw" id="netMonthlyKrw">—</div>
+      </div>
+    </div>
+    <div class="year-note" id="yearNote" style="margin-top:0.75rem;"></div>
+  </div>
+
+  <!-- ── 배당 카드 ── -->
+  <div id="dividendCard" class="highlight-card" style="margin-bottom:1rem;display:none;">
     <div class="highlight-title">배당 정보</div>
     <div class="metrics-grid" style="margin-top:0.75rem;">
       <div class="metric-card">
-        <div class="metric-label">배당율 <span class="clr-muted" style="font-size:10px;">배당금/주가</span></div>
+        <div class="metric-label">배당율</div>
         <div class="metric-annual" id="divYield">—</div>
       </div>
       <div class="metric-card">
@@ -138,56 +184,30 @@
         <div class="metric-annual" id="divRate">—</div>
       </div>
       <div class="metric-card">
-        <div class="metric-label">보유 주식 월 배당 <span class="clr-muted" style="font-size:10px;">연간÷12</span></div>
+        <div class="metric-label">보유 주식 월 배당</div>
         <div class="metric-annual clr-green" id="divMonthlyKrw">—</div>
         <div class="metric-monthly-usd" id="divMonthlyUsd">—</div>
       </div>
     </div>
-    <div style="margin-top:0.5rem; font-size:11px; color:var(--text2);">
+    <div style="margin-top:0.5rem;font-size:11px;color:var(--text2);">
       ※ 실제 지급 배당금 기준 (지분비례 추정이 아닌 직접 수령액)
     </div>
   </div>
 
-  <!-- 하이라이트 -->
-  <div class="highlight-card">
-    <div class="highlight-title">지분비례 소득 요약</div>
-    <div class="monthly-row">
-      <span class="monthly-name">매출 기준 월 소득</span>
-      <div class="monthly-vals">
-        <div class="monthly-usd" id="sum-rev-usd">—</div>
-        <div class="monthly-krw blue" id="sum-rev-krw">—</div>
+  <!-- ── 차트 ── -->
+  <div class="card">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;flex-wrap:wrap;gap:6px;">
+      <div class="chart-label" style="margin-bottom:0;">연도별 비교 — 월 소득 (만원)</div>
+      <div class="legend" style="margin-bottom:0;">
+        <span class="legend-item"><span class="legend-dot" style="background:#185FA5;"></span>매출 기준</span>
+        <span class="legend-item"><span class="legend-dot" style="background:#3B6D11;"></span>순이익 기준</span>
       </div>
-    </div>
-    <div class="monthly-row">
-      <span class="monthly-name">영업이익 기준 월 소득</span>
-      <div class="monthly-vals">
-        <div class="monthly-usd" id="sum-op-usd">—</div>
-        <div class="monthly-krw blue" id="sum-op-krw">—</div>
-      </div>
-    </div>
-    <div class="monthly-row">
-      <span class="monthly-name">순이익 기준 월 소득</span>
-      <div class="monthly-vals">
-        <div class="monthly-usd" id="sum-net-usd">—</div>
-        <div class="monthly-krw green" id="sum-net-krw">—</div>
-      </div>
-    </div>
-  </div>
-
-  <!-- 차트 -->
-  <div class="chart-section">
-    <div class="chart-label">연도별 비교 — 현재 주식 수 기준 월 소득 (만원)</div>
-    <div class="legend">
-      <span class="legend-item"><span class="legend-dot" style="background:#185FA5;"></span>매출 기준</span>
-      <span class="legend-item"><span class="legend-dot" style="background:#3B6D11;"></span>순이익 기준</span>
     </div>
     <div class="chart-wrapper"><canvas id="barChart"></canvas></div>
+    <div class="data-source" id="dataSource" style="margin-top:8px;"></div>
   </div>
 
-  <div class="year-note" id="yearNote"></div>
-  <div class="data-source" id="dataSource"></div>
-  
-</div>
+</div><!-- /mainContent -->
 
 <script>
 // ── 초기 데이터 (서버 렌더링) ─────────────────────────────
@@ -203,14 +223,11 @@ let chartInst   = null;
 // ── 포맷 헬퍼 ───────────────────────────────────────────
 const _MONTHS = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
 function fmtEndDate(ym) {
-  // "2026-01" → "Jan'26"
   if (!ym) return '';
   const [y, m] = ym.split('-');
   return _MONTHS[parseInt(m, 10) - 1] + "'" + y.slice(2);
 }
-function fyLabel(d) {
-  return d.label;
-}
+function fyLabel(d) { return d.label; }
 function fmtUSD(usdM) {
   const v = Math.abs(usdM) * 1e6;
   const s = usdM < 0 ? '-' : '';
@@ -240,13 +257,10 @@ function setText(id, v) { document.getElementById(id).textContent = v; }
 // ── 데이터 적용 ────────────────────────────────────────
 function applyData(data) {
   stockData   = data;
-  // 기본 탭: 항상 최신 실적 연도 (예상 연도는 ROE/ROI 없음)
   currentYear = data.yearKeys[data.yearKeys.length - 1];
 
-  setText('stockTitle',    data.ticker + ' 주주 지분 소득 계산기');
-  setText('stockSubtitle', data.name + ' · 보유 주식 수 · 환율 조정으로 지분 비례 소득을 계산합니다');
+  setText('stockTitle', data.ticker + '  ' + data.name);
 
-  // FY 탭 (실적 + 예상 한 번에)
   const c = document.getElementById('fiscalTabs');
   c.innerHTML = '';
 
@@ -264,22 +278,18 @@ function applyData(data) {
     c.appendChild(btn);
   };
 
-  // 실적 탭 (오래된 → 최신)
   data.yearKeys.forEach((key, i) => {
     const isLatest = i === data.yearKeys.length - 1;
     const d = data.fiscalData[key];
     makeTab(key, fyLabel(d) + (isLatest ? ' 최신' : ''), key === currentYear, false);
   });
 
-  // 구분선
   if ((data.forecastKeys || []).length > 0) {
     const sep = document.createElement('span');
     sep.textContent = '│';
     sep.style.cssText = 'color:var(--border); align-self:center; padding:0 2px;';
     c.appendChild(sep);
   }
-
-  // 예상 탭
   (data.forecastKeys || []).forEach(key => {
     const d = data.fiscalData[key];
     makeTab(key, '📊 ' + d.label, key === currentYear, true);
@@ -295,7 +305,7 @@ function syncQuickBtns(ticker) {
     b.classList.toggle('active', b.dataset.ticker === ticker));
 }
 
-// ── 뱃지 / 상태 헬퍼 ─────────────────────────────────
+// ── 뱃지 / 상태 ─────────────────────────────────────
 function setBadge(type, text) {
   const b = document.getElementById('dataBadge');
   b.className = type === 'live' ? 'data-badge live' : 'data-badge';
@@ -309,18 +319,14 @@ function showStatus(msg, isError = false) {
   document.getElementById('spinner').style.display = isError ? 'none' : 'block';
   setText('statusMsg', msg);
 }
-function hideStatus() {
-  document.getElementById('statusBox').classList.add('hidden');
-}
+function hideStatus() { document.getElementById('statusBox').classList.add('hidden'); }
 
-// ── 티커 로드 — 2단계 (quick → full) ──────────────────
+// ── 티커 로드 ──────────────────────────────────────
 async function loadTicker(skipQuick = false) {
   const ticker = (document.getElementById('tickerInput').value || '').trim().toUpperCase();
   if (!ticker) return;
-
   document.getElementById('searchBtn').disabled = true;
 
-  // ── Phase 1: Quick (최신 1개 연도) ─────────────────
   if (!skipQuick) {
     document.getElementById('mainContent').classList.add('hidden');
     showStatus(ticker + ' 최신 연도 로드 중...');
@@ -332,12 +338,11 @@ async function loadTicker(skipQuick = false) {
         document.getElementById('mainContent').classList.remove('hidden');
         setBadge('loading', '⏳ 나머지 데이터 로드 중...');
       }
-    } catch (_) { /* 실패해도 phase 2 계속 */ }
+    } catch (_) {}
   } else {
     setBadge('loading', '⏳ 데이터 갱신 중...');
   }
 
-  // ── Phase 2: Full (전체 연도 + ROE/ROI + 예상치) ───
   try {
     const res = await fetch(`/api/stock/${ticker}`);
     if (!res.ok) {
@@ -369,15 +374,14 @@ function calculate() {
   const pct    = shares / (d.shares * 1e6);
 
   // 배당 카드
-  const divRate  = stockData.dividendRate  || 0;
-  const divCard  = document.getElementById('dividendCard');
+  const divRate = stockData.dividendRate || 0;
+  const divCard = document.getElementById('dividendCard');
   if (divRate > 0) {
     divCard.style.display = '';
     const divYieldRaw = stockData.dividendYield || 0;
-    setText('divYield', divYieldRaw > 0 ? (divYieldRaw * 100).toFixed(2) + '%' : '—');
+    setText('divYield',      divYieldRaw > 0 ? (divYieldRaw * 100).toFixed(2) + '%' : '—');
     setText('divRate',       '$' + divRate.toFixed(4) + ' / 주');
-    const annualDiv  = divRate * shares;                  // USD
-    const monthlyDiv = annualDiv / 12;
+    const monthlyDiv = divRate * shares / 12;
     setText('divMonthlyUsd', '$' + monthlyDiv.toFixed(4) + '/월');
     setText('divMonthlyKrw', fmtKRWraw(monthlyDiv * fxRate) + '/월');
   } else {
@@ -387,7 +391,6 @@ function calculate() {
   setText('ownershipPct',    (pct * 100).toExponential(4) + '%');
   setText('totalSharesLabel', fmtShares(d.shares));
 
-  // 현재가 + 환율 + 총 평가액
   const price = stockData.price || 0;
   setText('currentPrice',    price > 0 ? '$' + price.toLocaleString(undefined, {minimumFractionDigits:2, maximumFractionDigits:2}) : '—');
   setText('currentPriceKrw', price > 0 ? '≈ ' + fmtKRWraw(price * fxRate) : '');
@@ -417,34 +420,24 @@ function calculate() {
   setText('sum-op-krw',  fmtKRW(opM)  + '/월');
   setText('sum-net-krw', fmtKRW(netM) + '/월');
 
-  // 재무지표
-  const ratioCard = document.getElementById('ratioCard');
-  ratioCard.style.display = '';
-
-  // 시가총액 · 배당율 — FY 무관, 항상 최신값
+  // 재무지표 (TTM)
   const mc = stockData.marketCap || 0;
   let mcStr = '—';
-  if (mc >= 1e12)      mcStr = '$' + (mc / 1e12).toFixed(2) + 'T';
-  else if (mc >= 1e9)  mcStr = '$' + (mc / 1e9 ).toFixed(2) + 'B';
-  else if (mc >= 1e6)  mcStr = '$' + (mc / 1e6 ).toFixed(2) + 'M';
+  if      (mc >= 1e12) mcStr = '$' + (mc/1e12).toFixed(2) + 'T';
+  else if (mc >= 1e9)  mcStr = '$' + (mc/1e9 ).toFixed(2) + 'B';
+  else if (mc >= 1e6)  mcStr = '$' + (mc/1e6 ).toFixed(2) + 'M';
   else if (mc > 0)     mcStr = '$' + mc.toFixed(0);
-  setText('mktCapVal',  mcStr);
+  setText('mktCapVal', mcStr);
   const dy = stockData.dividendYield || 0;
   setText('divYieldVal', dy > 0 ? (dy).toFixed(2) + '%' : '—');
-
-  // PBR · PER · ROE · EPS — TTM 기준 (FY 탭 무관)
-  const tPE  = stockData.trailingPE;
-  const tPBR = stockData.pbRatio;
-  const tROE = stockData.trailingRoe;
-  const tEPS = stockData.trailingEps;
-  setText('perVal', tPE  != null ? Number(tPE ).toFixed(2) + 'x' : '—');
-  setText('pbrVal', tPBR != null ? Number(tPBR).toFixed(2) + 'x' : '—');
-  setText('roeVal', tROE != null ? (Number(tROE) * 100).toFixed(1) + '%' : '—');
-  setText('epsVal', tEPS != null ? '$' + Number(tEPS).toFixed(2) : '—');
+  setText('perVal', stockData.trailingPE  != null ? Number(stockData.trailingPE ).toFixed(2) + 'x' : '—');
+  setText('pbrVal', stockData.pbRatio     != null ? Number(stockData.pbRatio    ).toFixed(2) + 'x' : '—');
+  setText('roeVal', stockData.trailingRoe != null ? (Number(stockData.trailingRoe)*100).toFixed(1)+'%' : '—');
+  setText('epsVal', stockData.trailingEps != null ? '$' + Number(stockData.trailingEps).toFixed(2) : '—');
 
   const fcTag = d.isForecast ? ' [애널리스트 예상]' : '';
   setText('yearNote',
-    `적용: ${fyLabel(d)}${fcTag} | 매출 ${fmtUSD(d.revenue)} · 영업이익 ${fmtUSD(d.operating)} · 순이익 ${fmtUSD(d.net)} | 환율 $1 = ₩${fxRate.toLocaleString()} (실시간)`);
+    `적용: ${fyLabel(d)}${fcTag} | 매출 ${fmtUSD(d.revenue)} · 영업이익 ${fmtUSD(d.operating)} · 순이익 ${fmtUSD(d.net)}`);
   setText('dataSource', 'Yahoo Finance · ' + stockData.updated + ' 조회');
 
   updateChart(shares);
@@ -455,19 +448,15 @@ function updateChart(shares) {
   const histKeys = stockData.yearKeys;
   const fcKeys   = stockData.forecastKeys || [];
   const allKeys  = [...histKeys, ...fcKeys];
-
-  const labels = allKeys.map(k => stockData.fiscalData[k].label);
+  const labels   = allKeys.map(k => stockData.fiscalData[k].label);
   function mw(k, f) {
     const d = stockData.fiscalData[k];
     return parseFloat((d[f] * (shares / (d.shares * 1e6)) / 12 * 1e6 * fxRate / 1e4).toFixed(2));
   }
-
-  // 실적: 불투명, 예상: 더 연한 색 + 점선 테두리
-  const revBg  = allKeys.map(k => stockData.fiscalData[k].isForecast ? 'rgba(24,95,165,0.4)'  : 'rgba(24,95,165,0.55)');
-  const revBd  = allKeys.map(k => stockData.fiscalData[k].isForecast ? 'rgba(24,95,165,0.85)' : '#185FA5');
-  const netBg  = allKeys.map(k => stockData.fiscalData[k].isForecast ? 'rgba(59,109,17,0.4)'  : 'rgba(59,109,17,0.55)');
-  const netBd  = allKeys.map(k => stockData.fiscalData[k].isForecast ? 'rgba(59,109,17,0.85)' : '#3B6D11');
-
+  const revBg = allKeys.map(k => stockData.fiscalData[k].isForecast ? 'rgba(24,95,165,0.4)'  : 'rgba(24,95,165,0.55)');
+  const revBd = allKeys.map(k => stockData.fiscalData[k].isForecast ? 'rgba(24,95,165,0.85)' : '#185FA5');
+  const netBg = allKeys.map(k => stockData.fiscalData[k].isForecast ? 'rgba(59,109,17,0.4)'  : 'rgba(59,109,17,0.55)');
+  const netBd = allKeys.map(k => stockData.fiscalData[k].isForecast ? 'rgba(59,109,17,0.85)' : '#3B6D11');
   const ctx = document.getElementById('barChart').getContext('2d');
   if (chartInst) chartInst.destroy();
   chartInst = new Chart(ctx, {
@@ -475,23 +464,21 @@ function updateChart(shares) {
     data: {
       labels,
       datasets: [
-        { label:'매출 (만원/월)',   data: allKeys.map(k=>mw(k,'revenue')), backgroundColor: revBg, borderColor: revBd, borderWidth:1.5, borderRadius:4, borderDash:[4,2] },
-        { label:'순이익 (만원/월)', data: allKeys.map(k=>mw(k,'net')),     backgroundColor: netBg, borderColor: netBd, borderWidth:1.5, borderRadius:4 },
+        { label:'매출 (만원/월)',   data: allKeys.map(k=>mw(k,'revenue')), backgroundColor:revBg, borderColor:revBd, borderWidth:1.5, borderRadius:4 },
+        { label:'순이익 (만원/월)', data: allKeys.map(k=>mw(k,'net')),     backgroundColor:netBg, borderColor:netBd, borderWidth:1.5, borderRadius:4 },
       ],
     },
     options: {
       responsive: true, maintainAspectRatio: false,
       plugins: {
         legend: { display: false },
-        tooltip: {
-          callbacks: {
-            label: c => {
-              const key = allKeys[c.dataIndex];
-              const tag = stockData.fiscalData[key].isForecast ? ' (예상)' : '';
-              return c.dataset.label + tag + ': ' + fmtKRWraw(c.parsed.y * 1e4) + '/월';
-            },
+        tooltip: { callbacks: {
+          label: c => {
+            const key = allKeys[c.dataIndex];
+            const tag = stockData.fiscalData[key].isForecast ? ' (예상)' : '';
+            return c.dataset.label + tag + ': ' + fmtKRWraw(c.parsed.y * 1e4) + '/월';
           },
-        },
+        }},
       },
       scales: {
         y: { ticks: { callback: v => v.toLocaleString()+'만', font:{size:11} }, grid:{color:'rgba(128,128,128,0.08)'} },
@@ -504,15 +491,12 @@ function updateChart(shares) {
 // ── 초기화 ────────────────────────────────────────────
 document.addEventListener('DOMContentLoaded', () => {
   if (INITIAL_DATA && !IS_STALE) {
-    // 캐시 유효 → 즉시 표시
     applyData(INITIAL_DATA);
     setBadge('live', '🟢 Yahoo Finance · ' + INITIAL_DATA.updated);
   } else if (INITIAL_DATA && IS_STALE) {
-    // 캐시 있지만 stale → 일단 보여주고 백그라운드 full refresh
     applyData(INITIAL_DATA);
-    loadTicker(true);   // skipQuick=true (이미 화면에 보임)
+    loadTicker(true);
   } else {
-    // 데이터 없음 → quick → full 순서로 로드
     loadTicker(false);
   }
 });

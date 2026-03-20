@@ -20,19 +20,20 @@
 
   <!-- ── 사이드바 ── -->
   <nav class="sidebar">
-    <div class="sidebar-brand">💰 Holding Company</div>
+    <a href="/portfolio" class="sidebar-brand" style="text-decoration:none;">💰 Holding Company</a>
 
     <!-- 자산관리 -->
     <div class="sidebar-section">
       <div class="sidebar-section-title">자산관리</div>
-      <div class="sidebar-empty">준비 중</div>
+      <a href="/assets"     class="sidebar-link {% if active == 'assets'     %}active{% endif %}">💼 자산 현황</a>
+      <a href="/milestones" class="sidebar-link {% if active == 'milestones' %}active{% endif %}">🗺️ 마일스톤</a>
     </div>
 
     <!-- 해외 투자 -->
     <div class="sidebar-section">
       <div class="sidebar-section-title">해외 투자</div>
       <a href="/"           class="sidebar-link {% if active == 'home'       %}active{% endif %}">🏠 홈</a>
-      <a href="/calculator" class="sidebar-link {% if active == 'calculator' %}active{% endif %}">🧮 계산기</a>
+      <a href="/calculator" class="sidebar-link {% if active == 'calculator' %}active{% endif %}">🧮 주주 지분 소득 계산기</a>
       <a href="/portfolio"  class="sidebar-link {% if active == 'portfolio'  %}active{% endif %}">📂 포트폴리오</a>
       <a href="/history"    class="sidebar-link {% if active == 'history'    %}active{% endif %}">📈 히스토리</a>
     </div>

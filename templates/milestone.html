@@ -1,0 +1,379 @@
+{% extends "base.html" %}
+{% block title %}마일스톤 — Holding Company{% endblock %}
+
+{% block content %}
+<div class="page-header" style="margin-bottom:1.25rem;">
+  <h1>🗺️ 마일스톤</h1>
+  <p>인생 목표 달성 현황</p>
+</div>
+
+<!-- 달성률 바 (항상 표시) -->
+<div class="card" style="margin-bottom:1.25rem;">
+  <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;">
+    <span style="font-weight:600;font-size:14px;">전체 달성률</span>
+    <span id="statsText" style="font-size:13px;color:var(--text2);">로딩 중...</span>
+  </div>
+  <div style="background:var(--bg2);border-radius:99px;height:10px;overflow:hidden;">
+    <div id="progressBar" style="height:100%;background:var(--accent);border-radius:99px;width:0%;transition:width .5s ease;"></div>
+  </div>
+</div>
+
+<!-- 탭 -->
+<div style="display:flex;align-items:center;margin-bottom:1.25rem;border-bottom:1px solid var(--border);">
+  <button id="pgBtn0" class="pg-tab active" onclick="showPg(0)">진행 중</button>
+  <button id="pgBtn1" class="pg-tab"        onclick="showPg(1)">달성 완료</button>
+  <button id="pgBtn2" class="pg-tab"        onclick="showPg(2)">연도별</button>
+  <div style="flex:1;"></div>
+  <div style="display:flex;gap:6px;padding-bottom:4px;">
+    <button class="btn btn-ghost" style="font-size:12px;padding:4px 10px;" onclick="openImportModal()">CSV 가져오기</button>
+    <button class="btn btn-primary" style="font-size:12px;padding:4px 10px;" onclick="openModal(null)">+ 추가</button>
+  </div>
+</div>
+
+<!-- ── TAB 0: 진행 중 ── -->
+<div id="pg0">
+  <div id="listInProgress" style="display:flex;flex-direction:column;gap:10px;"></div>
+  <div id="emptyInProgress" style="display:none;" class="empty-state">진행 중인 마일스톤이 없습니다.</div>
+</div>
+
+<!-- ── TAB 1: 달성 완료 ── -->
+<div id="pg1" style="display:none;">
+  <div id="listCompleted" style="display:flex;flex-direction:column;gap:8px;"></div>
+  <div id="emptyCompleted" style="display:none;" class="empty-state">달성 완료된 마일스톤이 없습니다.</div>
+</div>
+
+<!-- ── TAB 2: 연도별 ── -->
+<div id="pg2" style="display:none;">
+  <div id="yearlyView"></div>
+</div>
+
+<!-- ── 입력 모달 ── -->
+<div id="modal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.45);z-index:200;overflow-y:auto;">
+  <div style="max-width:480px;margin:80px auto;background:var(--bg);border-radius:var(--r-lg);padding:24px;position:relative;">
+    <button onclick="closeModal()" style="position:absolute;top:16px;right:16px;background:none;border:none;font-size:18px;cursor:pointer;color:var(--text2);">✕</button>
+    <h2 id="modalTitle" style="font-size:16px;font-weight:600;margin-bottom:20px;">마일스톤 추가</h2>
+    <div style="margin-bottom:12px;">
+      <label class="form-label">제목</label>
+      <input id="mTitle" class="form-input" style="width:100%;" placeholder="예: 순자산 5억 만들기">
+    </div>
+    <div style="margin-bottom:12px;">
+      <label class="form-label">상태</label>
+      <select id="mStatus" class="form-input" style="width:100%;">
+        <option value="in_progress">진행 중</option>
+        <option value="completed">달성 완료</option>
+      </select>
+    </div>
+    <div style="margin-bottom:12px;">
+      <label class="form-label">카테고리</label>
+      <select id="mCategory" class="form-input" style="width:100%;">
+        <option value="">— 미분류 —</option>
+        <option value="education">🎓 성장 &amp; 학습</option>
+        <option value="career_start">💼 사회 진출</option>
+        <option value="economic_growth">💰 경제적 성장</option>
+        <option value="asset_expansion">📊 자산 확장</option>
+        <option value="stability">🏡 안정화</option>
+        <option value="freedom">🧘‍♂️ 자유 추구</option>
+        <option value="completion">👑 완성 &amp; 영향력</option>
+        <option value="retrospective">🧓 회고 &amp; 유산</option>
+      </select>
+    </div>
+    <div style="margin-bottom:12px;">
+      <label class="form-label" id="mDateLabel">날짜 (YYYY-MM-DD)</label>
+      <input id="mDate" class="form-input" style="width:100%;" type="text" placeholder="2026-12-31">
+    </div>
+    <div style="margin-bottom:20px;">
+      <label class="form-label">메모 (선택)</label>
+      <input id="mNote" class="form-input" style="width:100%;" placeholder="특이사항">
+    </div>
+    <div style="display:flex;gap:8px;justify-content:flex-end;">
+      <button class="btn btn-ghost" onclick="closeModal()">취소</button>
+      <button class="btn btn-primary" id="modalSaveBtn" onclick="saveItem()">저장</button>
+    </div>
+    <input type="hidden" id="mEditId" value="">
+  </div>
+</div>
+
+<!-- ── CSV 모달 ── -->
+<div id="importModal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.45);z-index:200;overflow-y:auto;">
+  <div style="max-width:480px;margin:80px auto;background:var(--bg);border-radius:var(--r-lg);padding:24px;position:relative;">
+    <button onclick="closeImportModal()" style="position:absolute;top:16px;right:16px;background:none;border:none;font-size:18px;cursor:pointer;color:var(--text2);">✕</button>
+    <h2 style="font-size:16px;font-weight:600;margin-bottom:8px;">CSV 가져오기</h2>
+    <p style="font-size:13px;color:var(--text2);margin-bottom:16px;">노션에서 내보낸 마일스톤 CSV 파일을 선택하세요.</p>
+    <input type="file" id="csvInput" accept=".csv" class="form-input" style="width:100%;margin-bottom:12px;">
+    <div id="csvPreview" style="font-size:12px;color:var(--text2);margin-bottom:16px;display:none;"></div>
+    <div style="display:flex;gap:8px;justify-content:flex-end;">
+      <button class="btn btn-ghost" onclick="closeImportModal()">취소</button>
+      <button class="btn btn-primary" id="importBtn" onclick="submitImport()">가져오기</button>
+    </div>
+  </div>
+</div>
+
+<style>
+.pg-tab {
+  padding: 8px 16px; font-size: 13px; font-weight: 500;
+  color: var(--text2); background: none; border: none;
+  border-bottom: 2px solid transparent; cursor: pointer;
+  transition: all .15s; margin-bottom: -1px;
+}
+.pg-tab:hover { color: var(--text); }
+.pg-tab.active { color: var(--accent); border-bottom-color: var(--accent); }
+</style>
+
+<script>
+let items = [];
+let csvContent = null;
+let currentPg = 0;
+
+const CAT = {
+  education:       { label: '🎓 성장 & 학습',    color: '#6366f1' },
+  career_start:    { label: '💼 사회 진출',       color: '#0ea5e9' },
+  economic_growth: { label: '💰 경제적 성장',     color: '#f59e0b' },
+  asset_expansion: { label: '📊 자산 확장',       color: '#10b981' },
+  stability:       { label: '🏡 안정화',          color: '#ec4899' },
+  freedom:         { label: '🧘‍♂️ 자유 추구',    color: '#8b5cf6' },
+  completion:      { label: '👑 완성 & 영향력',   color: '#f97316' },
+  retrospective:   { label: '🧓 회고 & 유산',     color: '#64748b' },
+};
+
+function catBadge(cat) {
+  const c = CAT[cat];
+  if (!c) return '';
+  return `<span style="display:inline-block;font-size:11px;padding:1px 8px;border-radius:99px;background:${c.color}22;color:${c.color};font-weight:600;flex-shrink:0;">${c.label}</span>`;
+}
+
+function showPg(idx) {
+  currentPg = idx;
+  [0,1,2].forEach(i => {
+    document.getElementById('pg'+i).style.display = i===idx ? '' : 'none';
+    document.getElementById('pgBtn'+i).classList.toggle('active', i===idx);
+  });
+  if (idx === 2) renderYearly();
+}
+
+async function load() {
+  const res = await fetch('/api/milestones');
+  items = await res.json();
+  renderStats();
+  renderInProgress();
+  renderCompleted();
+  if (currentPg === 2) renderYearly();
+}
+
+// ── 달성률 바 ──
+function renderStats() {
+  const total = items.length;
+  const done  = items.filter(d => d.status === 'completed').length;
+  const pct   = total ? Math.round(done/total*100) : 0;
+  document.getElementById('statsText').textContent   = `${done} / ${total} 달성 (${pct}%)`;
+  document.getElementById('progressBar').style.width = pct + '%';
+}
+
+// ── TAB 0: 진행 중 ──
+function renderInProgress() {
+  const inProgress = items.filter(d => d.status === 'in_progress');
+  document.getElementById('emptyInProgress').style.display = inProgress.length ? 'none' : '';
+  document.getElementById('listInProgress').innerHTML = inProgress.map(d => `
+    <div style="background:var(--bg);border:1px solid var(--border);border-radius:var(--r-lg);padding:16px 18px;display:flex;justify-content:space-between;align-items:flex-start;gap:12px;">
+      <div style="flex:1;min-width:0;">
+        <div style="display:flex;align-items:center;gap:8px;margin-bottom:4px;flex-wrap:wrap;">
+          <span style="width:8px;height:8px;border-radius:50%;background:#f59e0b;flex-shrink:0;display:inline-block;"></span>
+          <span style="font-weight:600;font-size:15px;">${d.title}</span>
+          ${catBadge(d.category)}
+        </div>
+        ${d.date ? `<div style="font-size:12px;color:var(--text2);margin-left:16px;">목표일: ${d.date}</div>` : ''}
+        ${d.note ? `<div style="font-size:12px;color:var(--text2);margin-left:16px;margin-top:2px;">${d.note}</div>` : ''}
+      </div>
+      <div style="display:flex;gap:6px;flex-shrink:0;">
+        <button class="btn btn-ghost" style="padding:4px 10px;font-size:12px;" onclick="openModal(${d.id})">수정</button>
+        <button class="btn btn-ghost" style="padding:4px 10px;font-size:12px;color:var(--red);" onclick="deleteItem(${d.id},'${esc(d.title)}')">삭제</button>
+      </div>
+    </div>`).join('');
+}
+
+// ── TAB 1: 달성 완료 ──
+function renderCompleted() {
+  const completed = items.filter(d => d.status === 'completed').sort((a,b) => (b.date||'').localeCompare(a.date||''));
+  document.getElementById('emptyCompleted').style.display = completed.length ? 'none' : '';
+  document.getElementById('listCompleted').innerHTML = completed.map(d => `
+    <div style="background:var(--bg2);border-radius:var(--r-md);padding:12px 16px;display:flex;justify-content:space-between;align-items:center;gap:12px;opacity:.85;">
+      <div style="display:flex;align-items:center;gap:10px;flex:1;min-width:0;">
+        <span style="color:#10b981;font-size:16px;flex-shrink:0;">✓</span>
+        <div style="flex:1;min-width:0;">
+          <div style="display:flex;align-items:center;gap:6px;flex-wrap:wrap;">
+            <span style="font-weight:500;font-size:14px;">${d.title}</span>
+            ${catBadge(d.category)}
+          </div>
+          <div style="font-size:12px;color:var(--text2);">${d.date ? d.date+(d.note?' · ':'') : ''}${d.note||''}</div>
+        </div>
+      </div>
+      <div style="display:flex;gap:6px;flex-shrink:0;">
+        <button class="btn btn-ghost" style="padding:3px 8px;font-size:11px;" onclick="openModal(${d.id})">수정</button>
+        <button class="btn btn-ghost" style="padding:3px 8px;font-size:11px;color:var(--red);" onclick="deleteItem(${d.id},'${esc(d.title)}')">삭제</button>
+      </div>
+    </div>`).join('');
+}
+
+// ── TAB 1: 연도별 ──
+function renderYearly() {
+  const completed = items.filter(d => d.status === 'completed');
+
+  if (!completed.length) {
+    document.getElementById('yearlyView').innerHTML = '<p class="empty-state">달성 완료된 항목이 없습니다.</p>';
+    return;
+  }
+
+  // 연도별 그룹핑 (날짜 없는 항목은 '날짜 미지정'으로)
+  const byYear = {};
+  completed.forEach(d => {
+    const y = d.date ? d.date.slice(0,4) : '날짜 미지정';
+    if (!byYear[y]) byYear[y] = [];
+    byYear[y].push(d);
+  });
+
+  // 연도 내림차순 정렬 ('날짜 미지정'은 맨 뒤)
+  const years = Object.keys(byYear).sort((a,b) => {
+    if (a === '날짜 미지정') return 1;
+    if (b === '날짜 미지정') return -1;
+    return b - a;
+  });
+
+  let html = '';
+  years.forEach(year => {
+    const list = byYear[year].sort((a,b) => b.date.localeCompare(a.date));
+    html += `
+    <div style="margin-bottom:1.5rem;">
+      <div style="display:flex;align-items:center;gap:12px;margin-bottom:12px;">
+        <span style="font-size:18px;font-weight:700;color:var(--accent);">${year}</span>
+        <span style="font-size:12px;color:var(--text2);background:var(--bg2);padding:2px 8px;border-radius:99px;">${list.length}개 달성</span>
+        <div style="flex:1;height:1px;background:var(--border);"></div>
+      </div>
+      <div style="display:flex;flex-direction:column;gap:8px;">
+        ${list.map((d,i) => `
+        <div style="display:flex;align-items:flex-start;gap:14px;">
+          <!-- 타임라인 점 -->
+          <div style="display:flex;flex-direction:column;align-items:center;padding-top:3px;flex-shrink:0;">
+            <div style="width:10px;height:10px;border-radius:50%;background:${CAT[d.category]?.color||'#10b981'};flex-shrink:0;"></div>
+            ${i < list.length-1 ? `<div style="width:2px;flex:1;min-height:20px;background:var(--border);margin-top:4px;"></div>` : ''}
+          </div>
+          <!-- 내용 -->
+          <div style="flex:1;padding-bottom:${i < list.length-1 ? '8' : '0'}px;">
+            <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:8px;">
+              <div style="flex:1;min-width:0;">
+                <div style="display:flex;align-items:center;gap:6px;flex-wrap:wrap;margin-bottom:2px;">
+                  <span style="font-weight:500;font-size:14px;">${d.title}</span>
+                  ${catBadge(d.category)}
+                </div>
+                <div style="font-size:12px;color:var(--text2);">
+                  ${d.date ? d.date : ''}${d.date && d.note ? ' · ' : ''}${d.note || ''}
+                </div>
+              </div>
+              <button class="btn btn-ghost" style="padding:2px 8px;font-size:11px;flex-shrink:0;" onclick="openModal(${d.id})">수정</button>
+            </div>
+          </div>
+        </div>`).join('')}
+      </div>
+    </div>`;
+  });
+
+  document.getElementById('yearlyView').innerHTML = html;
+}
+
+function esc(s) { return (s||'').replace(/'/g,"\\'"); }
+
+// ── 모달 ──
+document.getElementById('mStatus').addEventListener('change', function() {
+  document.getElementById('mDateLabel').textContent =
+    this.value === 'completed' ? '완료일 (YYYY-MM-DD)' : '목표일 (YYYY-MM-DD, 선택)';
+});
+
+function openModal(id) {
+  const d = id ? items.find(x => x.id === id) : null;
+  document.getElementById('modalTitle').textContent = d ? '마일스톤 수정' : '마일스톤 추가';
+  document.getElementById('mEditId').value    = id || '';
+  document.getElementById('mTitle').value     = d ? d.title    : '';
+  document.getElementById('mStatus').value    = d ? d.status   : 'in_progress';
+  document.getElementById('mCategory').value  = d ? d.category : '';
+  document.getElementById('mDate').value      = d ? d.date     : '';
+  document.getElementById('mNote').value      = d ? d.note     : '';
+  document.getElementById('mDateLabel').textContent =
+    (d && d.status==='completed') ? '완료일 (YYYY-MM-DD)' : '목표일 (YYYY-MM-DD, 선택)';
+  document.getElementById('modal').style.display = 'block';
+}
+function closeModal() { document.getElementById('modal').style.display = 'none'; }
+
+async function saveItem() {
+  const btn = document.getElementById('modalSaveBtn');
+  btn.disabled = true;
+  try {
+    const res = await fetch('/api/milestones', {
+      method:'POST', headers:{'Content-Type':'application/json'},
+      body: JSON.stringify({
+        id:       document.getElementById('mEditId').value || null,
+        title:    document.getElementById('mTitle').value.trim(),
+        status:   document.getElementById('mStatus').value,
+        category: document.getElementById('mCategory').value,
+        date:     document.getElementById('mDate').value.trim(),
+        note:     document.getElementById('mNote').value.trim(),
+      }),
+    });
+    if (!res.ok) { const e = await res.json(); alert(e.detail||'저장 실패'); return; }
+    closeModal();
+    await load();
+  } finally { btn.disabled = false; }
+}
+
+async function deleteItem(id, title) {
+  if (!confirm(`'${title}'을(를) 삭제하시겠습니까?`)) return;
+  await fetch(`/api/milestones/${id}`, {method:'DELETE'});
+  await load();
+}
+
+// ── CSV ──
+function openImportModal() {
+  csvContent = null;
+  document.getElementById('csvInput').value = '';
+  document.getElementById('csvPreview').style.display = 'none';
+  document.getElementById('importModal').style.display = 'block';
+}
+function closeImportModal() { document.getElementById('importModal').style.display = 'none'; }
+
+document.getElementById('csvInput').addEventListener('change', function() {
+  const file = this.files[0]; if (!file) return;
+  const reader = new FileReader();
+  reader.onload = e => {
+    csvContent = e.target.result;
+    const lines = csvContent.split('\n').filter(l=>l.trim());
+    const p = document.getElementById('csvPreview');
+    p.textContent = `${lines.length-1}행 감지됨`;
+    p.style.display = 'block';
+  };
+  reader.readAsText(file, 'UTF-8');
+});
+
+async function submitImport() {
+  if (!csvContent) { alert('파일을 선택해주세요.'); return; }
+  const btn = document.getElementById('importBtn');
+  btn.disabled = true; btn.textContent = '가져오는 중...';
+  try {
+    const res = await fetch('/api/milestones/import-csv', {
+      method:'POST', headers:{'Content-Type':'application/json'},
+      body: JSON.stringify({csv: csvContent}),
+    });
+    const data = await res.json();
+    alert(`${data.imported}건 가져오기 완료`);
+    closeImportModal();
+    await load();
+  } catch(e) { alert('실패: '+e.message);
+  } finally { btn.disabled=false; btn.textContent='가져오기'; }
+}
+
+['modal','importModal'].forEach(id => {
+  document.getElementById(id).addEventListener('click', function(e) {
+    if (e.target === this) this.style.display = 'none';
+  });
+});
+
+showPg(0);
+load();
+</script>
+{% endblock %}

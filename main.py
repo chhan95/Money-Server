@@ -18,6 +18,7 @@ database.create_tables()
 
 app = FastAPI(title="💰 Money Dashboard", docs_url="/docs")
 app.mount("/static", StaticFiles(directory="static"), name="static")
+app.mount("/resources", StaticFiles(directory="resources"), name="resources")
 templates = Jinja2Templates(directory="templates")
 
 CACHE_HOURS = 24
@@ -521,3 +522,322 @@ def portfolio_delete(item_id: int, db: Session = Depends(get_db)):
     db.query(models.Portfolio).filter(models.Portfolio.id == item_id).delete()
     db.commit()
     return RedirectResponse("/portfolio", status_code=303)
+
+
+# ════════════════════════════════════════════════════════════
+# 자산관리
+# ════════════════════════════════════════════════════════════
+
+def _asset_to_dict(s: models.AssetSnapshot, custom_accounts: list = None) -> dict:
+    pension = (s.dc or 0) + (s.irp_miraeasset or 0) + (s.irp_samsung or 0) + (s.personal_pension or 0) + (s.pension_cma or 0)
+    invest  = (s.isa or 0) + (s.miraeasset or 0) + (s.samsung_trading or 0) + (s.toss_securities or 0)
+    # 저축합 = 주택청약종합저축만 (CSV 기준 — 급여적금·내집마련·정기예금합은 집계 미포함)
+    savings = s.housing_subscription or 0
+    liquid  = (s.young_hana or 0) + (s.naverpay_hana or 0) + (s.shinhan or 0) + (s.toss_savings or 0)
+    loan    = s.hana_loan or 0
+
+    # 커스텀 계좌 집계
+    try:
+        extra = json.loads(s.extra_json or '{}')
+    except Exception:
+        extra = {}
+
+    if custom_accounts:
+        for acc in custom_accounts:
+            val = float(extra.get(str(acc.id), 0) or 0)
+            if acc.category == 'pension':  pension  += val
+            elif acc.category == 'invest': invest   += val
+            elif acc.category == 'savings': savings += val
+            elif acc.category == 'liquid': liquid   += val
+            elif acc.category == 'loan':   loan     += val
+
+    total = pension + invest + savings + liquid - loan
+    return {
+        "id": s.id, "date": s.snapshot_date, "note": s.note or "",
+        "dc": s.dc or 0, "irpMiraeasset": s.irp_miraeasset or 0,
+        "irpSamsung": s.irp_samsung or 0, "personalPension": s.personal_pension or 0,
+        "pensionCma": s.pension_cma or 0,
+        "isa": s.isa or 0, "miraeasset": s.miraeasset or 0,
+        "samsungTrading": s.samsung_trading or 0, "tossSecurities": s.toss_securities or 0,
+        "hanaSalarySavings": s.hana_salary_savings or 0, "hanaHomeSavings": s.hana_home_savings or 0,
+        "housingSubscription": s.housing_subscription or 0, "fixedDeposit": s.fixed_deposit or 0,
+        "youngHana": s.young_hana or 0, "naverpayHana": s.naverpay_hana or 0,
+        "shinhan": s.shinhan or 0, "tossSavings": s.toss_savings or 0,
+        "hanaLoan": s.hana_loan or 0,
+        "extra": extra,
+        "pensionTotal": pension, "investTotal": invest,
+        "savingsTotal": savings, "liquidTotal": liquid,
+        "totalCapital": total,
+    }
+
+
+@app.get("/assets", response_class=HTMLResponse)
+def page_assets(request: Request):
+    return templates.TemplateResponse("assets.html", {"request": request, "active": "assets"})
+
+
+# ──────────────────────────────────────────────
+#  마일스톤
+# ──────────────────────────────────────────────
+@app.get("/milestones", response_class=HTMLResponse)
+def page_milestones(request: Request):
+    return templates.TemplateResponse("milestone.html", {"request": request, "active": "milestones"})
+
+
+def _milestone_to_dict(m: models.Milestone) -> dict:
+    return {
+        "id": m.id, "title": m.title, "status": m.status,
+        "category": m.category or "", "note": m.note or "",
+        "date": m.milestone_date or "", "displayOrder": m.display_order,
+    }
+
+
+@app.get("/api/milestones")
+def api_milestones_list(db: Session = Depends(get_db)):
+    rows = db.query(models.Milestone).order_by(
+        models.Milestone.display_order, models.Milestone.id
+    ).all()
+    return [_milestone_to_dict(r) for r in rows]
+
+
+@app.post("/api/milestones")
+async def api_milestones_save(request: Request, db: Session = Depends(get_db)):
+    body = await request.json()
+    mid = body.get("id")
+    if mid:
+        row = db.query(models.Milestone).filter(models.Milestone.id == mid).first()
+        if not row:
+            raise HTTPException(status_code=404, detail="Not found")
+    else:
+        row = models.Milestone()
+        max_order = db.query(models.Milestone).count()
+        row.display_order = max_order
+        db.add(row)
+    row.title          = (body.get("title") or "").strip()
+    row.status         = body.get("status") or "in_progress"
+    row.category       = (body.get("category") or "").strip()
+    row.note           = (body.get("note") or "").strip()
+    row.milestone_date = (body.get("date") or "").strip() or None
+    if not row.title:
+        raise HTTPException(status_code=400, detail="제목을 입력해주세요.")
+    db.commit()
+    db.refresh(row)
+    return _milestone_to_dict(row)
+
+
+@app.delete("/api/milestones/{mid}")
+def api_milestones_delete(mid: int, db: Session = Depends(get_db)):
+    db.query(models.Milestone).filter(models.Milestone.id == mid).delete()
+    db.commit()
+    return {"ok": True}
+
+
+@app.post("/api/milestones/import-csv")
+async def api_milestones_import(request: Request, db: Session = Depends(get_db)):
+    import csv, io
+    body = await request.json()
+    content = body.get("csv", "")
+    reader = csv.DictReader(io.StringIO(content))
+    count = 0
+    for i, row in enumerate(reader):
+        title  = (row.get("인생 목표") or "").strip()
+        status_raw = (row.get("Status") or "").strip()
+        note   = (row.get("내용") or "").strip()
+        date_raw = (row.get("완료된 날") or "").strip()
+        if not title:
+            continue
+        status = "completed" if status_raw == "완료" else "in_progress"
+        # 날짜 파싱: "2022년 5월 2일" → "2022-05-02"
+        parsed_date = None
+        import re
+        m = re.match(r"(\d{4})년\s*(\d{1,2})월\s*(\d{1,2})일", date_raw)
+        if m:
+            parsed_date = f"{m.group(1)}-{int(m.group(2)):02d}-{int(m.group(3)):02d}"
+        existing = db.query(models.Milestone).filter(models.Milestone.title == title).first()
+        if existing:
+            existing.status = status
+            existing.note   = note
+            existing.milestone_date = parsed_date
+        else:
+            db.add(models.Milestone(
+                title=title, status=status, note=note,
+                milestone_date=parsed_date, display_order=i,
+            ))
+        count += 1
+    db.commit()
+    return {"imported": count}
+
+
+@app.get("/api/settings/{key}")
+def get_setting(key: str, db: Session = Depends(get_db)):
+    s = db.query(models.AppSetting).filter(models.AppSetting.key == key).first()
+    return {"value": s.value if s else ""}
+
+
+@app.post("/api/settings/{key}")
+async def set_setting(key: str, request: Request, db: Session = Depends(get_db)):
+    body = await request.json()
+    value = str(body.get("value", ""))
+    s = db.query(models.AppSetting).filter(models.AppSetting.key == key).first()
+    if s:
+        s.value = value
+    else:
+        db.add(models.AppSetting(key=key, value=value))
+    db.commit()
+    return {"ok": True}
+
+
+@app.get("/api/accounts")
+def api_accounts_list(db: Session = Depends(get_db)):
+    return [
+        {"id": a.id, "name": a.name, "category": a.category, "displayOrder": a.display_order}
+        for a in db.query(models.CustomAccount).order_by(
+            models.CustomAccount.display_order, models.CustomAccount.id
+        ).all()
+    ]
+
+
+@app.post("/api/accounts")
+async def api_accounts_create(request: Request, db: Session = Depends(get_db)):
+    body = await request.json()
+    name = (body.get("name") or "").strip()
+    category = (body.get("category") or "").strip()
+    if not name or category not in ("pension", "invest", "savings", "liquid", "loan"):
+        raise HTTPException(status_code=400, detail="이름과 분류를 확인해주세요.")
+    max_order = db.query(models.CustomAccount).count()
+    acc = models.CustomAccount(name=name, category=category, display_order=max_order)
+    db.add(acc)
+    db.commit()
+    db.refresh(acc)
+    return {"id": acc.id, "name": acc.name, "category": acc.category, "displayOrder": acc.display_order}
+
+
+@app.delete("/api/accounts/{acc_id}")
+def api_accounts_delete(acc_id: int, db: Session = Depends(get_db)):
+    db.query(models.CustomAccount).filter(models.CustomAccount.id == acc_id).delete()
+    db.commit()
+    return {"ok": True}
+
+
+@app.get("/api/assets")
+def api_assets_list(db: Session = Depends(get_db)):
+    custom_accounts = db.query(models.CustomAccount).all()
+    rows = db.query(models.AssetSnapshot).order_by(models.AssetSnapshot.snapshot_date).all()
+    return [_asset_to_dict(r, custom_accounts) for r in rows]
+
+
+@app.post("/api/assets")
+async def api_assets_save(request: Request, db: Session = Depends(get_db)):
+    body = await request.json()
+    date_str = (body.get("date") or "").strip()
+    if not date_str:
+        raise HTTPException(status_code=400, detail="날짜를 입력해주세요.")
+
+    row = db.query(models.AssetSnapshot).filter(models.AssetSnapshot.snapshot_date == date_str).first()
+    if row is None:
+        row = models.AssetSnapshot(snapshot_date=date_str)
+        db.add(row)
+
+    row.dc                  = float(body.get("dc") or 0)
+    row.irp_miraeasset      = float(body.get("irpMiraeasset") or 0)
+    row.irp_samsung         = float(body.get("irpSamsung") or 0)
+    row.personal_pension    = float(body.get("personalPension") or 0)
+    row.pension_cma         = float(body.get("pensionCma") or 0)
+    row.isa                 = float(body.get("isa") or 0)
+    row.miraeasset          = float(body.get("miraeasset") or 0)
+    row.samsung_trading     = float(body.get("samsungTrading") or 0)
+    row.toss_securities     = float(body.get("tossSecurities") or 0)
+    row.hana_salary_savings = float(body.get("hanaSalarySavings") or 0)
+    row.hana_home_savings   = float(body.get("hanaHomeSavings") or 0)
+    row.housing_subscription = float(body.get("housingSubscription") or 0)
+    row.fixed_deposit       = float(body.get("fixedDeposit") or 0)
+    row.young_hana          = float(body.get("youngHana") or 0)
+    row.naverpay_hana       = float(body.get("naverpayHana") or 0)
+    row.shinhan             = float(body.get("shinhan") or 0)
+    row.toss_savings        = float(body.get("tossSavings") or 0)
+    row.hana_loan           = float(body.get("hanaLoan") or 0)
+    row.extra_json          = json.dumps(body.get("extra") or {}, ensure_ascii=False)
+    row.note                = body.get("note") or ""
+    db.commit()
+    db.refresh(row)
+    custom_accounts = db.query(models.CustomAccount).all()
+    return _asset_to_dict(row, custom_accounts)
+
+
+@app.delete("/api/assets/{row_id}")
+def api_assets_delete(row_id: int, db: Session = Depends(get_db)):
+    db.query(models.AssetSnapshot).filter(models.AssetSnapshot.id == row_id).delete()
+    db.commit()
+    return {"ok": True}
+
+
+@app.post("/api/assets/import-csv")
+async def api_assets_import_csv(request: Request, db: Session = Depends(get_db)):
+    """CSV 텍스트를 받아 asset_snapshots에 일괄 upsert."""
+    import csv, io, re
+
+    body = await request.json()
+    csv_text = body.get("csv", "")
+
+    def parse_krw(s: str) -> float:
+        s = (s or "").strip()
+        if not s or s in ("시작 전", "-", "₩"):
+            return 0.0
+        s = re.sub(r"[₩,\s]", "", s)
+        try:
+            return float(s)
+        except Exception:
+            return 0.0
+
+    reader = csv.DictReader(io.StringIO(csv_text))
+    col = {
+        "날짜": "날짜", "DC": "DC", "IRP(미레에셋)": "irp_miraeasset",
+        "IRP(삼성)": "irp_samsung", "ISA": "isa",
+        "Young하나통장": "young_hana", "개인연금(미레에셋)": "personal_pension",
+        "급여 하나 월복리 적금": "hana_salary_savings",
+        "내집마련더블업적금(하나)": "hana_home_savings",
+        "네이버페이 머니 하나 통장": "naverpay_hana",
+        "신한 주거래 우대통장": "shinhan",
+        "연금 CMA(삼성)": "pension_cma",
+        "정기예금합": "fixed_deposit",
+        "종합(미래에셋증권)": "miraeasset",
+        "종합매매(삼성증권)": "samsung_trading",
+        "주택청약종합저축": "housing_subscription",
+        "토스 자유입출금": "toss_savings",
+        "토스증권": "toss_securities",
+        "하나은행 대출": "hana_loan",
+        "내역": "note",
+    }
+
+    imported = 0
+    for row in reader:
+        date_str = (row.get("날짜") or "").strip()
+        if not date_str:
+            continue
+        snap = db.query(models.AssetSnapshot).filter(models.AssetSnapshot.snapshot_date == date_str).first()
+        if snap is None:
+            snap = models.AssetSnapshot(snapshot_date=date_str)
+            db.add(snap)
+        snap.dc                   = parse_krw(row.get("DC"))
+        snap.irp_miraeasset       = parse_krw(row.get("IRP(미레에셋)"))
+        snap.irp_samsung          = parse_krw(row.get("IRP(삼성)"))
+        snap.personal_pension     = parse_krw(row.get("개인연금(미레에셋)"))
+        snap.pension_cma          = parse_krw(row.get("연금 CMA(삼성)"))
+        snap.isa                  = parse_krw(row.get("ISA"))
+        snap.miraeasset           = parse_krw(row.get("종합(미래에셋증권)"))
+        snap.samsung_trading      = parse_krw(row.get("종합매매(삼성증권)"))
+        snap.toss_securities      = parse_krw(row.get("토스증권"))
+        snap.hana_salary_savings  = parse_krw(row.get("급여 하나 월복리 적금"))
+        snap.hana_home_savings    = parse_krw(row.get("내집마련더블업적금(하나)"))
+        snap.housing_subscription = parse_krw(row.get("주택청약종합저축"))
+        snap.fixed_deposit        = parse_krw(row.get("정기예금합"))
+        snap.young_hana           = parse_krw(row.get("Young하나통장"))
+        snap.naverpay_hana        = parse_krw(row.get("네이버페이 머니 하나 통장"))
+        snap.shinhan              = parse_krw(row.get("신한 주거래 우대통장"))
+        snap.toss_savings         = parse_krw(row.get("토스 자유입출금"))
+        snap.hana_loan            = abs(parse_krw(row.get("하나은행 대출")))
+        snap.note                 = (row.get("내역") or "").strip()
+        imported += 1
+
+    db.commit()
+    return {"imported": imported}

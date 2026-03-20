@@ -1,0 +1,873 @@
+{% extends "base.html" %}
+{% block title %}자산관리 — Holding Company{% endblock %}
+
+{% block content %}
+<div class="page-header" style="margin-bottom:1rem;">
+  <h1>💼 자산관리</h1>
+  <p>월별 자산 현황 추적</p>
+</div>
+
+<!-- ── 페이지 탭 ── -->
+<div style="display:flex;gap:0;margin-bottom:1.25rem;border-bottom:1px solid var(--border);">
+  <button id="pgBtn0" class="pg-tab active" onclick="showPg(0)">자산 현황</button>
+  <button id="pgBtn1" class="pg-tab"        onclick="showPg(1)">항목 관리</button>
+  <button id="pgBtn2" class="pg-tab"        onclick="showPg(2)">통장별 현황</button>
+</div>
+
+<!-- ══════════════════════════════════════
+     TAB 0 — 자산 현황
+══════════════════════════════════════ -->
+<div id="pg0">
+
+  <!-- 요약 카드 -->
+  <div id="summaryCards" style="margin-bottom:1.25rem;">
+    <div class="summary-grid" style="grid-template-columns:repeat(2,1fr);margin-bottom:10px;">
+      <div class="summary-card" style="grid-column:span 2;background:var(--accent);color:white;">
+        <div class="summary-label" style="color:rgba(255,255,255,.7);">총 자산</div>
+        <div class="summary-value" id="cardTotal" style="color:white;font-size:24px;">—</div>
+        <div class="summary-sub" style="display:flex;gap:10px;align-items:center;color:rgba(255,255,255,.7);">
+          <span id="cardTotalDate">데이터 없음</span>
+          <span id="cardTotalChange" style="font-weight:600;"></span>
+        </div>
+      </div>
+    </div>
+    <div class="summary-grid" style="grid-template-columns:repeat(3,1fr);">
+      <div class="summary-card">
+        <div class="summary-label">연금합</div>
+        <div class="summary-value" id="cardPension">—</div>
+      </div>
+      <div class="summary-card">
+        <div class="summary-label">투자합</div>
+        <div class="summary-value" id="cardInvest">—</div>
+      </div>
+      <div class="summary-card">
+        <div class="summary-label">저축합(청약)</div>
+        <div class="summary-value" id="cardSavings">—</div>
+      </div>
+      <div class="summary-card">
+        <div class="summary-label">자유입출금합</div>
+        <div class="summary-value" id="cardLiquid">—</div>
+      </div>
+      <div class="summary-card" style="grid-column:span 2;">
+        <div class="summary-label">대출</div>
+        <div class="summary-value clr-red" id="cardLoan">—</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 총 자본 추이 -->
+  <div class="card" style="margin-bottom:1.25rem;">
+    <div class="chart-label">총 자본 추이</div>
+    <div class="chart-wrapper" style="height:220px;">
+      <canvas id="chartTotal"></canvas>
+    </div>
+  </div>
+
+  <!-- 카테고리 스택 차트 -->
+  <div class="card">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;">
+      <div class="chart-label" style="margin-bottom:0;">카테고리별 구성 (최근 12개월)</div>
+      <div class="legend" style="margin-bottom:0;gap:10px;">
+        <span class="legend-item"><span class="legend-dot" style="background:#6366f1;"></span>연금</span>
+        <span class="legend-item"><span class="legend-dot" style="background:#10b981;"></span>투자</span>
+        <span class="legend-item"><span class="legend-dot" style="background:#f59e0b;"></span>저축</span>
+        <span class="legend-item"><span class="legend-dot" style="background:#3b82f6;"></span>자유입출금</span>
+      </div>
+    </div>
+    <div class="chart-wrapper" style="height:220px;">
+      <canvas id="chartCategory"></canvas>
+    </div>
+  </div>
+
+</div><!-- /pg0 -->
+
+<!-- ══════════════════════════════════════
+     TAB 1 — 항목 관리
+══════════════════════════════════════ -->
+<div id="pg1" style="display:none;">
+  <div style="display:flex;justify-content:flex-end;gap:8px;margin-bottom:1rem;">
+    <button class="btn btn-ghost" onclick="openImportModal()">CSV 가져오기</button>
+    <button class="btn btn-primary" onclick="openEntryModal(null)">+ 항목 추가</button>
+  </div>
+  <div class="card" style="overflow-x:auto;">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;">
+      <div style="display:flex;gap:6px;">
+        <button id="tabRecent" class="btn btn-primary" style="padding:4px 12px;font-size:12px;" onclick="setTab('recent')">최근 1년</button>
+        <button id="tabAll"    class="btn btn-ghost"   style="padding:4px 12px;font-size:12px;" onclick="setTab('all')">전체 내역</button>
+      </div>
+      <span style="font-size:12px;color:var(--text2);" id="rowCount"></span>
+    </div>
+    <table class="p-table">
+      <thead>
+        <tr>
+          <th>날짜</th>
+          <th style="text-align:right;">총 자본</th>
+          <th style="text-align:right;">연금합</th>
+          <th style="text-align:right;">투자합</th>
+          <th style="text-align:right;">저축합</th>
+          <th style="text-align:right;">자유입출금</th>
+          <th style="text-align:right;">대출</th>
+          <th></th>
+        </tr>
+      </thead>
+      <tbody id="assetTableBody">
+        <tr><td colspan="8" class="empty-state">데이터 로딩 중...</td></tr>
+      </tbody>
+    </table>
+  </div>
+</div><!-- /pg1 -->
+
+<!-- ══════════════════════════════════════
+     TAB 2 — 통장별 현황
+══════════════════════════════════════ -->
+<div id="pg2" style="display:none;">
+
+  <!-- 계좌 관리 -->
+  <div class="card" style="margin-bottom:1.25rem;">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;">
+      <div class="chart-label" style="margin-bottom:0;">계좌 관리</div>
+      <button class="btn btn-primary" style="font-size:12px;padding:4px 12px;" onclick="openAddAccModal()">+ 계좌 추가</button>
+    </div>
+    <div id="customAccList">
+      <p style="font-size:13px;color:var(--text2);">추가된 커스텀 계좌가 없습니다.</p>
+    </div>
+  </div>
+
+  <!-- 통장별 잔액 -->
+  <div id="accountBreakdown">
+    <p class="empty-state">데이터 로딩 중...</p>
+  </div>
+
+</div><!-- /pg2 -->
+
+
+<!-- ══════════════════════════════════════
+     입력 모달
+══════════════════════════════════════ -->
+<div id="entryModal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.45);z-index:200;overflow-y:auto;">
+  <div style="max-width:640px;margin:40px auto;background:var(--bg);border-radius:var(--r-lg);padding:24px;position:relative;">
+    <button onclick="closeEntryModal()" style="position:absolute;top:16px;right:16px;background:none;border:none;font-size:18px;cursor:pointer;color:var(--text2);">✕</button>
+    <h2 style="font-size:16px;font-weight:600;margin-bottom:20px;" id="modalTitle">항목 추가</h2>
+
+    <div style="margin-bottom:16px;">
+      <label class="form-label">날짜 (YYYY/MM/DD)</label>
+      <input id="fDate" class="form-input" style="width:100%;" type="text" placeholder="2026/03/31">
+    </div>
+
+    <!-- 연금 -->
+    <div style="margin-bottom:12px;">
+      <div class="chart-label" style="margin-bottom:8px;">연금</div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;">
+        <div data-bikey="dc"><label class="form-label">DC (퇴직연금)</label><input id="fDc" class="form-input" style="width:100%;" type="number" placeholder="0"></div>
+        <div data-bikey="irpMiraeasset"><label class="form-label">IRP 미래에셋</label><input id="fIrpMiraeasset" class="form-input" style="width:100%;" type="number" placeholder="0"></div>
+        <div data-bikey="irpSamsung"><label class="form-label">IRP 삼성</label><input id="fIrpSamsung" class="form-input" style="width:100%;" type="number" placeholder="0"></div>
+        <div data-bikey="personalPension"><label class="form-label">개인연금 미래에셋</label><input id="fPersonalPension" class="form-input" style="width:100%;" type="number" placeholder="0"></div>
+        <div data-bikey="pensionCma"><label class="form-label">연금 CMA 삼성</label><input id="fPensionCma" class="form-input" style="width:100%;" type="number" placeholder="0"></div>
+      </div>
+    </div>
+
+    <!-- 투자 -->
+    <div style="margin-bottom:12px;">
+      <div class="chart-label" style="margin-bottom:8px;">투자</div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;">
+        <div data-bikey="isa"><label class="form-label">ISA</label><input id="fIsa" class="form-input" style="width:100%;" type="number" placeholder="0"></div>
+        <div data-bikey="miraeasset"><label class="form-label">미래에셋증권</label><input id="fMiraeasset" class="form-input" style="width:100%;" type="number" placeholder="0"></div>
+        <div data-bikey="samsungTrading"><label class="form-label">삼성증권</label><input id="fSamsungTrading" class="form-input" style="width:100%;" type="number" placeholder="0"></div>
+        <div data-bikey="tossSecurities"><label class="form-label">토스증권</label><input id="fTossSecurities" class="form-input" style="width:100%;" type="number" placeholder="0"></div>
+      </div>
+    </div>
+
+    <!-- 저축 -->
+    <div style="margin-bottom:12px;">
+      <div class="chart-label" style="margin-bottom:8px;">저축</div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;">
+        <div data-bikey="housingSubscription">
+          <label class="form-label">주택청약종합저축 <span style="color:var(--accent);">★ 집계포함</span></label>
+          <input id="fHousingSubscription" class="form-input" style="width:100%;" type="number" placeholder="0">
+        </div>
+        <div data-bikey="fixedDeposit">
+          <label class="form-label" style="color:var(--text2);">정기예금합 (참고용)</label>
+          <input id="fFixedDeposit" class="form-input" style="width:100%;" type="number" placeholder="0">
+        </div>
+        <div data-bikey="hanaSalarySavings">
+          <label class="form-label" style="color:var(--text2);">급여 하나 월복리 적금 (참고용)</label>
+          <input id="fHanaSalarySavings" class="form-input" style="width:100%;" type="number" placeholder="0">
+        </div>
+        <div data-bikey="hanaHomeSavings">
+          <label class="form-label" style="color:var(--text2);">내집마련더블업적금 (참고용)</label>
+          <input id="fHanaHomeSavings" class="form-input" style="width:100%;" type="number" placeholder="0">
+        </div>
+      </div>
+    </div>
+
+    <!-- 자유입출금 -->
+    <div style="margin-bottom:12px;">
+      <div class="chart-label" style="margin-bottom:8px;">자유입출금</div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;">
+        <div data-bikey="youngHana"><label class="form-label">Young 하나통장</label><input id="fYoungHana" class="form-input" style="width:100%;" type="number" placeholder="0"></div>
+        <div data-bikey="naverpayHana"><label class="form-label">네이버페이 하나통장</label><input id="fNaverpayHana" class="form-input" style="width:100%;" type="number" placeholder="0"></div>
+        <div data-bikey="shinhan"><label class="form-label">신한 주거래통장</label><input id="fShinhan" class="form-input" style="width:100%;" type="number" placeholder="0"></div>
+        <div data-bikey="tossSavings"><label class="form-label">토스 자유입출금</label><input id="fTossSavings" class="form-input" style="width:100%;" type="number" placeholder="0"></div>
+      </div>
+    </div>
+
+    <!-- 대출 -->
+    <div style="margin-bottom:12px;">
+      <div class="chart-label" style="margin-bottom:8px;">대출</div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;">
+        <div data-bikey="hanaLoan"><label class="form-label">하나은행 대출 (양수 입력)</label><input id="fHanaLoan" class="form-input" style="width:100%;" type="number" placeholder="0"></div>
+      </div>
+    </div>
+
+    <!-- 커스텀 계좌 -->
+    <div id="customAccSection" style="margin-bottom:12px;display:none;">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;">
+        <div class="chart-label" style="margin-bottom:0;">추가 계좌</div>
+        <button class="btn btn-ghost" style="font-size:11px;padding:3px 8px;" onclick="openAddAccModal()">+ 계좌 등록</button>
+      </div>
+      <div id="customAccInputs" style="display:grid;grid-template-columns:1fr 1fr;gap:8px;"></div>
+    </div>
+
+    <!-- 계좌 없을 때 추가 버튼 -->
+    <div id="noCustomAccBtn" style="margin-bottom:12px;">
+      <button class="btn btn-ghost" style="font-size:12px;padding:4px 10px;width:100%;" onclick="openAddAccModal()">+ 새 계좌 등록 (커스텀)</button>
+    </div>
+
+    <!-- 메모 -->
+    <div style="margin-bottom:20px;">
+      <label class="form-label">메모 (선택)</label>
+      <input id="fNote" class="form-input" style="width:100%;" type="text" placeholder="특이사항">
+    </div>
+
+    <!-- 미리보기 합계 -->
+    <div style="background:var(--bg2);border-radius:var(--r-md);padding:12px;margin-bottom:20px;font-size:13px;">
+      <div style="display:flex;justify-content:space-between;margin-bottom:6px;"><span class="clr-muted">연금합</span><span id="prevPension">0</span></div>
+      <div style="display:flex;justify-content:space-between;margin-bottom:6px;"><span class="clr-muted">투자합</span><span id="prevInvest">0</span></div>
+      <div style="display:flex;justify-content:space-between;margin-bottom:6px;"><span class="clr-muted">저축합</span><span id="prevSavings">0</span></div>
+      <div style="display:flex;justify-content:space-between;margin-bottom:6px;"><span class="clr-muted">자유입출금합</span><span id="prevLiquid">0</span></div>
+      <div style="display:flex;justify-content:space-between;margin-bottom:6px;"><span class="clr-muted">대출</span><span id="prevLoan" class="clr-red">0</span></div>
+      <div style="height:0.5px;background:var(--border);margin:8px 0;"></div>
+      <div style="display:flex;justify-content:space-between;font-weight:600;"><span>총 자본</span><span id="prevTotal" class="clr-accent">0</span></div>
+    </div>
+
+    <div style="display:flex;gap:8px;justify-content:flex-end;">
+      <button class="btn btn-ghost" onclick="closeEntryModal()">취소</button>
+      <button class="btn btn-primary" onclick="submitEntry()" id="submitBtn">저장</button>
+    </div>
+    <input type="hidden" id="fEditId" value="">
+  </div>
+</div>
+
+<!-- ── CSV 모달 ── -->
+<div id="importModal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.45);z-index:200;overflow-y:auto;">
+  <div style="max-width:600px;margin:60px auto;background:var(--bg);border-radius:var(--r-lg);padding:24px;position:relative;">
+    <button onclick="closeImportModal()" style="position:absolute;top:16px;right:16px;background:none;border:none;font-size:18px;cursor:pointer;color:var(--text2);">✕</button>
+    <h2 style="font-size:16px;font-weight:600;margin-bottom:8px;">CSV 가져오기</h2>
+    <p style="font-size:13px;color:var(--text2);margin-bottom:16px;">CSV 파일을 선택하세요. 기존 날짜 데이터는 덮어씁니다.</p>
+    <label class="form-label">CSV 파일 선택</label>
+    <input type="file" id="csvFileInput" accept=".csv" class="form-input" style="width:100%;margin-bottom:12px;">
+    <div id="csvPreview" style="font-size:12px;color:var(--text2);margin-bottom:16px;display:none;"></div>
+    <div style="display:flex;gap:8px;justify-content:flex-end;">
+      <button class="btn btn-ghost" onclick="closeImportModal()">취소</button>
+      <button class="btn btn-primary" onclick="submitImport()" id="importBtn">가져오기</button>
+    </div>
+  </div>
+</div>
+
+<!-- ── 계좌 추가 모달 ── -->
+<div id="addAccModal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.45);z-index:300;overflow-y:auto;">
+  <div style="max-width:380px;margin:120px auto;background:var(--bg);border-radius:var(--r-lg);padding:24px;position:relative;">
+    <button onclick="closeAddAccModal()" style="position:absolute;top:16px;right:16px;background:none;border:none;font-size:18px;cursor:pointer;color:var(--text2);">✕</button>
+    <h2 style="font-size:16px;font-weight:600;margin-bottom:20px;">계좌 추가</h2>
+    <div style="margin-bottom:12px;">
+      <label class="form-label">계좌명</label>
+      <input id="newAccName" class="form-input" style="width:100%;" placeholder="예: 국민은행 입출금">
+    </div>
+    <div style="margin-bottom:20px;">
+      <label class="form-label">분류</label>
+      <select id="newAccCat" class="form-input" style="width:100%;">
+        <option value="pension">연금</option>
+        <option value="invest">투자</option>
+        <option value="savings">저축</option>
+        <option value="liquid" selected>자유입출금</option>
+        <option value="loan">대출</option>
+      </select>
+    </div>
+    <div style="display:flex;gap:8px;justify-content:flex-end;">
+      <button class="btn btn-ghost" onclick="closeAddAccModal()">취소</button>
+      <button class="btn btn-primary" onclick="saveNewAccount()" id="saveAccBtn">추가</button>
+    </div>
+  </div>
+</div>
+
+<style>
+.pg-tab {
+  padding: 8px 16px;
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--text2);
+  background: none;
+  border: none;
+  border-bottom: 2px solid transparent;
+  cursor: pointer;
+  transition: all .15s;
+  margin-bottom: -1px;
+}
+.pg-tab:hover { color: var(--text); }
+.pg-tab.active { color: var(--accent); border-bottom-color: var(--accent); }
+</style>
+
+<script>
+let allData = [];
+let customAccounts = [];
+let deactivatedBuiltins = new Set();  // 숨기기된 기본 계좌 key 목록
+let chartTotal = null, chartCategory = null;
+let csvContent = null;
+let currentTab = 'recent';
+let currentPg  = 0;
+
+const CAT_LABEL = {pension:'연금', invest:'투자', savings:'저축', liquid:'자유입출금', loan:'대출'};
+const CAT_COLOR = {pension:'#6366f1', invest:'#10b981', savings:'#f59e0b', liquid:'#3b82f6', loan:'#ef4444'};
+const CAT_ORDER = ['liquid','invest','pension','savings','loan'];
+
+// built-in 계좌 정의
+const BUILT_IN = [
+  {key:'dc',             name:'DC (퇴직연금)',       cat:'pension'},
+  {key:'irpMiraeasset',  name:'IRP 미래에셋',         cat:'pension'},
+  {key:'irpSamsung',     name:'IRP 삼성',             cat:'pension'},
+  {key:'personalPension',name:'개인연금 미래에셋',    cat:'pension'},
+  {key:'pensionCma',     name:'연금 CMA 삼성',        cat:'pension'},
+  {key:'isa',            name:'ISA',                  cat:'invest'},
+  {key:'miraeasset',     name:'미래에셋증권',          cat:'invest'},
+  {key:'samsungTrading', name:'삼성증권',              cat:'invest'},
+  {key:'tossSecurities', name:'토스증권',              cat:'invest'},
+  {key:'housingSubscription', name:'주택청약종합저축', cat:'savings'},
+  {key:'youngHana',      name:'Young 하나통장',        cat:'liquid'},
+  {key:'naverpayHana',   name:'네이버페이 하나통장',   cat:'liquid'},
+  {key:'shinhan',        name:'신한 주거래통장',        cat:'liquid'},
+  {key:'tossSavings',    name:'토스 자유입출금',        cat:'liquid'},
+  {key:'hanaLoan',       name:'하나은행 대출',          cat:'loan'},
+];
+
+// ── 포맷 헬퍼 ──
+function fmtKrw(v) {
+  if (!v && v !== 0) return '—';
+  const abs = Math.abs(v);
+  if (abs >= 1e8) return (v/1e8).toFixed(1) + '억';
+  if (abs >= 1e4) return Math.round(v/1e4).toLocaleString() + '만';
+  return Math.round(v).toLocaleString() + '원';
+}
+function fmtKrwFull(v) { return Math.round(v).toLocaleString() + '원'; }
+
+// ── 페이지 탭 ──
+function showPg(idx) {
+  currentPg = idx;
+  [0,1,2].forEach(i => {
+    document.getElementById('pg'+i).style.display     = i === idx ? '' : 'none';
+    document.getElementById('pgBtn'+i).classList.toggle('active', i === idx);
+  });
+  if (idx === 2) renderAccountBreakdown();
+}
+
+// ── 데이터 로드 ──
+async function loadData() {
+  const [dataRes, accRes, settingRes] = await Promise.all([
+    fetch('/api/assets'),
+    fetch('/api/accounts'),
+    fetch('/api/settings/deactivated_builtins'),
+  ]);
+  allData = await dataRes.json();
+  customAccounts = await accRes.json();
+  const sv = await settingRes.json();
+  try { deactivatedBuiltins = new Set(JSON.parse(sv.value || '[]')); } catch { deactivatedBuiltins = new Set(); }
+  renderCards();
+  renderCharts();
+  renderTable();
+  renderCustomAccList();
+  renderCustomAccInputs();
+  updateBuiltinFieldVisibility();
+}
+
+// ── 요약 카드 ──
+function renderCards() {
+  if (!allData.length) return;
+  const last = allData[allData.length - 1];
+  const prev = allData.length > 1 ? allData[allData.length - 2] : null;
+  document.getElementById('cardTotal').textContent     = fmtKrw(last.totalCapital);
+  document.getElementById('cardTotalDate').textContent = last.date + ' 기준';
+  if (prev && prev.totalCapital) {
+    const diff = last.totalCapital - prev.totalCapital;
+    const pct  = (diff / Math.abs(prev.totalCapital) * 100).toFixed(1);
+    const sign = diff >= 0 ? '+' : '';
+    const el   = document.getElementById('cardTotalChange');
+    el.textContent = `전월比 ${sign}${pct}%`;
+    el.style.color = diff >= 0 ? 'rgba(255,255,255,1)' : 'rgba(255,180,180,1)';
+  }
+  document.getElementById('cardPension').textContent  = fmtKrw(last.pensionTotal);
+  document.getElementById('cardInvest').textContent   = fmtKrw(last.investTotal);
+  document.getElementById('cardSavings').textContent  = fmtKrw(last.savingsTotal);
+  document.getElementById('cardLiquid').textContent   = fmtKrw(last.liquidTotal);
+  document.getElementById('cardLoan').textContent     = last.hanaLoan > 0 ? '-' + fmtKrw(last.hanaLoan) : '없음';
+}
+
+// ── 차트 ──
+function renderCharts() {
+  const labels = allData.map(d => d.date.slice(0,7));
+  const ctxT = document.getElementById('chartTotal').getContext('2d');
+  if (chartTotal) chartTotal.destroy();
+  chartTotal = new Chart(ctxT, {
+    type: 'bar',
+    data: { labels, datasets: [{
+      label: '총 자산', data: allData.map(d => d.totalCapital),
+      backgroundColor: allData.map((d, i) => {
+        if (i === 0) return 'rgba(24,95,165,.75)';
+        return d.totalCapital >= allData[i-1].totalCapital ? 'rgba(16,185,129,.75)' : 'rgba(239,68,68,.75)';
+      }),
+      hoverBackgroundColor: allData.map((d, i) => {
+        if (i === 0) return '#185FA5';
+        return d.totalCapital >= allData[i-1].totalCapital ? '#10b981' : '#ef4444';
+      }),
+      borderRadius: 3,
+    }]},
+    options: {
+      responsive: true, maintainAspectRatio: false,
+      plugins: {
+        legend: { display: false },
+        tooltip: { callbacks: {
+          label: ctx => {
+            const i = ctx.dataIndex;
+            const cur = allData[i].totalCapital;
+            const prev = i > 0 ? allData[i-1].totalCapital : null;
+            const lines = [fmtKrwFull(cur)];
+            if (prev) {
+              const diff = cur - prev;
+              const pct = (diff / Math.abs(prev) * 100).toFixed(1);
+              const sign = diff >= 0 ? '+' : '';
+              lines.push(`전월比 ${sign}${pct}% (${sign}${fmtKrw(diff)})`);
+            }
+            return lines;
+          }
+        }}
+      },
+      scales: {
+        x: { ticks: { font:{size:10}, maxTicksLimit:12 }, grid:{display:false} },
+        y: { ticks: { font:{size:10}, callback: v => fmtKrw(v) }},
+      }
+    }
+  });
+
+  const recent = allData.slice(-12);
+  const ctxC = document.getElementById('chartCategory').getContext('2d');
+  if (chartCategory) chartCategory.destroy();
+  chartCategory = new Chart(ctxC, {
+    type: 'bar',
+    data: {
+      labels: recent.map(d => d.date.slice(0,7)),
+      datasets: [
+        {label:'연금',      data: recent.map(d=>d.pensionTotal), backgroundColor:'#6366f1', stack:'s'},
+        {label:'투자',      data: recent.map(d=>d.investTotal),  backgroundColor:'#10b981', stack:'s'},
+        {label:'저축',      data: recent.map(d=>d.savingsTotal), backgroundColor:'#f59e0b', stack:'s'},
+        {label:'자유입출금',data: recent.map(d=>d.liquidTotal),  backgroundColor:'#3b82f6', stack:'s'},
+      ]
+    },
+    options: {
+      responsive: true, maintainAspectRatio: false,
+      plugins: { legend:{display:false}, tooltip:{ callbacks:{ label: ctx => ctx.dataset.label+': '+fmtKrwFull(ctx.raw) }}},
+      scales: {
+        x: { stacked:true, ticks:{font:{size:10}}, grid:{display:false} },
+        y: { stacked:true, ticks:{font:{size:10}, callback: v=>fmtKrw(v) }},
+      }
+    }
+  });
+}
+
+// ── 항목 관리 테이블 ──
+function setTab(tab) {
+  currentTab = tab;
+  document.getElementById('tabRecent').className = tab==='recent' ? 'btn btn-primary' : 'btn btn-ghost';
+  document.getElementById('tabAll').className    = tab==='all'    ? 'btn btn-primary' : 'btn btn-ghost';
+  document.getElementById('tabRecent').style.cssText = 'padding:4px 12px;font-size:12px;';
+  document.getElementById('tabAll').style.cssText    = 'padding:4px 12px;font-size:12px;';
+  renderTable();
+}
+
+function renderTable() {
+  const tbody = document.getElementById('assetTableBody');
+  if (!allData.length) {
+    document.getElementById('rowCount').textContent = '0건';
+    tbody.innerHTML = '<tr><td colspan="8" class="empty-state">데이터가 없습니다. "+ 항목 추가" 또는 "CSV 가져오기"로 시작하세요.</td></tr>';
+    return;
+  }
+  const sorted = [...allData].sort((a,b) => b.date.localeCompare(a.date));
+  let rows;
+  if (currentTab === 'recent') {
+    const [y,m] = sorted[0].date.split('/').map(Number);
+    const cutoff = new Date(y, m-13, 1);
+    rows = sorted.filter(d => {
+      const [dy,dm,dd] = d.date.split('/').map(Number);
+      return new Date(dy,dm-1,dd) >= cutoff;
+    });
+  } else {
+    rows = sorted;
+  }
+  document.getElementById('rowCount').textContent =
+    currentTab==='recent' ? `최근 1년 ${rows.length}건 / 전체 ${allData.length}건` : `전체 ${allData.length}건`;
+
+  tbody.innerHTML = rows.map(d => `
+    <tr>
+      <td style="white-space:nowrap;">${d.date}</td>
+      <td style="text-align:right;font-weight:600;">${fmtKrw(d.totalCapital)}</td>
+      <td style="text-align:right;">${fmtKrw(d.pensionTotal)}</td>
+      <td style="text-align:right;">${fmtKrw(d.investTotal)}</td>
+      <td style="text-align:right;">${fmtKrw(d.savingsTotal)}</td>
+      <td style="text-align:right;">${fmtKrw(d.liquidTotal)}</td>
+      <td style="text-align:right;${d.hanaLoan>0?'color:var(--red);':'color:var(--text2);'}">
+        ${d.hanaLoan>0 ? '-'+fmtKrw(d.hanaLoan) : '—'}
+      </td>
+      <td style="text-align:right;white-space:nowrap;">
+        <button class="btn btn-ghost" style="padding:4px 10px;font-size:12px;" onclick="openEntryModal(${d.id})">수정</button>
+        <button class="btn btn-danger" style="padding:4px 10px;font-size:12px;margin-left:4px;" onclick="deleteRow(${d.id},'${d.date}')">삭제</button>
+      </td>
+    </tr>`).join('');
+}
+
+// ── 통장별 현황 ──
+function renderAccountBreakdown() {
+  if (!allData.length) {
+    document.getElementById('accountBreakdown').innerHTML = '<p class="empty-state">데이터를 먼저 입력해주세요.</p>';
+    return;
+  }
+  const last = allData[allData.length - 1];
+
+  // 숨기기된 계좌 섹션 (맨 아래에 모음)
+  const deactivatedRows = [];
+
+  let html = '';
+  CAT_ORDER.forEach(cat => {
+    // 활성 built-in + 커스텀
+    const bi = BUILT_IN.filter(a => a.cat === cat && !deactivatedBuiltins.has(a.key));
+    const biDeact = BUILT_IN.filter(a => a.cat === cat && deactivatedBuiltins.has(a.key));
+    const cu = customAccounts.filter(a => a.category === cat);
+
+    // 숨기기 목록에 추가
+    biDeact.forEach(a => deactivatedRows.push({name:a.name, key:a.key, cat}));
+
+    if (!bi.length && !cu.length) return;
+
+    // 카테고리 합계 (잔액 있는 것만)
+    let catSum = bi.reduce((s,a) => s + (last[a.key]||0), 0);
+    cu.forEach(a => { catSum += parseFloat((last.extra||{})[String(a.id)]||0); });
+
+    const activeRows = [
+      ...bi.map(a => ({name:a.name, val:last[a.key]||0, isCustom:false, key:a.key})),
+      ...cu.map(a => ({name:a.name, val:parseFloat((last.extra||{})[String(a.id)]||0), isCustom:true, cid:a.id})),
+    ].filter(r => r.val > 0).sort((a,b) => b.val-a.val);
+
+    if (!catSum && !activeRows.length) return;
+
+    html += `
+    <div class="card" style="margin-bottom:1rem;">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;">
+        <div style="display:flex;align-items:center;gap:8px;">
+          <span style="width:10px;height:10px;border-radius:2px;background:${CAT_COLOR[cat]};display:inline-block;"></span>
+          <span style="font-weight:600;font-size:14px;">${CAT_LABEL[cat]}</span>
+        </div>
+        <span style="font-weight:700;font-size:15px;">${cat==='loan'?'-':''}${fmtKrw(catSum)}</span>
+      </div>
+      <table style="width:100%;font-size:13px;border-collapse:collapse;">
+        ${activeRows.map(row => {
+          const pct = catSum ? (row.val/catSum*100).toFixed(1) : '0.0';
+          return `<tr>
+            <td style="padding:5px 0;">${row.name}${row.isCustom?` <span style="font-size:10px;color:var(--accent);background:var(--bg2);padding:1px 5px;border-radius:3px;">커스텀</span>`:''}</td>
+            <td style="text-align:right;font-weight:500;padding:5px 0;">${fmtKrw(row.val)}</td>
+            <td style="text-align:right;color:var(--text2);font-size:11px;padding:5px 0 5px 10px;">${pct}%</td>
+            <td style="text-align:right;padding:5px 0 5px 4px;width:80px;">
+              ${row.isCustom
+                ? `<button class="btn btn-ghost" style="padding:2px 6px;font-size:11px;color:var(--red);" onclick="deleteAccount(${row.cid},'${row.name}')">삭제</button>`
+                : `<button class="btn btn-ghost" style="padding:2px 6px;font-size:11px;color:var(--text2);" onclick="deactivateBuiltin('${row.key}','${row.name}')">숨기기</button>`
+              }
+            </td>
+          </tr>`;
+        }).join('')}
+        ${bi.filter(a => !(last[a.key]||0)).map(a => `
+          <tr style="opacity:.45;">
+            <td style="padding:5px 0;">${a.name}</td>
+            <td style="text-align:right;padding:5px 0;color:var(--text2);">—</td>
+            <td></td>
+            <td style="text-align:right;padding:5px 0 5px 4px;width:80px;">
+              <button class="btn btn-ghost" style="padding:2px 6px;font-size:11px;color:var(--text2);" onclick="deactivateBuiltin('${a.key}','${a.name}')">숨기기</button>
+            </td>
+          </tr>`).join('')}
+      </table>
+    </div>`;
+  });
+
+  // 숨기기된 계좌 목록
+  if (deactivatedRows.length) {
+    html += `
+    <div class="card" style="margin-bottom:1rem;opacity:.7;">
+      <div style="font-size:13px;font-weight:600;color:var(--text2);margin-bottom:10px;">숨기기된 계좌</div>
+      <div style="display:flex;flex-wrap:wrap;gap:8px;">
+        ${deactivatedRows.map(r => `
+          <div style="display:flex;align-items:center;gap:6px;background:var(--bg2);border-radius:var(--r-md);padding:5px 10px;font-size:12px;">
+            <span style="color:var(--text2);">${r.name}</span>
+            <span style="font-size:10px;color:var(--text2);">${CAT_LABEL[r.cat]}</span>
+            <button onclick="reactivateBuiltin('${r.key}')" style="background:none;border:none;cursor:pointer;font-size:11px;color:var(--accent);padding:0 0 0 4px;">복구</button>
+          </div>`).join('')}
+      </div>
+    </div>`;
+  }
+
+  document.getElementById('accountBreakdown').innerHTML = html || '<p class="empty-state">잔액 있는 계좌가 없습니다.</p>';
+}
+
+// ── 기본 계좌 숨기기 / 복구 ──
+async function deactivateBuiltin(key, name) {
+  if (!confirm(`'${name}' 계좌를 숨기기 처리하시겠습니까?\n(항목 추가 폼에서 숨겨지며, 기존 데이터는 보존됩니다)`)) return;
+  deactivatedBuiltins.add(key);
+  await saveDeactivatedBuiltins();
+  updateBuiltinFieldVisibility();
+  renderAccountBreakdown();
+}
+async function reactivateBuiltin(key) {
+  deactivatedBuiltins.delete(key);
+  await saveDeactivatedBuiltins();
+  updateBuiltinFieldVisibility();
+  renderAccountBreakdown();
+}
+async function saveDeactivatedBuiltins() {
+  await fetch('/api/settings/deactivated_builtins', {
+    method: 'POST',
+    headers: {'Content-Type':'application/json'},
+    body: JSON.stringify({value: JSON.stringify([...deactivatedBuiltins])}),
+  });
+}
+function updateBuiltinFieldVisibility() {
+  document.querySelectorAll('[data-bikey]').forEach(el => {
+    el.style.display = deactivatedBuiltins.has(el.dataset.bikey) ? 'none' : '';
+  });
+}
+
+// ── 커스텀 계좌 관리 목록 ──
+function renderCustomAccList() {
+  const el = document.getElementById('customAccList');
+  if (!customAccounts.length) {
+    el.innerHTML = '<p style="font-size:13px;color:var(--text2);">추가된 커스텀 계좌가 없습니다.</p>';
+    return;
+  }
+  el.innerHTML = `<div style="display:flex;flex-wrap:wrap;gap:8px;">` +
+    customAccounts.map(a => `
+      <div style="display:flex;align-items:center;gap:6px;background:var(--bg2);border-radius:var(--r-md);padding:6px 10px;font-size:13px;">
+        <span style="width:8px;height:8px;border-radius:50%;background:${CAT_COLOR[a.category]};display:inline-block;"></span>
+        <span>${a.name}</span>
+        <span style="font-size:11px;color:var(--text2);">${CAT_LABEL[a.category]}</span>
+        <button onclick="deleteAccount(${a.id},'${a.name}')" style="background:none;border:none;color:var(--text2);cursor:pointer;font-size:14px;line-height:1;padding:0 0 0 4px;">×</button>
+      </div>`).join('') + `</div>`;
+}
+
+// ── 모달 커스텀 계좌 입력란 ──
+function renderCustomAccInputs() {
+  const section = document.getElementById('customAccSection');
+  const noBtn   = document.getElementById('noCustomAccBtn');
+  const wrap    = document.getElementById('customAccInputs');
+  if (!customAccounts.length) {
+    section.style.display = 'none';
+    noBtn.style.display   = '';
+    return;
+  }
+  section.style.display = '';
+  noBtn.style.display   = 'none';
+  wrap.innerHTML = customAccounts.map(a => `
+    <div>
+      <label class="form-label">${a.name} <span style="color:${CAT_COLOR[a.category]}">(${CAT_LABEL[a.category]})</span></label>
+      <input id="cAcc_${a.id}" class="form-input" style="width:100%;" type="number" placeholder="0">
+    </div>`).join('');
+  document.querySelectorAll('[id^="cAcc_"]').forEach(el => el.addEventListener('input', updatePreview));
+}
+
+// ── 계좌 추가/삭제 ──
+function openAddAccModal() {
+  document.getElementById('newAccName').value = '';
+  document.getElementById('addAccModal').style.display = 'block';
+}
+function closeAddAccModal() {
+  document.getElementById('addAccModal').style.display = 'none';
+}
+async function saveNewAccount() {
+  const name = document.getElementById('newAccName').value.trim();
+  const category = document.getElementById('newAccCat').value;
+  if (!name) { alert('계좌명을 입력해주세요.'); return; }
+  const btn = document.getElementById('saveAccBtn');
+  btn.disabled = true;
+  try {
+    const res = await fetch('/api/accounts', {
+      method: 'POST',
+      headers: {'Content-Type':'application/json'},
+      body: JSON.stringify({name, category}),
+    });
+    const acc = await res.json();
+    customAccounts.push(acc);
+    closeAddAccModal();
+    renderCustomAccList();
+    renderCustomAccInputs();
+    if (currentPg === 2) renderAccountBreakdown();
+  } finally { btn.disabled = false; }
+}
+async function deleteAccount(id, name) {
+  if (!confirm(`'${name}' 계좌를 삭제하시겠습니까?\n(기존 스냅샷의 금액 기록은 유지됩니다)`)) return;
+  await fetch(`/api/accounts/${id}`, {method:'DELETE'});
+  customAccounts = customAccounts.filter(a => a.id !== id);
+  renderCustomAccList();
+  renderCustomAccInputs();
+  renderAccountBreakdown();
+}
+
+// ── 입력 모달 ──
+function openEntryModal(id) {
+  document.getElementById('fEditId').value = id || '';
+  const d = id ? allData.find(x => x.id === id) : null;
+  document.getElementById('modalTitle').textContent = d ? '항목 수정' : '항목 추가';
+
+  const fields = {
+    fDate: d?d.date:'', fDc: d?d.dc:0, fIrpMiraeasset: d?d.irpMiraeasset:0,
+    fIrpSamsung: d?d.irpSamsung:0, fPersonalPension: d?d.personalPension:0,
+    fPensionCma: d?d.pensionCma:0, fIsa: d?d.isa:0, fMiraeasset: d?d.miraeasset:0,
+    fSamsungTrading: d?d.samsungTrading:0, fTossSecurities: d?d.tossSecurities:0,
+    fHanaSalarySavings: d?d.hanaSalarySavings:0, fHanaHomeSavings: d?d.hanaHomeSavings:0,
+    fHousingSubscription: d?d.housingSubscription:0, fFixedDeposit: d?d.fixedDeposit:0,
+    fYoungHana: d?d.youngHana:0, fNaverpayHana: d?d.naverpayHana:0,
+    fShinhan: d?d.shinhan:0, fTossSavings: d?d.tossSavings:0,
+    fHanaLoan: d?d.hanaLoan:0, fNote: d?d.note:'',
+  };
+  for (const [fid, val] of Object.entries(fields)) {
+    const el = document.getElementById(fid);
+    if (el) el.value = val;
+  }
+  // 커스텀 계좌 값 채우기
+  customAccounts.forEach(acc => {
+    const el = document.getElementById('cAcc_'+acc.id);
+    if (el) el.value = d ? (parseFloat((d.extra||{})[String(acc.id)])||0) : 0;
+  });
+  updatePreview();
+  document.getElementById('entryModal').style.display = 'block';
+}
+function closeEntryModal() {
+  document.getElementById('entryModal').style.display = 'none';
+}
+
+function n(id) { return parseFloat(document.getElementById(id)?.value) || 0; }
+
+function updatePreview() {
+  const pension = n('fDc')+n('fIrpMiraeasset')+n('fIrpSamsung')+n('fPersonalPension')+n('fPensionCma');
+  const invest  = n('fIsa')+n('fMiraeasset')+n('fSamsungTrading')+n('fTossSecurities');
+  let savings = n('fHousingSubscription');
+  let liquid  = n('fYoungHana')+n('fNaverpayHana')+n('fShinhan')+n('fTossSavings');
+  let loan    = n('fHanaLoan');
+  let extraPension=0, extraInvest=0, extraSavings=0, extraLiquid=0, extraLoan=0;
+  customAccounts.forEach(acc => {
+    const v = parseFloat(document.getElementById('cAcc_'+acc.id)?.value)||0;
+    if (acc.category==='pension')  extraPension  += v;
+    else if (acc.category==='invest')  extraInvest  += v;
+    else if (acc.category==='savings') extraSavings += v;
+    else if (acc.category==='liquid')  extraLiquid  += v;
+    else if (acc.category==='loan')    extraLoan    += v;
+  });
+  const total = (pension+extraPension)+(invest+extraInvest)+(savings+extraSavings)+(liquid+extraLiquid)-(loan+extraLoan);
+  document.getElementById('prevPension').textContent = fmtKrwFull(pension+extraPension);
+  document.getElementById('prevInvest').textContent  = fmtKrwFull(invest+extraInvest);
+  document.getElementById('prevSavings').textContent = fmtKrwFull(savings+extraSavings);
+  document.getElementById('prevLiquid').textContent  = fmtKrwFull(liquid+extraLiquid);
+  document.getElementById('prevLoan').textContent    = fmtKrwFull(loan+extraLoan);
+  document.getElementById('prevTotal').textContent   = fmtKrwFull(total);
+}
+
+document.querySelectorAll('#entryModal input[type="number"]').forEach(el =>
+  el.addEventListener('input', updatePreview)
+);
+
+async function submitEntry() {
+  const btn = document.getElementById('submitBtn');
+  btn.disabled = true; btn.textContent = '저장 중...';
+  const extra = {};
+  customAccounts.forEach(acc => {
+    extra[String(acc.id)] = parseFloat(document.getElementById('cAcc_'+acc.id)?.value)||0;
+  });
+  const payload = {
+    date: document.getElementById('fDate').value.trim(),
+    dc: n('fDc'), irpMiraeasset: n('fIrpMiraeasset'), irpSamsung: n('fIrpSamsung'),
+    personalPension: n('fPersonalPension'), pensionCma: n('fPensionCma'),
+    isa: n('fIsa'), miraeasset: n('fMiraeasset'),
+    samsungTrading: n('fSamsungTrading'), tossSecurities: n('fTossSecurities'),
+    hanaSalarySavings: n('fHanaSalarySavings'), hanaHomeSavings: n('fHanaHomeSavings'),
+    housingSubscription: n('fHousingSubscription'), fixedDeposit: n('fFixedDeposit'),
+    youngHana: n('fYoungHana'), naverpayHana: n('fNaverpayHana'),
+    shinhan: n('fShinhan'), tossSavings: n('fTossSavings'),
+    hanaLoan: n('fHanaLoan'), extra,
+    note: document.getElementById('fNote').value.trim(),
+  };
+  try {
+    const res = await fetch('/api/assets', {method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify(payload)});
+    if (!res.ok) { const e = await res.json(); alert(e.detail||'저장 실패'); return; }
+    closeEntryModal();
+    await loadData();
+  } finally { btn.disabled=false; btn.textContent='저장'; }
+}
+
+async function deleteRow(id, date) {
+  if (!confirm(`${date} 항목을 삭제하시겠습니까?`)) return;
+  await fetch(`/api/assets/${id}`, {method:'DELETE'});
+  await loadData();
+}
+
+// ── CSV 모달 ──
+function openImportModal() {
+  csvContent = null;
+  document.getElementById('csvFileInput').value = '';
+  document.getElementById('csvPreview').style.display = 'none';
+  document.getElementById('importModal').style.display = 'block';
+}
+function closeImportModal() { document.getElementById('importModal').style.display = 'none'; }
+
+document.getElementById('csvFileInput').addEventListener('change', function() {
+  const file = this.files[0];
+  if (!file) return;
+  const reader = new FileReader();
+  reader.onload = e => {
+    csvContent = e.target.result;
+    const lines = csvContent.split('\n').filter(l => l.trim());
+    const preview = document.getElementById('csvPreview');
+    preview.textContent = `${lines.length-1}행 감지됨 (헤더 제외)`;
+    preview.style.display = 'block';
+  };
+  reader.readAsText(file, 'UTF-8');
+});
+
+async function submitImport() {
+  if (!csvContent) { alert('CSV 파일을 선택해주세요.'); return; }
+  const btn = document.getElementById('importBtn');
+  btn.disabled = true; btn.textContent = '가져오는 중...';
+  try {
+    const res = await fetch('/api/assets/import-csv', {
+      method:'POST', headers:{'Content-Type':'application/json'},
+      body: JSON.stringify({csv: csvContent}),
+    });
+    const data = await res.json();
+    alert(`${data.imported}건 가져오기 완료`);
+    closeImportModal();
+    await loadData();
+  } catch(e) { alert('가져오기 실패: '+e.message);
+  } finally { btn.disabled=false; btn.textContent='가져오기'; }
+}
+
+// 모달 바깥 클릭 닫기
+['entryModal','importModal','addAccModal'].forEach(id => {
+  document.getElementById(id).addEventListener('click', function(e) {
+    if (e.target===this) this.style.display='none';
+  });
+});
+
+// 초기 로드
+showPg(0);
+loadData();
+</script>
+{% endblock %}

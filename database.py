@@ -100,3 +100,17 @@ def create_tables():
             conn.commit()
         except Exception:
             pass
+        # app_settings 테이블 — create_all로 자동 생성됨 (별도 마이그레이션 불필요)
+        # asset_snapshots 테이블 생성은 create_all로 자동 처리됨
+        # extra_json 컬럼 추가 (커스텀 계좌 값)
+        try:
+            conn.execute(text("ALTER TABLE asset_snapshots ADD COLUMN extra_json TEXT DEFAULT '{}'"))
+            conn.commit()
+        except Exception:
+            pass
+        # milestones category 컬럼 추가
+        try:
+            conn.execute(text("ALTER TABLE milestones ADD COLUMN category VARCHAR(50) DEFAULT ''"))
+            conn.commit()
+        except Exception:
+            pass
