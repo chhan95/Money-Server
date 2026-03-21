@@ -34,8 +34,13 @@
 
   <!-- 종목명 + 배지 -->
   <div style="display:flex;align-items:center;gap:10px;margin-bottom:1rem;flex-wrap:wrap;">
+    <div id="stockIcon" style="position:relative;width:36px;height:36px;flex-shrink:0;display:none;">
+      <img id="stockIconImg" src="" style="width:36px;height:36px;object-fit:contain;border-radius:6px;"
+           onerror="this.style.display='none';document.getElementById('stockIconFallback').style.display='flex';" />
+      <div id="stockIconFallback" style="display:none;position:absolute;inset:0;border-radius:6px;background:var(--accent);color:white;align-items:center;justify-content:center;font-size:11px;font-weight:700;"></div>
+    </div>
     <h2 id="stockTitle" style="font-size:16px;font-weight:700;margin:0;"></h2>
-    <div class="data-badge hidden" id="dataBadge"></div>
+    <div class="data-badge hidden" id="dataBadge" style="margin-bottom:0;"></div>
   </div>
 
   <!-- FY 탭 -->
@@ -260,6 +265,16 @@ function applyData(data) {
   currentYear = data.yearKeys[data.yearKeys.length - 1];
 
   setText('stockTitle', data.ticker + '  ' + data.name);
+
+  // 아이콘
+  const iconWrap = document.getElementById('stockIcon');
+  const iconImg  = document.getElementById('stockIconImg');
+  const iconFb   = document.getElementById('stockIconFallback');
+  iconImg.style.display = '';
+  iconFb.style.display  = 'none';
+  iconFb.textContent    = data.ticker.slice(0, 2);
+  iconImg.src           = '/resources/icons/' + data.ticker + '.png';
+  iconWrap.style.display = '';
 
   const c = document.getElementById('fiscalTabs');
   c.innerHTML = '';
