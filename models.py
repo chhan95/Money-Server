@@ -98,6 +98,37 @@ class Milestone(Base):
     display_order = Column(Integer, default=0)
 
 
+class RealEstate(Base):
+    """보유 부동산"""
+    __tablename__ = "real_estate"
+
+    id             = Column(Integer, primary_key=True, autoincrement=True)
+    name           = Column(String(200), nullable=False)        # 매물명
+    contract_type  = Column(String(10), default='sale')         # sale(매매) / rent(임대차)
+
+    # 매매 전용
+    property_type  = Column(String(50), default='아파트')       # 아파트/빌라/오피스텔/토지/상가/기타
+    purchase_price = Column(Float, default=0)                   # 매입가 (만원)
+    current_value  = Column(Float, default=0)                   # 현재 시세 (만원)
+    loan_amount    = Column(Float, default=0)                   # 대출금 (만원)
+    purchase_date  = Column(String(10), default='')             # YYYY-MM-DD
+
+    # 임대차 전용
+    rent_type      = Column(String(10), default='전세')         # 전세 / 월세
+    deposit        = Column(Float, default=0)                   # 보증금 (만원)
+    deposit_loan   = Column(Float, default=0)                   # 보증금 대출 (만원)
+    monthly_rent   = Column(Float, default=0)                   # 월세 (만원, 전세=0)
+    contract_start = Column(String(10), default='')             # 계약 시작일
+    contract_end   = Column(String(10), default='')             # 계약 종료일
+
+    # 공통
+    address        = Column(String(500), default='')
+    area_m2        = Column(Float, default=0)                   # 전용면적 m²
+    memo           = Column(String(500), default='')
+    display_order  = Column(Integer, default=0)
+    created_at     = Column(DateTime, default=datetime.utcnow)
+
+
 class AppSetting(Base):
     """앱 설정 키-값 저장소"""
     __tablename__ = "app_settings"

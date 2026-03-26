@@ -2,230 +2,678 @@
 {% block title %}주주 지분 소득 계산기{% endblock %}
 {% block content %}
 
-<div class="page-header">
-  <h1>🧮 주주 지분 소득 계산기</h1>
-  <p class="clr-muted">보유 주식 수 기준 지분 비례 소득 계산</p>
+<style>
+/* ── Design Tokens (홈/마일스톤과 동일) ── */
+:root {
+  --ms-gradient: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  --glass: rgba(255,255,255,0.03);
+  --glass-border: var(--border);
+  --shadow-sm: 0 1px 3px rgba(0,0,0,0.08);
+  --shadow-md: 0 4px 16px rgba(0,0,0,0.12);
+  --shadow-lg: 0 8px 32px rgba(0,0,0,0.18);
+  --shadow-glow: 0 0 40px rgba(102,126,234,0.15);
+  --ease-out: cubic-bezier(0.16, 1, 0.3, 1);
+  --r-xl: 16px;
+  --r-2xl: 20px;
+  --green: #10b981;
+  --amber: #f59e0b;
+  --blue: #667eea;
+  --red: #ef4444;
+}
+
+/* ── Page Header ── */
+.calc-page-header {
+  text-align: center;
+  padding: 32px 0 24px;
+}
+.calc-page-header h1 {
+  font-size: 28px;
+  font-weight: 800;
+  letter-spacing: -0.5px;
+  background: var(--ms-gradient);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+  margin-bottom: 6px;
+}
+.calc-page-header p {
+  font-size: 14px;
+  color: var(--text2);
+  font-weight: 400;
+}
+
+/* ── Section Card ── */
+.calc-card {
+  background: var(--bg);
+  border: 1px solid var(--glass-border);
+  border-radius: var(--r-xl);
+  padding: 24px;
+  margin-bottom: 20px;
+  transition: all 0.3s var(--ease-out);
+}
+.calc-card:hover { box-shadow: var(--shadow-sm); }
+.calc-card-title {
+  font-size: 15px; font-weight: 700; color: var(--text);
+  margin-bottom: 4px;
+}
+.calc-card-sub {
+  font-size: 12px; color: var(--text2); margin-bottom: 16px;
+}
+
+/* ── Accent Card (left bar) ── */
+.calc-accent-card {
+  background: var(--bg);
+  border: 1px solid var(--glass-border);
+  border-radius: var(--r-xl);
+  padding: 20px 22px;
+  transition: all 0.3s var(--ease-out);
+  position: relative;
+  overflow: hidden;
+}
+.calc-accent-card:hover {
+  transform: translateY(-2px);
+  box-shadow: var(--shadow-md);
+  border-color: rgba(255,255,255,0.1);
+}
+.calc-accent-card::before {
+  content: '';
+  position: absolute; left: 0; top: 0; bottom: 0;
+  width: 4px; border-radius: 4px 0 0 4px;
+}
+.calc-accent-card.blue::before { background: var(--blue); }
+.calc-accent-card.green::before { background: var(--green); }
+.calc-accent-card.amber::before { background: var(--amber); }
+
+/* ── Search Card ── */
+.calc-search-card {
+  background: var(--bg);
+  border: 1px solid var(--glass-border);
+  border-radius: var(--r-xl);
+  padding: 24px;
+  margin-bottom: 20px;
+}
+.calc-search-row {
+  display: flex; gap: 8px; margin-bottom: 14px;
+}
+.calc-search-input {
+  flex: 1;
+  padding: 12px 16px;
+  background: var(--bg2);
+  border: 1px solid var(--glass-border);
+  border-radius: 10px;
+  color: var(--text);
+  font-size: 15px; font-weight: 600;
+  letter-spacing: 0.05em;
+  outline: none;
+  transition: border-color 0.2s;
+}
+.calc-search-input:focus {
+  border-color: #667eea;
+  box-shadow: 0 0 0 3px rgba(102,126,234,0.15);
+}
+.calc-search-input::placeholder { color: var(--text2); opacity: 0.5; }
+
+/* ── Buttons ── */
+.btn-gradient {
+  background: var(--ms-gradient);
+  color: white; border: none;
+  padding: 12px 24px; border-radius: 10px;
+  font-size: 13px; font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s var(--ease-out);
+  box-shadow: 0 2px 12px rgba(102,126,234,0.3);
+  white-space: nowrap;
+}
+.btn-gradient:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 4px 20px rgba(102,126,234,0.45);
+}
+.btn-gradient:disabled {
+  opacity: 0.5; cursor: not-allowed; transform: none;
+}
+
+/* Quick buttons */
+.calc-quick-row {
+  display: flex; flex-wrap: wrap; gap: 6px;
+}
+.calc-quick-btn {
+  padding: 6px 14px;
+  background: var(--bg2);
+  border: 1px solid var(--glass-border);
+  border-radius: 8px;
+  color: var(--text2);
+  font-size: 12px; font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s var(--ease-out);
+}
+.calc-quick-btn:hover {
+  background: rgba(255,255,255,0.06);
+  border-color: rgba(255,255,255,0.12);
+  color: var(--text);
+}
+.calc-quick-btn.active {
+  color: white;
+  background: var(--ms-gradient);
+  border-color: transparent;
+  box-shadow: 0 2px 8px rgba(102,126,234,0.3);
+}
+
+/* ── Status Box ── */
+.calc-status {
+  display: none;
+  align-items: center; gap: 12px;
+  padding: 14px 20px;
+  border-radius: 12px;
+  margin-bottom: 20px;
+  font-size: 13px; font-weight: 500;
+  background: rgba(102,126,234,0.06);
+  border: 1px solid rgba(102,126,234,0.12);
+  color: var(--text2);
+}
+.calc-status.visible { display: flex; }
+.calc-status.error {
+  background: rgba(239,68,68,0.06);
+  border-color: rgba(239,68,68,0.15);
+  color: var(--red);
+}
+.calc-status .spinner {
+  width: 16px; height: 16px;
+  border: 2px solid rgba(102,126,234,0.2);
+  border-top-color: var(--blue);
+  border-radius: 50%;
+  animation: spin 0.8s linear infinite;
+  flex-shrink: 0;
+}
+.calc-status.error .spinner { display: none; }
+@keyframes spin { to { transform: rotate(360deg); } }
+
+/* ── Badge ── */
+.calc-badge {
+  display: inline-flex; align-items: center; gap: 6px;
+  padding: 4px 12px; border-radius: 99px;
+  font-size: 11px; font-weight: 600;
+}
+.calc-badge.live {
+  background: rgba(16,185,129,0.1); color: var(--green);
+  border: 1px solid rgba(16,185,129,0.15);
+}
+.calc-badge.loading {
+  background: rgba(245,158,11,0.1); color: var(--amber);
+  border: 1px solid rgba(245,158,11,0.15);
+}
+
+/* ── Stock Title Row ── */
+.calc-stock-header {
+  display: flex; align-items: center; gap: 12px;
+  margin-bottom: 20px; flex-wrap: wrap;
+}
+.calc-stock-icon {
+  position: relative;
+  width: 40px; height: 40px; flex-shrink: 0;
+  border-radius: 10px;
+  display: none;
+  overflow: hidden;
+}
+.calc-stock-icon img {
+  width: 100%; height: 100%; object-fit: contain;
+  border-radius: 10px;
+}
+.calc-stock-icon-fb {
+  display: none;
+  position: absolute; inset: 0;
+  background: var(--ms-gradient);
+  color: white;
+  align-items: center; justify-content: center;
+  font-size: 12px; font-weight: 700;
+}
+.calc-stock-name {
+  font-size: 18px; font-weight: 800;
+  letter-spacing: -0.3px;
+}
+
+/* ── FY Tabs ── */
+.calc-fy-tabs {
+  display: flex; gap: 6px; flex-wrap: wrap;
+  margin-bottom: 20px;
+}
+.calc-fy-tab {
+  padding: 8px 16px;
+  background: var(--bg2);
+  border: 1px solid var(--glass-border);
+  border-radius: 8px;
+  color: var(--text2);
+  font-size: 12px; font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s var(--ease-out);
+}
+.calc-fy-tab:hover {
+  background: rgba(255,255,255,0.06);
+  border-color: rgba(255,255,255,0.12);
+  color: var(--text);
+}
+.calc-fy-tab.active {
+  color: white;
+  background: var(--ms-gradient);
+  border-color: transparent;
+  box-shadow: 0 2px 8px rgba(102,126,234,0.3);
+}
+.calc-fy-tab.forecast {
+  border-style: dashed;
+  opacity: 0.85;
+}
+.calc-fy-tab.forecast.active {
+  border-style: solid;
+  opacity: 1;
+}
+.calc-fy-sep {
+  color: var(--glass-border);
+  align-self: center;
+  padding: 0 2px;
+  font-size: 14px;
+}
+
+/* ── Two Column Row ── */
+.calc-row-2 {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 16px;
+  margin-bottom: 20px;
+}
+@media (max-width: 700px) { .calc-row-2 { grid-template-columns: 1fr; } }
+
+/* ── Settings Card ── */
+.calc-settings-grid {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  gap: 6px 14px;
+  font-size: 13px;
+  align-items: center;
+}
+.calc-settings-grid .label { color: var(--text2); font-size: 12px; }
+.calc-settings-grid .val {
+  text-align: right;
+  font-weight: 600; font-variant-numeric: tabular-nums;
+}
+.calc-settings-grid .val-sub {
+  font-size: 11px; color: var(--text2); font-weight: 400; margin-left: 4px;
+}
+.calc-shares-input {
+  width: 100%;
+  padding: 10px 14px;
+  background: var(--bg2);
+  border: 1px solid var(--glass-border);
+  border-radius: 10px;
+  color: var(--text);
+  font-size: 20px; font-weight: 700;
+  text-align: right;
+  outline: none;
+  transition: border-color 0.2s;
+}
+.calc-shares-input:focus {
+  border-color: #667eea;
+  box-shadow: 0 0 0 3px rgba(102,126,234,0.15);
+}
+
+/* ── Income Summary Slots ── */
+.calc-income-slot {
+  background: var(--bg2);
+  border-radius: 10px;
+  padding: 12px 16px;
+}
+.calc-income-slot .slot-label {
+  font-size: 11px; color: var(--text2);
+  margin-bottom: 6px; font-weight: 500;
+}
+.calc-income-slot .slot-row {
+  display: flex; justify-content: space-between;
+  align-items: baseline; flex-wrap: wrap; gap: 4px;
+}
+.calc-income-slot .slot-main {
+  font-size: 15px; font-weight: 700;
+}
+.calc-income-slot .slot-sub {
+  font-size: 12px; color: var(--text2);
+}
+
+/* ── Metric Grid (재무지표, 연도별 상세) ── */
+.calc-metric-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 10px;
+}
+@media (max-width: 600px) { .calc-metric-grid { grid-template-columns: repeat(2, 1fr); } }
+
+.calc-metric {
+  background: var(--bg2);
+  border-radius: 10px;
+  padding: 14px 16px;
+  transition: all 0.2s;
+}
+/* .calc-metric:hover { background: rgba(255,255,255,0.04); } */
+.calc-metric .m-label {
+  font-size: 11px; color: var(--text2);
+  margin-bottom: 6px; font-weight: 500;
+}
+.calc-metric .m-label .m-hint {
+  font-size: 9px; color: var(--text2); opacity: 0.6;
+}
+.calc-metric .m-value {
+  font-size: 16px; font-weight: 800;
+  letter-spacing: -0.3px;
+  font-variant-numeric: tabular-nums;
+}
+.calc-metric .m-sub {
+  font-size: 11px; color: var(--text2); margin-top: 3px;
+  font-variant-numeric: tabular-nums;
+}
+.calc-metric .m-sub2 {
+  font-size: 11px; color: var(--text2); margin-top: 1px;
+  font-variant-numeric: tabular-nums;
+}
+
+/* ── Year Note ── */
+.calc-year-note {
+  font-size: 11px; color: var(--text2);
+  padding: 10px 14px;
+  background: var(--glass);
+  border-radius: 8px;
+  margin-top: 14px;
+}
+
+/* ── Dividend Card ── */
+.calc-div-note {
+  font-size: 11px; color: var(--text2);
+  margin-top: 10px; padding-left: 2px;
+}
+
+/* ── Chart Legend ── */
+.calc-chart-header {
+  display: flex; justify-content: space-between;
+  align-items: center; flex-wrap: wrap; gap: 8px;
+  margin-bottom: 12px;
+}
+.calc-legend {
+  display: flex; gap: 14px;
+}
+.calc-legend-item {
+  display: flex; align-items: center; gap: 5px;
+  font-size: 11px; color: var(--text2); font-weight: 500;
+}
+.calc-legend-dot {
+  width: 10px; height: 10px; border-radius: 3px;
+}
+.calc-chart-wrap {
+  position: relative; width: 100%; height: 260px;
+}
+.calc-data-source {
+  font-size: 10px; color: var(--text2); opacity: 0.6;
+  margin-top: 10px;
+}
+
+/* ── Info Badge (FX 등) ── */
+.calc-info-badge {
+  display: flex; align-items: center; gap: 10px;
+  padding: 12px 18px; border-radius: 12px;
+  font-size: 13px; font-weight: 500; margin-bottom: 20px;
+  background: rgba(102,126,234,0.06);
+  border: 1px solid rgba(102,126,234,0.12);
+  color: var(--text2);
+}
+
+/* ── Hidden ── */
+.hidden { display: none !important; }
+
+/* ── Responsive ── */
+@media (max-width: 600px) {
+  .calc-card { padding: 18px; }
+  .calc-metric-grid { gap: 8px; }
+}
+</style>
+
+
+<!-- ══════════════════════════════════════
+     PAGE HEADER
+══════════════════════════════════════ -->
+<div class="calc-page-header">
+  <h1>주주 지분 소득 계산기</h1>
+  <p>보유 주식 수 기준 지분 비례 소득 계산</p>
 </div>
 
-<!-- ── 티커 검색 ─────────────────────────────────────── -->
-<div class="card" style="margin-bottom:1.25rem;">
-  <div style="display:flex;gap:8px;margin-bottom:12px;">
-    <input type="text" class="form-input" id="tickerInput" style="flex:1;font-size:15px;font-weight:600;letter-spacing:.05em;"
+
+<!-- ══════════════════════════════════════
+     SEARCH
+══════════════════════════════════════ -->
+<div class="calc-search-card">
+  <div class="calc-search-row">
+    <input type="text" class="calc-search-input" id="tickerInput"
            placeholder="AAPL" value="{{ ticker }}" maxlength="12"
            onkeydown="if(event.key==='Enter') loadTicker()" />
-    <button class="btn btn-primary" id="searchBtn" onclick="loadTicker()" style="padding:0 20px;">조회</button>
+    <button class="btn-gradient" id="searchBtn" onclick="loadTicker()">조회</button>
   </div>
-  <div style="display:flex;flex-wrap:wrap;gap:6px;">
+  <div class="calc-quick-row">
     {% for sym in ['NVDA','AAPL','MSFT','GOOGL','AMZN','META','TSLA','TSM','ASML','AMD','COST'] %}
-    <button class="quick-btn {% if ticker == sym %}active{% endif %}"
+    <button class="calc-quick-btn {% if ticker == sym %}active{% endif %}"
             data-ticker="{{ sym }}" onclick="quickLoad(this,'{{ sym }}')">{{ sym }}</button>
     {% endfor %}
   </div>
 </div>
 
-<!-- ── 상태 박스 ──────────────────────────────────────── -->
-<div class="status-box hidden" id="statusBox">
+
+<!-- ══════════════════════════════════════
+     STATUS
+══════════════════════════════════════ -->
+<div class="calc-status" id="statusBox">
   <div class="spinner" id="spinner"></div>
   <div id="statusMsg"></div>
 </div>
 
-<!-- ── 메인 컨텐츠 ──────────────────────────────────────── -->
+
+<!-- ══════════════════════════════════════
+     MAIN CONTENT
+══════════════════════════════════════ -->
 <div id="mainContent" class="{% if not stock_json %}hidden{% endif %}">
 
-  <!-- 종목명 + 배지 -->
-  <div style="display:flex;align-items:center;gap:10px;margin-bottom:1rem;flex-wrap:wrap;">
-    <div id="stockIcon" style="position:relative;width:36px;height:36px;flex-shrink:0;display:none;">
-      <img id="stockIconImg" src="" style="width:36px;height:36px;object-fit:contain;border-radius:6px;"
+  <!-- Stock Title -->
+  <div class="calc-stock-header">
+    <div class="calc-stock-icon" id="stockIcon">
+      <img id="stockIconImg" src=""
            onerror="this.style.display='none';document.getElementById('stockIconFallback').style.display='flex';" />
-      <div id="stockIconFallback" style="display:none;position:absolute;inset:0;border-radius:6px;background:var(--accent);color:white;align-items:center;justify-content:center;font-size:11px;font-weight:700;"></div>
+      <div class="calc-stock-icon-fb" id="stockIconFallback"></div>
     </div>
-    <h2 id="stockTitle" style="font-size:16px;font-weight:700;margin:0;"></h2>
-    <div class="data-badge hidden" id="dataBadge" style="margin-bottom:0;"></div>
+    <span class="calc-stock-name" id="stockTitle"></span>
+    <span class="calc-badge hidden" id="dataBadge"></span>
   </div>
 
-  <!-- FY 탭 -->
-  <div class="fiscal-tabs" id="fiscalTabs" style="display:flex;gap:6px;margin-bottom:1.25rem;flex-wrap:wrap;"></div>
+  <!-- FY Tabs -->
+  <div class="calc-fy-tabs" id="fiscalTabs"></div>
 
   <!-- ── Row 1: 설정 + 월 소득 요약 ── -->
-  <div style="display:grid;grid-template-columns:1fr 1fr;gap:1rem;margin-bottom:1rem;">
+  <div class="calc-row-2">
 
     <!-- 보유 주식 설정 -->
-    <div class="card" style="display:flex;flex-direction:column;gap:10px;">
-      <div class="chart-label" style="margin-bottom:0;">보유 주식 설정</div>
-
-      <div style="display:flex;align-items:center;gap:8px;">
-        <input type="number" class="form-input" id="sharesInput"
-               value="100" min="1" oninput="calculate()"
-               style="font-size:20px;font-weight:700;text-align:right;width:100%;"/>
+    <div class="calc-accent-card blue">
+      <div class="calc-card-title" style="margin-bottom:14px;">보유 주식 설정</div>
+      <div style="display:flex;align-items:center;gap:10px;margin-bottom:14px;">
+        <input type="number" class="calc-shares-input" id="sharesInput"
+               value="100" min="1" oninput="calculate()" />
         <span style="font-size:13px;color:var(--text2);white-space:nowrap;">주</span>
       </div>
-
-      <div style="height:1px;background:var(--border);"></div>
-
-      <div style="display:grid;grid-template-columns:auto 1fr;gap:4px 10px;font-size:13px;align-items:center;">
-        <span class="clr-muted">현재가</span>
-        <div style="text-align:right;">
-          <span class="fw-600" id="currentPrice">—</span>
-          <span class="clr-muted" style="font-size:11px;margin-left:4px;" id="currentPriceKrw"></span>
+      <div style="height:1px;background:var(--glass-border);margin-bottom:12px;"></div>
+      <div class="calc-settings-grid">
+        <span class="label">현재가</span>
+        <div class="val">
+          <span id="currentPrice">—</span>
+          <span class="val-sub" id="currentPriceKrw"></span>
         </div>
-        <span class="clr-muted">환율</span>
-        <div style="text-align:right;">
-          <span class="fw-600" id="fxDisplay2">{{ fx_default|int }}원/$</span>
+        <span class="label">환율</span>
+        <div class="val">
+          <span id="fxDisplay2">{{ fx_default|int }}원/$</span>
         </div>
-        <span class="clr-muted">총 평가액</span>
-        <div style="text-align:right;">
-          <span class="fw-600" id="totalValue">—</span>
-          <span class="clr-muted" style="font-size:11px;margin-left:4px;" id="totalValueKrw"></span>
+        <span class="label">총 평가액</span>
+        <div class="val">
+          <span id="totalValue">—</span>
+          <span class="val-sub" id="totalValueKrw"></span>
         </div>
-        <span class="clr-muted">지분율</span>
-        <div style="text-align:right;">
-          <span class="fw-600" id="ownershipPct">—</span>
-          <span class="clr-muted" style="font-size:11px;margin-left:4px;">(<span id="totalSharesLabel">—</span>)</span>
+        <span class="label">지분율</span>
+        <div class="val">
+          <span id="ownershipPct">—</span>
+          <span class="val-sub">(<span id="totalSharesLabel">—</span>)</span>
         </div>
       </div>
     </div>
 
     <!-- 월 소득 요약 -->
-    <div class="card" style="display:flex;flex-direction:column;gap:8px;">
-      <div class="chart-label" style="margin-bottom:0;">지분비례 월 소득</div>
-
-      <div style="flex:1;display:flex;flex-direction:column;justify-content:space-around;gap:6px;">
-        <!-- 매출 -->
-        <div style="background:var(--bg2);border-radius:var(--r-md);padding:10px 14px;">
-          <div style="font-size:11px;color:var(--text2);margin-bottom:4px;">매출 기준</div>
-          <div style="display:flex;justify-content:space-between;align-items:baseline;flex-wrap:wrap;gap:4px;">
-            <span class="fw-600" id="sum-rev-krw" style="font-size:15px;">—</span>
-            <span style="font-size:12px;color:var(--text2);" id="sum-rev-usd">—</span>
+    <div class="calc-accent-card green">
+      <div class="calc-card-title" style="margin-bottom:14px;">지분비례 월 소득</div>
+      <div style="display:flex;flex-direction:column;gap:8px;">
+        <div class="calc-income-slot">
+          <div class="slot-label">매출 기준</div>
+          <div class="slot-row">
+            <span class="slot-main" id="sum-rev-krw">—</span>
+            <span class="slot-sub" id="sum-rev-usd">—</span>
           </div>
         </div>
-        <!-- 영업이익 -->
-        <div style="background:var(--bg2);border-radius:var(--r-md);padding:10px 14px;">
-          <div style="font-size:11px;color:var(--text2);margin-bottom:4px;">영업이익 기준</div>
-          <div style="display:flex;justify-content:space-between;align-items:baseline;flex-wrap:wrap;gap:4px;">
-            <span class="fw-600" id="sum-op-krw" style="font-size:15px;">—</span>
-            <span style="font-size:12px;color:var(--text2);" id="sum-op-usd">—</span>
+        <div class="calc-income-slot">
+          <div class="slot-label">영업이익 기준</div>
+          <div class="slot-row">
+            <span class="slot-main" id="sum-op-krw">—</span>
+            <span class="slot-sub" id="sum-op-usd">—</span>
           </div>
         </div>
-        <!-- 순이익 -->
-        <div style="background:var(--bg2);border-radius:var(--r-md);padding:10px 14px;">
-          <div style="font-size:11px;color:var(--text2);margin-bottom:4px;">순이익 기준</div>
-          <div style="display:flex;justify-content:space-between;align-items:baseline;flex-wrap:wrap;gap:4px;">
-            <span class="fw-600 clr-green" id="sum-net-krw" style="font-size:15px;">—</span>
-            <span style="font-size:12px;color:var(--text2);" id="sum-net-usd">—</span>
+        <div class="calc-income-slot">
+          <div class="slot-label">순이익 기준</div>
+          <div class="slot-row">
+            <span class="slot-main" style="color:var(--green);" id="sum-net-krw">—</span>
+            <span class="slot-sub" id="sum-net-usd">—</span>
           </div>
         </div>
-      </div>
-    </div>
-
-  </div><!-- /Row 1 -->
-
-  <!-- ── Row 2: 재무지표 ── -->
-  <div class="highlight-card" id="ratioCard" style="margin-bottom:1rem;">
-    <div class="highlight-title">재무 지표 (TTM)</div>
-    <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-top:0.75rem;">
-      <div class="metric-card">
-        <div class="metric-label">시가총액</div>
-        <div class="metric-annual" id="mktCapVal">—</div>
-      </div>
-      <div class="metric-card">
-        <div class="metric-label">배당율</div>
-        <div class="metric-annual" id="divYieldVal">—</div>
-      </div>
-      <div class="metric-card">
-        <div class="metric-label">PER <span class="clr-muted" style="font-size:10px;">주가/EPS</span></div>
-        <div class="metric-annual" id="perVal">—</div>
-      </div>
-      <div class="metric-card">
-        <div class="metric-label">PBR <span class="clr-muted" style="font-size:10px;">주가/장부가</span></div>
-        <div class="metric-annual" id="pbrVal">—</div>
-      </div>
-      <div class="metric-card">
-        <div class="metric-label">ROE <span class="clr-muted" style="font-size:10px;">순이익/자기자본</span></div>
-        <div class="metric-annual" id="roeVal">—</div>
-      </div>
-      <div class="metric-card">
-        <div class="metric-label">EPS <span class="clr-muted" style="font-size:10px;">주당순이익</span></div>
-        <div class="metric-annual" id="epsVal">—</div>
       </div>
     </div>
   </div>
 
-  <!-- ── Row 3: 연도별 기여분 상세 ── -->
-  <div class="card" style="margin-bottom:1rem;">
-    <div class="chart-label" style="margin-bottom:0.75rem;">연도별 기여분 상세</div>
-    <div class="metrics-grid">
-      <div class="metric-card">
-        <div class="metric-label">매출 기여분</div>
-        <div class="metric-annual" id="revAnnual">—</div>
-        <div class="metric-monthly-usd" id="revMonthlyUsd">—</div>
-        <div class="metric-monthly-krw" id="revMonthlyKrw">—</div>
+  <!-- ── 연도별 기여분 상세 ── -->
+  <div class="calc-card">
+    <div class="calc-card-title">연도별 기여분 상세</div>
+    <div class="calc-card-sub" id="yearNote"></div>
+    <div class="calc-metric-grid">
+      <div class="calc-metric">
+        <div class="m-label">매출 기여분</div>
+        <div class="m-value" id="revAnnual">—</div>
+        <div class="m-sub" id="revMonthlyUsd">—</div>
+        <div class="m-sub2" id="revMonthlyKrw">—</div>
       </div>
-      <div class="metric-card">
-        <div class="metric-label">영업이익 기여분</div>
-        <div class="metric-annual" id="opAnnual">—</div>
-        <div class="metric-monthly-usd" id="opMonthlyUsd">—</div>
-        <div class="metric-monthly-krw" id="opMonthlyKrw">—</div>
+      <div class="calc-metric">
+        <div class="m-label">영업이익 기여분</div>
+        <div class="m-value" id="opAnnual">—</div>
+        <div class="m-sub" id="opMonthlyUsd">—</div>
+        <div class="m-sub2" id="opMonthlyKrw">—</div>
       </div>
-      <div class="metric-card">
-        <div class="metric-label">순이익 기여분</div>
-        <div class="metric-annual" id="netAnnual">—</div>
-        <div class="metric-monthly-usd" id="netMonthlyUsd">—</div>
-        <div class="metric-monthly-krw" id="netMonthlyKrw">—</div>
+      <div class="calc-metric">
+        <div class="m-label">순이익 기여분</div>
+        <div class="m-value" style="color:var(--green);" id="netAnnual">—</div>
+        <div class="m-sub" id="netMonthlyUsd">—</div>
+        <div class="m-sub2" id="netMonthlyKrw">—</div>
       </div>
-    </div>
-    <div class="year-note" id="yearNote" style="margin-top:0.75rem;"></div>
-  </div>
-
-  <!-- ── 배당 카드 ── -->
-  <div id="dividendCard" class="highlight-card" style="margin-bottom:1rem;display:none;">
-    <div class="highlight-title">배당 정보</div>
-    <div class="metrics-grid" style="margin-top:0.75rem;">
-      <div class="metric-card">
-        <div class="metric-label">배당율</div>
-        <div class="metric-annual" id="divYield">—</div>
-      </div>
-      <div class="metric-card">
-        <div class="metric-label">주당 연간 배당금</div>
-        <div class="metric-annual" id="divRate">—</div>
-      </div>
-      <div class="metric-card">
-        <div class="metric-label">보유 주식 월 배당</div>
-        <div class="metric-annual clr-green" id="divMonthlyKrw">—</div>
-        <div class="metric-monthly-usd" id="divMonthlyUsd">—</div>
-      </div>
-    </div>
-    <div style="margin-top:0.5rem;font-size:11px;color:var(--text2);">
-      ※ 실제 지급 배당금 기준 (지분비례 추정이 아닌 직접 수령액)
     </div>
   </div>
 
   <!-- ── 차트 ── -->
-  <div class="card">
-    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;flex-wrap:wrap;gap:6px;">
-      <div class="chart-label" style="margin-bottom:0;">연도별 비교 — 월 소득 (만원)</div>
-      <div class="legend" style="margin-bottom:0;">
-        <span class="legend-item"><span class="legend-dot" style="background:#185FA5;"></span>매출 기준</span>
-        <span class="legend-item"><span class="legend-dot" style="background:#3B6D11;"></span>순이익 기준</span>
+  <div class="calc-card">
+    <div class="calc-chart-header">
+      <div class="calc-card-title" style="margin-bottom:0;">연도별 비교 — 월 소득 (만원)</div>
+      <div class="calc-legend">
+        <span class="calc-legend-item"><span class="calc-legend-dot" style="background:rgba(102,126,234,0.7);"></span>매출 기준</span>
+        <span class="calc-legend-item"><span class="calc-legend-dot" style="background:rgba(16,185,129,0.7);"></span>순이익 기준</span>
       </div>
     </div>
-    <div class="chart-wrapper"><canvas id="barChart"></canvas></div>
-    <div class="data-source" id="dataSource" style="margin-top:8px;"></div>
+    <div class="calc-chart-wrap"><canvas id="barChart"></canvas></div>
+    <div class="calc-data-source" id="dataSource"></div>
+  </div>
+
+  <!-- ── 재무지표 (TTM) ── -->
+  <div class="calc-card">
+    <div class="calc-card-title">재무 지표</div>
+    <div class="calc-card-sub">TTM (Trailing Twelve Months)</div>
+    <div class="calc-metric-grid" id="ratioCard">
+      <div class="calc-metric">
+        <div class="m-label">시가총액</div>
+        <div class="m-value" id="mktCapVal">—</div>
+      </div>
+      <div class="calc-metric">
+        <div class="m-label">배당율</div>
+        <div class="m-value" id="divYieldVal">—</div>
+      </div>
+      <div class="calc-metric">
+        <div class="m-label">PER <span class="m-hint">주가/EPS</span></div>
+        <div class="m-value" id="perVal">—</div>
+      </div>
+      <div class="calc-metric">
+        <div class="m-label">PBR <span class="m-hint">주가/장부가</span></div>
+        <div class="m-value" id="pbrVal">—</div>
+      </div>
+      <div class="calc-metric">
+        <div class="m-label">ROE <span class="m-hint">순이익/자기자본</span></div>
+        <div class="m-value" id="roeVal">—</div>
+      </div>
+      <div class="calc-metric">
+        <div class="m-label">EPS <span class="m-hint">주당순이익</span></div>
+        <div class="m-value" id="epsVal">—</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ── 배당 카드 ── -->
+  <div id="dividendCard" class="calc-card" style="display:none;">
+    <div class="calc-card-title">배당 정보</div>
+    <div class="calc-card-sub">실제 지급 배당금 기준 (지분비례 추정이 아닌 직접 수령액)</div>
+    <div class="calc-metric-grid">
+      <div class="calc-metric">
+        <div class="m-label">배당율</div>
+        <div class="m-value" id="divYield">—</div>
+      </div>
+      <div class="calc-metric">
+        <div class="m-label">주당 연간 배당금</div>
+        <div class="m-value" id="divRate">—</div>
+      </div>
+      <div class="calc-metric">
+        <div class="m-label">보유 주식 월 배당</div>
+        <div class="m-value" style="color:var(--green);" id="divMonthlyKrw">—</div>
+        <div class="m-sub" id="divMonthlyUsd">—</div>
+      </div>
+    </div>
   </div>
 
 </div><!-- /mainContent -->
 
+
+<!-- ══════════════════════════════════════
+     SCRIPT
+══════════════════════════════════════ -->
 <script>
-// ── 초기 데이터 (서버 렌더링) ─────────────────────────────
 const INITIAL_DATA = {{ stock_json | safe }};
 const IS_STALE     = {{ is_stale | safe }};
 
-// ── 상태 ────────────────────────────────────────────────
+const TICKER_COLORS = {
+  "AAPL":"#000000","MSFT":"#0078D4","GOOGL":"#FBBC05","AMZN":"#FF9900",
+  "META":"#0866FF","NVDA":"#76B900","TSLA":"#E31937","NFLX":"#E50914",
+  "ADBE":"#FF0000","CRM":"#00A1E0","TSM":"#EB0029","KLAC":"#003A8F",
+  "LLY":"#D52B1E","APP":"#FF3B30","ASML":"#F58220","AVGO":"#CC092F",
+};
+const TICKER_FALLBACK = [
+  '#667eea','#10b981','#f59e0b','#ec4899','#0ea5e9',
+  '#8b5cf6','#f97316','#6366f1','#14b8a6','#ef4444',
+];
+let _fbIdx = 0;
+function tickerColor(ticker) {
+  return TICKER_COLORS[ticker] || TICKER_FALLBACK[_fbIdx++ % TICKER_FALLBACK.length];
+}
+
 let stockData   = null;
 let currentYear = null;
 let fxRate      = {{ fx_default|int }};
 let chartInst   = null;
 
-// ── 포맷 헬퍼 ───────────────────────────────────────────
+/* ── 포맷 헬퍼 ── */
 const _MONTHS = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
 function fmtEndDate(ym) {
   if (!ym) return '';
@@ -234,8 +682,7 @@ function fmtEndDate(ym) {
 }
 function fyLabel(d) { return d.label; }
 function fmtUSD(usdM) {
-  const v = Math.abs(usdM) * 1e6;
-  const s = usdM < 0 ? '-' : '';
+  const v = Math.abs(usdM) * 1e6, s = usdM < 0 ? '-' : '';
   if (v >= 1e12) return s + '$' + (v/1e12).toFixed(3) + 'T';
   if (v >= 1e9)  return s + '$' + (v/1e9 ).toFixed(3) + 'B';
   if (v >= 1e6)  return s + '$' + (v/1e6 ).toFixed(3) + 'M';
@@ -259,34 +706,34 @@ function fmtShares(sharesM) {
 }
 function setText(id, v) { document.getElementById(id).textContent = v; }
 
-// ── 데이터 적용 ────────────────────────────────────────
+/* ── 데이터 적용 ── */
 function applyData(data) {
   stockData   = data;
   currentYear = data.yearKeys[data.yearKeys.length - 1];
 
-  setText('stockTitle', data.ticker + '  ' + data.name);
+  document.getElementById('stockTitle').innerHTML =
+    `<span style="color:var(--text);font-size:18px;font-weight:800;">${data.ticker}</span>` +
+    `<span style="color:var(--text2);font-size:14px;font-weight:500;margin-left:8px;">${data.name}</span>`;
 
-  // 아이콘
   const iconWrap = document.getElementById('stockIcon');
   const iconImg  = document.getElementById('stockIconImg');
   const iconFb   = document.getElementById('stockIconFallback');
+  iconFb.textContent = data.ticker.slice(0, 2);
   iconImg.style.display = '';
   iconFb.style.display  = 'none';
-  iconFb.textContent    = data.ticker.slice(0, 2);
   iconImg.src           = '/resources/icons/' + data.ticker + '.png';
-  iconWrap.style.display = '';
+  iconWrap.style.display = 'block';
 
   const c = document.getElementById('fiscalTabs');
   c.innerHTML = '';
 
   const makeTab = (key, label, isActive, isForecast) => {
     const btn = document.createElement('button');
-    btn.className = 'tab-btn' + (isActive ? ' active' : '') + (isForecast ? ' fc-tab' : '');
-    if (isForecast) btn.style.cssText = 'border-style:dashed; opacity:.85;';
+    btn.className = 'calc-fy-tab' + (isActive ? ' active' : '') + (isForecast ? ' forecast' : '');
     btn.textContent = label;
     btn.onclick = () => {
       currentYear = key;
-      c.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+      c.querySelectorAll('.calc-fy-tab').forEach(b => b.classList.remove('active'));
       btn.classList.add('active');
       calculate();
     };
@@ -301,8 +748,8 @@ function applyData(data) {
 
   if ((data.forecastKeys || []).length > 0) {
     const sep = document.createElement('span');
+    sep.className = 'calc-fy-sep';
     sep.textContent = '│';
-    sep.style.cssText = 'color:var(--border); align-self:center; padding:0 2px;';
     c.appendChild(sep);
   }
   (data.forecastKeys || []).forEach(key => {
@@ -316,27 +763,26 @@ function applyData(data) {
 }
 
 function syncQuickBtns(ticker) {
-  document.querySelectorAll('.quick-btn').forEach(b =>
+  document.querySelectorAll('.calc-quick-btn').forEach(b =>
     b.classList.toggle('active', b.dataset.ticker === ticker));
 }
 
-// ── 뱃지 / 상태 ─────────────────────────────────────
+/* ── 뱃지 / 상태 ── */
 function setBadge(type, text) {
   const b = document.getElementById('dataBadge');
-  b.className = type === 'live' ? 'data-badge live' : 'data-badge';
+  b.className = 'calc-badge ' + type;
   b.textContent = text;
   b.classList.remove('hidden');
 }
 function showStatus(msg, isError = false) {
   const box = document.getElementById('statusBox');
-  box.classList.remove('hidden', 'error');
-  if (isError) box.classList.add('error');
+  box.className = 'calc-status visible' + (isError ? ' error' : '');
   document.getElementById('spinner').style.display = isError ? 'none' : 'block';
   setText('statusMsg', msg);
 }
-function hideStatus() { document.getElementById('statusBox').classList.add('hidden'); }
+function hideStatus() { document.getElementById('statusBox').className = 'calc-status'; }
 
-// ── 티커 로드 ──────────────────────────────────────
+/* ── 티커 로드 ── */
 async function loadTicker(skipQuick = false) {
   const ticker = (document.getElementById('tickerInput').value || '').trim().toUpperCase();
   if (!ticker) return;
@@ -381,7 +827,7 @@ function quickLoad(btn, ticker) {
   loadTicker();
 }
 
-// ── 계산 ──────────────────────────────────────────────
+/* ── 계산 ── */
 function calculate() {
   if (!stockData || !currentYear) return;
   const shares = Math.max(1, parseInt(document.getElementById('sharesInput').value) || 1);
@@ -458,7 +904,33 @@ function calculate() {
   updateChart(shares);
 }
 
-// ── 차트 ──────────────────────────────────────────────
+/* ── 차트 ── */
+const growthPlugin = {
+  id: 'growthLabels',
+  afterDatasetsDraw(chart) {
+    const ctx2 = chart.ctx;
+    chart.data.datasets.forEach((dataset, dsIdx) => {
+      const meta = chart.getDatasetMeta(dsIdx);
+      dataset.data.forEach((val, i) => {
+        if (i === 0) return;
+        const prev = dataset.data[i - 1];
+        if (!prev || prev === 0) return;
+        const pct = (val - prev) / Math.abs(prev) * 100;
+        const bar = meta.data[i];
+        const x = bar.x;
+        const y = bar.y - 6;
+        const text = (pct >= 0 ? '+' : '') + pct.toFixed(1) + '%';
+        ctx2.save();
+        ctx2.font = 'bold 9px sans-serif';
+        ctx2.fillStyle = pct >= 0 ? '#10b981' : '#ef4444';
+        ctx2.textAlign = 'center';
+        ctx2.fillText(text, x, y);
+        ctx2.restore();
+      });
+    });
+  }
+};
+
 function updateChart(shares) {
   const histKeys = stockData.yearKeys;
   const fcKeys   = stockData.forecastKeys || [];
@@ -468,10 +940,11 @@ function updateChart(shares) {
     const d = stockData.fiscalData[k];
     return parseFloat((d[f] * (shares / (d.shares * 1e6)) / 12 * 1e6 * fxRate / 1e4).toFixed(2));
   }
-  const revBg = allKeys.map(k => stockData.fiscalData[k].isForecast ? 'rgba(24,95,165,0.4)'  : 'rgba(24,95,165,0.55)');
-  const revBd = allKeys.map(k => stockData.fiscalData[k].isForecast ? 'rgba(24,95,165,0.85)' : '#185FA5');
-  const netBg = allKeys.map(k => stockData.fiscalData[k].isForecast ? 'rgba(59,109,17,0.4)'  : 'rgba(59,109,17,0.55)');
-  const netBd = allKeys.map(k => stockData.fiscalData[k].isForecast ? 'rgba(59,109,17,0.85)' : '#3B6D11');
+  const revBg = allKeys.map(k => stockData.fiscalData[k].isForecast ? 'rgba(102,126,234,0.3)' : 'rgba(102,126,234,0.5)');
+  const revBd = allKeys.map(k => stockData.fiscalData[k].isForecast ? 'rgba(102,126,234,0.7)' : 'rgba(102,126,234,0.9)');
+  const netBg = allKeys.map(k => stockData.fiscalData[k].isForecast ? 'rgba(16,185,129,0.3)'  : 'rgba(16,185,129,0.5)');
+  const netBd = allKeys.map(k => stockData.fiscalData[k].isForecast ? 'rgba(16,185,129,0.7)'  : 'rgba(16,185,129,0.85)');
+  const tickColor = getComputedStyle(document.documentElement).getPropertyValue('--text2').trim() || '#a8b3c0';
   const ctx = document.getElementById('barChart').getContext('2d');
   if (chartInst) chartInst.destroy();
   chartInst = new Chart(ctx, {
@@ -479,31 +952,54 @@ function updateChart(shares) {
     data: {
       labels,
       datasets: [
-        { label:'매출 (만원/월)',   data: allKeys.map(k=>mw(k,'revenue')), backgroundColor:revBg, borderColor:revBd, borderWidth:1.5, borderRadius:4 },
-        { label:'순이익 (만원/월)', data: allKeys.map(k=>mw(k,'net')),     backgroundColor:netBg, borderColor:netBd, borderWidth:1.5, borderRadius:4 },
+        { label:'매출 (만원/월)',   data: allKeys.map(k=>mw(k,'revenue')), backgroundColor:revBg, borderColor:revBd, borderWidth:1.5, borderRadius:6, borderSkipped:false },
+        { label:'순이익 (만원/월)', data: allKeys.map(k=>mw(k,'net')),     backgroundColor:netBg, borderColor:netBd, borderWidth:1.5, borderRadius:6, borderSkipped:false },
       ],
     },
+    plugins: [growthPlugin],
     options: {
       responsive: true, maintainAspectRatio: false,
+      layout: { padding: { top: 20 } },
       plugins: {
         legend: { display: false },
-        tooltip: { callbacks: {
-          label: c => {
-            const key = allKeys[c.dataIndex];
-            const tag = stockData.fiscalData[key].isForecast ? ' (예상)' : '';
-            return c.dataset.label + tag + ': ' + fmtKRWraw(c.parsed.y * 1e4) + '/월';
+        tooltip: {
+          backgroundColor: 'rgba(15,20,35,0.95)',
+          titleColor: '#fff', bodyColor: '#ccc',
+          borderColor: 'rgba(255,255,255,0.08)', borderWidth: 1,
+          cornerRadius: 10, padding: 12,
+          callbacks: {
+            label: c => {
+              const key = allKeys[c.dataIndex];
+              const tag = stockData.fiscalData[key].isForecast ? ' (예상)' : '';
+              const i = c.dataIndex;
+              const prev = c.dataset.data[i - 1];
+              let growthStr = '';
+              if (i > 0 && prev && prev !== 0) {
+                const pct = (c.parsed.y - prev) / Math.abs(prev) * 100;
+                growthStr = ' (' + (pct >= 0 ? '+' : '') + pct.toFixed(1) + '% YoY)';
+              }
+              return c.dataset.label + tag + ': ' + fmtKRWraw(c.parsed.y * 1e4) + '/월' + growthStr;
+            },
           },
-        }},
+        },
       },
       scales: {
-        y: { ticks: { callback: v => v.toLocaleString()+'만', font:{size:11} }, grid:{color:'rgba(128,128,128,0.08)'} },
-        x: { grid:{display:false}, ticks:{font:{size:12}} },
+        y: {
+          ticks: { callback: v => v.toLocaleString()+'만', font:{size:10}, color: tickColor },
+          grid: { color:'rgba(128,128,128,0.1)', drawBorder:false },
+          border: { display:false },
+        },
+        x: {
+          grid: { display:false },
+          ticks: { font:{size:11}, color: tickColor },
+          border: { display:false },
+        },
       },
     },
   });
 }
 
-// ── 초기화 ────────────────────────────────────────────
+/* ── 초기화 ── */
 document.addEventListener('DOMContentLoaded', () => {
   if (INITIAL_DATA && !IS_STALE) {
     applyData(INITIAL_DATA);

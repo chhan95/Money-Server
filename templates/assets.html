@@ -2,102 +2,739 @@
 {% block title %}자산관리 — Holding Company{% endblock %}
 
 {% block content %}
-<div class="page-header" style="margin-bottom:1rem;">
-  <h1>💼 자산관리</h1>
-  <p>월별 자산 현황 추적</p>
+
+<!-- ── 전용 스타일 ── -->
+<style>
+/* ── Design Tokens ── */
+:root {
+  --asset-gradient: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  --glass: rgba(255,255,255,0.03);
+  --glass-border: rgba(255,255,255,0.06);
+  --shadow-sm: 0 1px 3px rgba(0,0,0,0.08);
+  --shadow-md: 0 4px 16px rgba(0,0,0,0.12);
+  --shadow-lg: 0 8px 32px rgba(0,0,0,0.18);
+  --shadow-glow: 0 0 40px rgba(102,126,234,0.15);
+  --ease-out: cubic-bezier(0.16, 1, 0.3, 1);
+  --r-xl: 16px;
+  --r-2xl: 20px;
+}
+
+/* ── Page Header ── */
+.asset-page-header {
+  text-align: center;
+  padding: 32px 0 24px;
+}
+.asset-page-header h1 {
+  font-size: 28px;
+  font-weight: 800;
+  letter-spacing: -0.5px;
+  background: var(--asset-gradient);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+  margin-bottom: 6px;
+}
+.asset-page-header p {
+  font-size: 14px;
+  color: var(--text2);
+  font-weight: 400;
+}
+
+/* ── Tabs ── */
+.asset-tabs {
+  display: flex;
+  gap: 4px;
+  margin-bottom: 28px;
+  background: var(--bg2);
+  border-radius: 12px;
+  padding: 4px;
+  max-width: 400px;
+  margin-left: auto;
+  margin-right: auto;
+}
+.asset-tab {
+  flex: 1;
+  padding: 10px 16px;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text2);
+  background: none;
+  border: none;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: all 0.25s var(--ease-out);
+  text-align: center;
+}
+.asset-tab:hover { color: var(--text); background: rgba(255,255,255,0.03); }
+.asset-tab.active {
+  color: white;
+  background: var(--asset-gradient);
+  box-shadow: 0 2px 12px rgba(102,126,234,0.35);
+}
+
+/* ── Hero Card ── */
+.hero-card {
+  background: var(--asset-gradient);
+  border-radius: var(--r-2xl);
+  padding: 32px;
+  color: white;
+  position: relative;
+  overflow: hidden;
+  box-shadow: var(--shadow-glow), var(--shadow-lg);
+  margin-bottom: 16px;
+}
+.hero-card::before {
+  content: '';
+  position: absolute;
+  top: -50%;
+  right: -20%;
+  width: 300px;
+  height: 300px;
+  background: radial-gradient(circle, rgba(255,255,255,0.1) 0%, transparent 70%);
+  pointer-events: none;
+}
+.hero-card::after {
+  content: '';
+  position: absolute;
+  bottom: -30%;
+  left: -10%;
+  width: 200px;
+  height: 200px;
+  background: radial-gradient(circle, rgba(255,255,255,0.06) 0%, transparent 70%);
+  pointer-events: none;
+}
+.hero-label {
+  font-size: 13px;
+  font-weight: 500;
+  opacity: 0.7;
+  text-transform: uppercase;
+  letter-spacing: 1.5px;
+  margin-bottom: 8px;
+}
+.hero-value {
+  font-size: 36px;
+  font-weight: 800;
+  letter-spacing: -1px;
+  margin-bottom: 8px;
+  position: relative;
+  z-index: 1;
+}
+.hero-sub {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  font-size: 13px;
+  opacity: 0.8;
+  position: relative;
+  z-index: 1;
+}
+.hero-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 4px 12px;
+  border-radius: 20px;
+  font-weight: 700;
+  font-size: 13px;
+}
+.hero-badge.up { background: rgba(16,185,129,0.25); color: #6ee7b7; }
+.hero-badge.down { background: rgba(239,68,68,0.25); color: #fca5a5; }
+
+/* ── Metric Cards ── */
+.metric-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+  gap: 12px;
+  margin-bottom: 28px;
+}
+.metric-card {
+  background: var(--bg);
+  border: 1px solid var(--border);
+  border-radius: var(--r-xl);
+  padding: 20px;
+  transition: all 0.3s var(--ease-out);
+  position: relative;
+  overflow: hidden;
+}
+.metric-card:hover {
+  transform: translateY(-2px);
+  box-shadow: var(--shadow-md);
+  border-color: rgba(255,255,255,0.1);
+}
+.metric-card .dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  display: inline-block;
+  margin-right: 6px;
+}
+.metric-card .label {
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--text2);
+  margin-bottom: 10px;
+  display: flex;
+  align-items: center;
+}
+.metric-card .value {
+  font-size: 20px;
+  font-weight: 700;
+  letter-spacing: -0.5px;
+}
+.metric-card.loan-card .value { color: #ef4444; }
+
+/* ── Section Card ── */
+.section-card {
+  background: var(--bg);
+  border: 1px solid var(--border);
+  border-radius: var(--r-xl);
+  padding: 24px;
+  margin-bottom: 20px;
+  transition: all 0.3s var(--ease-out);
+}
+.section-card:hover {
+  box-shadow: var(--shadow-sm);
+}
+.section-title {
+  font-size: 15px;
+  font-weight: 700;
+  margin-bottom: 4px;
+  color: var(--text);
+}
+.section-subtitle {
+  font-size: 12px;
+  color: var(--text2);
+  margin-bottom: 16px;
+}
+
+/* ── Chart ── */
+.chart-container {
+  height: 240px;
+  position: relative;
+}
+
+/* ── Legend ── */
+.cat-legend {
+  display: flex;
+  gap: 16px;
+  flex-wrap: wrap;
+}
+.cat-legend-item {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--text2);
+}
+.cat-legend-dot {
+  width: 10px;
+  height: 10px;
+  border-radius: 3px;
+}
+
+/* ── Table ── */
+.asset-table {
+  width: 100%;
+  border-collapse: separate;
+  border-spacing: 0;
+  font-size: 13px;
+}
+.asset-table thead th {
+  padding: 12px 16px;
+  text-align: left;
+  font-weight: 600;
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  color: var(--text2);
+  border-bottom: 1px solid var(--border);
+  position: sticky;
+  top: 0;
+  background: var(--bg);
+  z-index: 1;
+}
+.asset-table tbody tr {
+  transition: background 0.15s;
+}
+.asset-table tbody tr:hover {
+  background: var(--bg2);
+}
+.asset-table tbody td {
+  padding: 14px 16px;
+  border-bottom: 1px solid var(--border2);
+}
+.asset-table .date-cell {
+  font-weight: 600;
+  white-space: nowrap;
+}
+.asset-table .num-cell {
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+}
+.asset-table .actions-cell {
+  text-align: right;
+  white-space: nowrap;
+}
+
+/* ── Buttons ── */
+.btn-gradient {
+  background: var(--asset-gradient);
+  color: white;
+  border: none;
+  padding: 10px 20px;
+  border-radius: 10px;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s var(--ease-out);
+  box-shadow: 0 2px 12px rgba(102,126,234,0.3);
+}
+.btn-gradient:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 4px 20px rgba(102,126,234,0.45);
+}
+.btn-soft {
+  background: var(--bg2);
+  color: var(--text);
+  border: 1px solid var(--glass-border);
+  padding: 10px 20px;
+  border-radius: 10px;
+  font-size: 13px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s var(--ease-out);
+}
+.btn-soft:hover {
+  background: rgba(255,255,255,0.06);
+  border-color: rgba(255,255,255,0.12);
+}
+.btn-icon {
+  background: none;
+  border: 1px solid transparent;
+  width: 32px;
+  height: 32px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 8px;
+  cursor: pointer;
+  font-size: 14px;
+  color: var(--text2);
+  transition: all 0.15s;
+}
+.btn-icon:hover {
+  background: var(--bg2);
+  border-color: var(--glass-border);
+  color: var(--text);
+}
+.btn-icon.danger:hover {
+  background: rgba(239,68,68,0.1);
+  border-color: rgba(239,68,68,0.2);
+  color: #ef4444;
+}
+
+/* ── Tab Pills (Table) ── */
+.pill-group {
+  display: inline-flex;
+  background: var(--bg2);
+  border-radius: 8px;
+  padding: 3px;
+  gap: 2px;
+}
+.pill-btn {
+  padding: 6px 14px;
+  font-size: 12px;
+  font-weight: 500;
+  border: none;
+  background: none;
+  border-radius: 6px;
+  cursor: pointer;
+  color: var(--text2);
+  transition: all 0.2s;
+}
+.pill-btn.active {
+  background: var(--bg);
+  color: var(--text);
+  box-shadow: var(--shadow-sm);
+}
+
+/* ── Modal ── */
+.modal-overlay {
+  display: none;
+  position: fixed;
+  inset: 0;
+  background: rgba(0,0,0,0.6);
+  backdrop-filter: blur(4px);
+  z-index: 200;
+  overflow-y: auto;
+  animation: fadeIn 0.2s var(--ease-out);
+}
+.modal-box {
+  max-width: 640px;
+  margin: 40px auto;
+  background: var(--bg);
+  border: 1px solid var(--border);
+  border-radius: var(--r-2xl);
+  padding: 32px;
+  position: relative;
+  animation: slideUp 0.35s var(--ease-out);
+  box-shadow: var(--shadow-lg);
+}
+.modal-box.sm { max-width: 400px; margin-top: 120px; }
+.modal-close {
+  position: absolute;
+  top: 20px;
+  right: 20px;
+  background: var(--bg2);
+  border: none;
+  width: 32px;
+  height: 32px;
+  border-radius: 8px;
+  cursor: pointer;
+  color: var(--text2);
+  font-size: 14px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.15s;
+}
+.modal-close:hover { background: rgba(255,255,255,0.08); color: var(--text); }
+.modal-title {
+  font-size: 18px;
+  font-weight: 700;
+  margin-bottom: 24px;
+  letter-spacing: -0.3px;
+}
+
+@keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+@keyframes slideUp { from { opacity: 0; transform: translateY(20px); } to { opacity: 1; transform: translateY(0); } }
+
+/* ── Form inside modal ── */
+.form-section-title {
+  font-size: 12px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  color: var(--text2);
+  margin-bottom: 12px;
+  padding-bottom: 8px;
+  border-bottom: 1px solid var(--glass-border);
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+.form-section-title .dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 2px;
+}
+.form-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+  margin-bottom: 20px;
+}
+.form-field label {
+  display: block;
+  font-size: 11px;
+  font-weight: 500;
+  color: var(--text2);
+  margin-bottom: 5px;
+}
+.form-field input,
+.form-field select {
+  width: 100%;
+  padding: 10px 12px;
+  background: var(--bg2);
+  border: 1px solid var(--glass-border);
+  border-radius: 8px;
+  color: var(--text);
+  font-size: 13px;
+  transition: border-color 0.2s;
+  outline: none;
+}
+.form-field input:focus,
+.form-field select:focus {
+  border-color: #667eea;
+  box-shadow: 0 0 0 3px rgba(102,126,234,0.15);
+}
+.form-field input::placeholder { color: var(--text2); opacity: 0.5; }
+
+.preview-panel {
+  background: var(--bg2);
+  border-radius: 12px;
+  padding: 16px 20px;
+  margin-bottom: 24px;
+  border: 1px solid var(--glass-border);
+}
+.preview-row {
+  display: flex;
+  justify-content: space-between;
+  padding: 6px 0;
+  font-size: 13px;
+}
+.preview-row .lbl { color: var(--text2); }
+.preview-divider {
+  height: 1px;
+  background: var(--glass-border);
+  margin: 8px 0;
+}
+.preview-row.total {
+  font-weight: 700;
+  font-size: 15px;
+  padding-top: 10px;
+}
+
+/* ── Account Card (Tab 2) ── */
+.acc-category-card {
+  background: var(--bg);
+  border: 1px solid var(--border);
+  border-radius: var(--r-xl);
+  padding: 20px 24px;
+  margin-bottom: 12px;
+  transition: all 0.3s var(--ease-out);
+}
+.acc-category-card:hover { box-shadow: var(--shadow-sm); }
+.acc-category-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 16px;
+}
+.acc-category-name {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-weight: 700;
+  font-size: 15px;
+}
+.acc-category-name .bar {
+  width: 4px;
+  height: 20px;
+  border-radius: 2px;
+}
+.acc-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 10px 0;
+  border-bottom: 1px solid var(--border2);
+  font-size: 13px;
+}
+.acc-row:last-child { border-bottom: none; }
+.acc-row .name { display: flex; align-items: center; gap: 8px; }
+.acc-row .name .badge {
+  font-size: 9px;
+  padding: 2px 6px;
+  border-radius: 4px;
+  font-weight: 600;
+  background: rgba(102,126,234,0.15);
+  color: #a5b4fc;
+}
+.acc-row .right { display: flex; align-items: center; gap: 12px; }
+.acc-row .amount { font-weight: 600; font-variant-numeric: tabular-nums; }
+.acc-row .pct { font-size: 11px; color: var(--text2); min-width: 44px; text-align: right; }
+.acc-row.zero { opacity: 0.35; }
+
+.deactivated-panel {
+  background: var(--bg2);
+  border-radius: var(--r-xl);
+  padding: 16px 20px;
+  margin-top: 8px;
+}
+.deactivated-panel .title {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--text2);
+  margin-bottom: 12px;
+}
+.deactivated-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  background: var(--bg);
+  border: 1px solid var(--glass-border);
+  border-radius: 8px;
+  padding: 6px 12px;
+  font-size: 12px;
+  margin: 0 6px 6px 0;
+}
+.deactivated-chip .restore-btn {
+  background: none;
+  border: none;
+  color: #667eea;
+  font-weight: 600;
+  cursor: pointer;
+  font-size: 11px;
+  padding: 0;
+}
+.deactivated-chip .restore-btn:hover { text-decoration: underline; }
+
+/* ── Empty state ── */
+.empty-state-box {
+  text-align: center;
+  padding: 48px 24px;
+  color: var(--text2);
+}
+.empty-state-box .icon { font-size: 40px; margin-bottom: 12px; opacity: 0.4; }
+.empty-state-box .msg { font-size: 14px; }
+
+/* ── Responsive ── */
+@media (max-width: 600px) {
+  .hero-value { font-size: 28px; }
+  .metric-grid { grid-template-columns: repeat(2, 1fr); }
+  .form-grid { grid-template-columns: 1fr; }
+  .modal-box { margin: 16px; padding: 24px; }
+  .asset-tabs { max-width: 100%; }
+}
+</style>
+
+
+<!-- ══════════════════════════════════════
+     PAGE HEADER
+══════════════════════════════════════ -->
+<div class="asset-page-header">
+  <h1>자산관리</h1>
+  <p>월별 자산 현황을 한눈에 추적</p>
 </div>
 
 <!-- ── 페이지 탭 ── -->
-<div style="display:flex;gap:0;margin-bottom:1.25rem;border-bottom:1px solid var(--border);">
-  <button id="pgBtn0" class="pg-tab active" onclick="showPg(0)">자산 현황</button>
-  <button id="pgBtn1" class="pg-tab"        onclick="showPg(1)">항목 관리</button>
-  <button id="pgBtn2" class="pg-tab"        onclick="showPg(2)">통장별 현황</button>
+<div class="asset-tabs">
+  <button id="pgBtn0" class="asset-tab active" onclick="showPg(0)">자산 현황</button>
+  <button id="pgBtn1" class="asset-tab"        onclick="showPg(1)">항목 관리</button>
+  <button id="pgBtn2" class="asset-tab"        onclick="showPg(2)">자산관리</button>
 </div>
+
 
 <!-- ══════════════════════════════════════
      TAB 0 — 자산 현황
 ══════════════════════════════════════ -->
 <div id="pg0">
 
-  <!-- 요약 카드 -->
-  <div id="summaryCards" style="margin-bottom:1.25rem;">
-    <div class="summary-grid" style="grid-template-columns:repeat(2,1fr);margin-bottom:10px;">
-      <div class="summary-card" style="grid-column:span 2;background:var(--accent);color:white;">
-        <div class="summary-label" style="color:rgba(255,255,255,.7);">총 자산</div>
-        <div class="summary-value" id="cardTotal" style="color:white;font-size:24px;">—</div>
-        <div class="summary-sub" style="display:flex;gap:10px;align-items:center;color:rgba(255,255,255,.7);">
-          <span id="cardTotalDate">데이터 없음</span>
-          <span id="cardTotalChange" style="font-weight:600;"></span>
-        </div>
-      </div>
-    </div>
-    <div class="summary-grid" style="grid-template-columns:repeat(3,1fr);">
-      <div class="summary-card">
-        <div class="summary-label">연금합</div>
-        <div class="summary-value" id="cardPension">—</div>
-      </div>
-      <div class="summary-card">
-        <div class="summary-label">투자합</div>
-        <div class="summary-value" id="cardInvest">—</div>
-      </div>
-      <div class="summary-card">
-        <div class="summary-label">저축합(청약)</div>
-        <div class="summary-value" id="cardSavings">—</div>
-      </div>
-      <div class="summary-card">
-        <div class="summary-label">자유입출금합</div>
-        <div class="summary-value" id="cardLiquid">—</div>
-      </div>
-      <div class="summary-card" style="grid-column:span 2;">
-        <div class="summary-label">대출</div>
-        <div class="summary-value clr-red" id="cardLoan">—</div>
-      </div>
+  <!-- Hero Card -->
+  <div class="hero-card">
+    <div class="hero-label">TOTAL ASSETS</div>
+    <div class="hero-value" id="cardTotal">—</div>
+    <div class="hero-sub">
+      <span id="cardTotalDate">데이터 없음</span>
+      <span class="hero-badge" id="cardTotalChange" style="display:none;"></span>
     </div>
   </div>
 
-  <!-- 총 자본 추이 -->
-  <div class="card" style="margin-bottom:1.25rem;">
-    <div class="chart-label">총 자본 추이</div>
-    <div class="chart-wrapper" style="height:220px;">
+  <!-- Metric Cards -->
+  <div class="metric-grid">
+    <div class="metric-card">
+      <div class="label"><span class="dot" style="background:#6366f1;"></span>연금</div>
+      <div class="value" id="cardPension">—</div>
+    </div>
+    <div class="metric-card">
+      <div class="label"><span class="dot" style="background:#10b981;"></span>투자</div>
+      <div class="value" id="cardInvest">—</div>
+    </div>
+    <div class="metric-card">
+      <div class="label"><span class="dot" style="background:#f59e0b;"></span>저축(청약)</div>
+      <div class="value" id="cardSavings">—</div>
+    </div>
+    <div class="metric-card">
+      <div class="label"><span class="dot" style="background:#3b82f6;"></span>자유입출금</div>
+      <div class="value" id="cardLiquid">—</div>
+    </div>
+    <div class="metric-card">
+      <div class="label"><span class="dot" style="background:#a16207;"></span>부동산</div>
+      <div class="value" id="cardRealestate">—</div>
+    </div>
+    <div class="metric-card loan-card">
+      <div class="label"><span class="dot" style="background:#ef4444;"></span>대출</div>
+      <div class="value" id="cardLoan">—</div>
+    </div>
+  </div>
+
+  <!-- 계좌 유형별 자산 구성 -->
+  <div class="section-card" style="margin-bottom:20px;">
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:28px;align-items:start;">
+
+      <!-- 좌: 도넛 차트 -->
+      <div>
+        <div class="section-title">계좌 유형별 구성</div>
+        <div class="section-subtitle">총 자산 대비 계좌 유형 비중</div>
+        <div style="position:relative;height:220px;">
+          <canvas id="accountDoughnutChart"></canvas>
+        </div>
+      </div>
+
+      <!-- 우: 요약 + 목록 -->
+      <div>
+        <!-- 순자산 / 부채비율 -->
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:16px;">
+          <div style="background:var(--bg2);border-radius:10px;padding:12px 14px;border:1px solid var(--border);">
+            <div style="font-size:11px;color:var(--text2);margin-bottom:4px;">순자산</div>
+            <div style="font-size:16px;font-weight:700;color:var(--text);" id="doughnutSummaryNet">—</div>
+          </div>
+          <div style="background:var(--bg2);border-radius:10px;padding:12px 14px;border:1px solid var(--border);">
+            <div style="font-size:11px;color:var(--text2);margin-bottom:4px;">부채비율</div>
+            <div style="font-size:16px;font-weight:700;color:#ef4444;" id="doughnutDebtRatio">—</div>
+          </div>
+        </div>
+        <!-- 테이블 헤더 -->
+        <div style="display:grid;grid-template-columns:2fr 1.5fr 0.7fr;font-size:11px;font-weight:600;color:var(--text2);text-transform:uppercase;letter-spacing:.05em;padding:0 4px 8px;border-bottom:1px solid var(--border);">
+          <div>유형</div><div style="text-align:right;">금액</div><div style="text-align:right;">비중</div>
+        </div>
+        <div id="accountTypeRows"></div>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- 순 자산 추이 -->
+  <div class="section-card">
+    <div class="section-title">순 자산 차트</div>
+    <div class="section-subtitle">전체 기간 월별 순자산 변화</div>
+    <div class="chart-container">
       <canvas id="chartTotal"></canvas>
     </div>
   </div>
 
-  <!-- 카테고리 스택 차트 -->
-  <div class="card">
-    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;">
-      <div class="chart-label" style="margin-bottom:0;">카테고리별 구성 (최근 12개월)</div>
-      <div class="legend" style="margin-bottom:0;gap:10px;">
-        <span class="legend-item"><span class="legend-dot" style="background:#6366f1;"></span>연금</span>
-        <span class="legend-item"><span class="legend-dot" style="background:#10b981;"></span>투자</span>
-        <span class="legend-item"><span class="legend-dot" style="background:#f59e0b;"></span>저축</span>
-        <span class="legend-item"><span class="legend-dot" style="background:#3b82f6;"></span>자유입출금</span>
+  <!-- 카테고리 차트 -->
+  <div class="section-card">
+    <div style="display:flex;justify-content:space-between;align-items:flex-start;flex-wrap:wrap;gap:12px;margin-bottom:16px;">
+      <div>
+        <div class="section-title" style="margin-bottom:2px;">카테고리 차트</div>
+        <div class="section-subtitle" style="margin-bottom:0;">최근 12개월</div>
+      </div>
+      <div class="cat-legend">
+        <span class="cat-legend-item"><span class="cat-legend-dot" style="background:#6366f1;"></span>연금</span>
+        <span class="cat-legend-item"><span class="cat-legend-dot" style="background:#10b981;"></span>투자</span>
+        <span class="cat-legend-item"><span class="cat-legend-dot" style="background:#f59e0b;"></span>저축</span>
+        <span class="cat-legend-item"><span class="cat-legend-dot" style="background:#3b82f6;"></span>자유입출금</span>
+        <span class="cat-legend-item"><span class="cat-legend-dot" style="background:#a16207;"></span>부동산</span>
       </div>
     </div>
-    <div class="chart-wrapper" style="height:220px;">
+    <div class="chart-container">
       <canvas id="chartCategory"></canvas>
     </div>
   </div>
 
 </div><!-- /pg0 -->
 
+
 <!-- ══════════════════════════════════════
      TAB 1 — 항목 관리
 ══════════════════════════════════════ -->
 <div id="pg1" style="display:none;">
-  <div style="display:flex;justify-content:flex-end;gap:8px;margin-bottom:1rem;">
-    <button class="btn btn-ghost" onclick="openImportModal()">CSV 가져오기</button>
-    <button class="btn btn-primary" onclick="openEntryModal(null)">+ 항목 추가</button>
-  </div>
-  <div class="card" style="overflow-x:auto;">
-    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;">
-      <div style="display:flex;gap:6px;">
-        <button id="tabRecent" class="btn btn-primary" style="padding:4px 12px;font-size:12px;" onclick="setTab('recent')">최근 1년</button>
-        <button id="tabAll"    class="btn btn-ghost"   style="padding:4px 12px;font-size:12px;" onclick="setTab('all')">전체 내역</button>
-      </div>
-      <span style="font-size:12px;color:var(--text2);" id="rowCount"></span>
+  <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:20px;">
+    <div class="pill-group">
+      <button id="tabRecent" class="pill-btn active" onclick="setTab('recent')">최근 1년</button>
+      <button id="tabAll"    class="pill-btn"        onclick="setTab('all')">전체 내역</button>
     </div>
-    <table class="p-table">
+    <div style="display:flex;gap:8px;align-items:center;">
+      <span style="font-size:12px;color:var(--text2);" id="rowCount"></span>
+      <button class="btn-soft" style="padding:8px 14px;" onclick="openImportModal()">CSV 가져오기</button>
+      <button class="btn-gradient" style="padding:8px 16px;" onclick="openEntryModal(null)">+ 항목 추가</button>
+    </div>
+  </div>
+  <div class="section-card" style="overflow-x:auto;padding:0;">
+    <table class="asset-table">
       <thead>
         <tr>
           <th>날짜</th>
@@ -106,16 +743,18 @@
           <th style="text-align:right;">투자합</th>
           <th style="text-align:right;">저축합</th>
           <th style="text-align:right;">자유입출금</th>
+          <th style="text-align:right;">부동산</th>
           <th style="text-align:right;">대출</th>
-          <th></th>
+          <th style="text-align:right;width:90px;">작업</th>
         </tr>
       </thead>
       <tbody id="assetTableBody">
-        <tr><td colspan="8" class="empty-state">데이터 로딩 중...</td></tr>
+        <tr><td colspan="9"><div class="empty-state-box"><div class="icon">📊</div><div class="msg">데이터 로딩 중...</div></div></td></tr>
       </tbody>
     </table>
   </div>
 </div><!-- /pg1 -->
+
 
 <!-- ══════════════════════════════════════
      TAB 2 — 통장별 현황
@@ -123,10 +762,10 @@
 <div id="pg2" style="display:none;">
 
   <!-- 계좌 관리 -->
-  <div class="card" style="margin-bottom:1.25rem;">
-    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;">
-      <div class="chart-label" style="margin-bottom:0;">계좌 관리</div>
-      <button class="btn btn-primary" style="font-size:12px;padding:4px 12px;" onclick="openAddAccModal()">+ 계좌 추가</button>
+  <div class="section-card" style="margin-bottom:20px;">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px;">
+      <div class="section-title" style="margin-bottom:0;">자산 관리</div>
+      <button class="btn-gradient" style="padding:8px 14px;font-size:12px;" onclick="openAddAccModal()">+ 자산 추가</button>
     </div>
     <div id="customAccList">
       <p style="font-size:13px;color:var(--text2);">추가된 커스텀 계좌가 없습니다.</p>
@@ -135,7 +774,7 @@
 
   <!-- 통장별 잔액 -->
   <div id="accountBreakdown">
-    <p class="empty-state">데이터 로딩 중...</p>
+    <div class="empty-state-box"><div class="icon">🏦</div><div class="msg">데이터 로딩 중...</div></div>
   </div>
 
 </div><!-- /pg2 -->
@@ -144,193 +783,163 @@
 <!-- ══════════════════════════════════════
      입력 모달
 ══════════════════════════════════════ -->
-<div id="entryModal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.45);z-index:200;overflow-y:auto;">
-  <div style="max-width:640px;margin:40px auto;background:var(--bg);border-radius:var(--r-lg);padding:24px;position:relative;">
-    <button onclick="closeEntryModal()" style="position:absolute;top:16px;right:16px;background:none;border:none;font-size:18px;cursor:pointer;color:var(--text2);">✕</button>
-    <h2 style="font-size:16px;font-weight:600;margin-bottom:20px;" id="modalTitle">항목 추가</h2>
+<div id="entryModal" class="modal-overlay">
+  <div class="modal-box">
+    <button onclick="closeEntryModal()" class="modal-close">✕</button>
+    <h2 class="modal-title" id="modalTitle">항목 추가</h2>
 
-    <div style="margin-bottom:16px;">
-      <label class="form-label">날짜 (YYYY/MM/DD)</label>
-      <input id="fDate" class="form-input" style="width:100%;" type="text" placeholder="2026/03/31">
+    <div class="form-grid" style="grid-template-columns:1fr;margin-bottom:20px;">
+      <div class="form-field">
+        <label>날짜 (YYYY/MM/DD)</label>
+        <input id="fDate" type="text" placeholder="2026/03/31">
+      </div>
     </div>
 
     <!-- 연금 -->
-    <div style="margin-bottom:12px;">
-      <div class="chart-label" style="margin-bottom:8px;">연금</div>
-      <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;">
-        <div data-bikey="dc"><label class="form-label">DC (퇴직연금)</label><input id="fDc" class="form-input" style="width:100%;" type="number" placeholder="0"></div>
-        <div data-bikey="irpMiraeasset"><label class="form-label">IRP 미래에셋</label><input id="fIrpMiraeasset" class="form-input" style="width:100%;" type="number" placeholder="0"></div>
-        <div data-bikey="irpSamsung"><label class="form-label">IRP 삼성</label><input id="fIrpSamsung" class="form-input" style="width:100%;" type="number" placeholder="0"></div>
-        <div data-bikey="personalPension"><label class="form-label">개인연금 미래에셋</label><input id="fPersonalPension" class="form-input" style="width:100%;" type="number" placeholder="0"></div>
-        <div data-bikey="pensionCma"><label class="form-label">연금 CMA 삼성</label><input id="fPensionCma" class="form-input" style="width:100%;" type="number" placeholder="0"></div>
-      </div>
+    <div class="form-section-title"><span class="dot" style="background:#6366f1;"></span>연금</div>
+    <div class="form-grid">
+      <div class="form-field" data-bikey="dc"><label>DC (퇴직연금)</label><input id="fDc" type="number" placeholder="0"></div>
+      <div class="form-field" data-bikey="irpMiraeasset"><label>IRP 미래에셋</label><input id="fIrpMiraeasset" type="number" placeholder="0"></div>
+      <div class="form-field" data-bikey="irpSamsung"><label>IRP 삼성</label><input id="fIrpSamsung" type="number" placeholder="0"></div>
+      <div class="form-field" data-bikey="personalPension"><label>개인연금 미래에셋</label><input id="fPersonalPension" type="number" placeholder="0"></div>
+      <div class="form-field" data-bikey="pensionCma"><label>연금 CMA 삼성</label><input id="fPensionCma" type="number" placeholder="0"></div>
     </div>
 
     <!-- 투자 -->
-    <div style="margin-bottom:12px;">
-      <div class="chart-label" style="margin-bottom:8px;">투자</div>
-      <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;">
-        <div data-bikey="isa"><label class="form-label">ISA</label><input id="fIsa" class="form-input" style="width:100%;" type="number" placeholder="0"></div>
-        <div data-bikey="miraeasset"><label class="form-label">미래에셋증권</label><input id="fMiraeasset" class="form-input" style="width:100%;" type="number" placeholder="0"></div>
-        <div data-bikey="samsungTrading"><label class="form-label">삼성증권</label><input id="fSamsungTrading" class="form-input" style="width:100%;" type="number" placeholder="0"></div>
-        <div data-bikey="tossSecurities"><label class="form-label">토스증권</label><input id="fTossSecurities" class="form-input" style="width:100%;" type="number" placeholder="0"></div>
-      </div>
+    <div class="form-section-title"><span class="dot" style="background:#10b981;"></span>투자</div>
+    <div class="form-grid">
+      <div class="form-field" data-bikey="isa"><label>ISA</label><input id="fIsa" type="number" placeholder="0"></div>
+      <div class="form-field" data-bikey="miraeasset"><label>미래에셋증권</label><input id="fMiraeasset" type="number" placeholder="0"></div>
+      <div class="form-field" data-bikey="samsungTrading"><label>삼성증권</label><input id="fSamsungTrading" type="number" placeholder="0"></div>
+      <div class="form-field" data-bikey="tossSecurities"><label>토스증권</label><input id="fTossSecurities" type="number" placeholder="0"></div>
     </div>
 
     <!-- 저축 -->
-    <div style="margin-bottom:12px;">
-      <div class="chart-label" style="margin-bottom:8px;">저축</div>
-      <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;">
-        <div data-bikey="housingSubscription">
-          <label class="form-label">주택청약종합저축 <span style="color:var(--accent);">★ 집계포함</span></label>
-          <input id="fHousingSubscription" class="form-input" style="width:100%;" type="number" placeholder="0">
-        </div>
-        <div data-bikey="fixedDeposit">
-          <label class="form-label" style="color:var(--text2);">정기예금합 (참고용)</label>
-          <input id="fFixedDeposit" class="form-input" style="width:100%;" type="number" placeholder="0">
-        </div>
-        <div data-bikey="hanaSalarySavings">
-          <label class="form-label" style="color:var(--text2);">급여 하나 월복리 적금 (참고용)</label>
-          <input id="fHanaSalarySavings" class="form-input" style="width:100%;" type="number" placeholder="0">
-        </div>
-        <div data-bikey="hanaHomeSavings">
-          <label class="form-label" style="color:var(--text2);">내집마련더블업적금 (참고용)</label>
-          <input id="fHanaHomeSavings" class="form-input" style="width:100%;" type="number" placeholder="0">
-        </div>
+    <div class="form-section-title"><span class="dot" style="background:#f59e0b;"></span>저축</div>
+    <div class="form-grid">
+      <div class="form-field" data-bikey="housingSubscription">
+        <label>주택청약종합저축 <span style="color:#667eea;font-size:10px;">★ 집계포함</span></label>
+        <input id="fHousingSubscription" type="number" placeholder="0">
       </div>
     </div>
 
     <!-- 자유입출금 -->
-    <div style="margin-bottom:12px;">
-      <div class="chart-label" style="margin-bottom:8px;">자유입출금</div>
-      <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;">
-        <div data-bikey="youngHana"><label class="form-label">Young 하나통장</label><input id="fYoungHana" class="form-input" style="width:100%;" type="number" placeholder="0"></div>
-        <div data-bikey="naverpayHana"><label class="form-label">네이버페이 하나통장</label><input id="fNaverpayHana" class="form-input" style="width:100%;" type="number" placeholder="0"></div>
-        <div data-bikey="shinhan"><label class="form-label">신한 주거래통장</label><input id="fShinhan" class="form-input" style="width:100%;" type="number" placeholder="0"></div>
-        <div data-bikey="tossSavings"><label class="form-label">토스 자유입출금</label><input id="fTossSavings" class="form-input" style="width:100%;" type="number" placeholder="0"></div>
-      </div>
+    <div class="form-section-title"><span class="dot" style="background:#3b82f6;"></span>자유입출금</div>
+    <div class="form-grid">
+      <div class="form-field" data-bikey="youngHana"><label>Young 하나통장</label><input id="fYoungHana" type="number" placeholder="0"></div>
+      <div class="form-field" data-bikey="naverpayHana"><label>네이버페이 하나통장</label><input id="fNaverpayHana" type="number" placeholder="0"></div>
+      <div class="form-field" data-bikey="shinhan"><label>신한 주거래통장</label><input id="fShinhan" type="number" placeholder="0"></div>
+      <div class="form-field" data-bikey="tossSavings"><label>토스 자유입출금</label><input id="fTossSavings" type="number" placeholder="0"></div>
     </div>
 
     <!-- 대출 -->
-    <div style="margin-bottom:12px;">
-      <div class="chart-label" style="margin-bottom:8px;">대출</div>
-      <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;">
-        <div data-bikey="hanaLoan"><label class="form-label">하나은행 대출 (양수 입력)</label><input id="fHanaLoan" class="form-input" style="width:100%;" type="number" placeholder="0"></div>
-      </div>
+    <div class="form-section-title"><span class="dot" style="background:#ef4444;"></span>대출</div>
+    <div class="form-grid">
+      <div class="form-field" data-bikey="hanaLoan"><label>하나은행 대출 (양수 입력)</label><input id="fHanaLoan" type="number" placeholder="0"></div>
     </div>
 
     <!-- 커스텀 계좌 -->
-    <div id="customAccSection" style="margin-bottom:12px;display:none;">
-      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;">
-        <div class="chart-label" style="margin-bottom:0;">추가 계좌</div>
-        <button class="btn btn-ghost" style="font-size:11px;padding:3px 8px;" onclick="openAddAccModal()">+ 계좌 등록</button>
+    <div id="customAccSection" style="display:none;">
+      <div class="form-section-title" style="justify-content:space-between;">
+        <span style="display:flex;align-items:center;gap:6px;"><span class="dot" style="background:#667eea;"></span>추가 계좌</span>
+        <button class="btn-soft" style="padding:4px 10px;font-size:11px;" onclick="openAddAccModal()">+ 등록</button>
       </div>
-      <div id="customAccInputs" style="display:grid;grid-template-columns:1fr 1fr;gap:8px;"></div>
+      <div id="customAccInputs" class="form-grid"></div>
     </div>
 
-    <!-- 계좌 없을 때 추가 버튼 -->
-    <div id="noCustomAccBtn" style="margin-bottom:12px;">
-      <button class="btn btn-ghost" style="font-size:12px;padding:4px 10px;width:100%;" onclick="openAddAccModal()">+ 새 계좌 등록 (커스텀)</button>
+    <div id="noCustomAccBtn" style="margin-bottom:20px;">
+      <button class="btn-soft" style="width:100%;padding:12px;font-size:12px;" onclick="openAddAccModal()">+ 새 계좌 등록 (커스텀)</button>
     </div>
 
     <!-- 메모 -->
-    <div style="margin-bottom:20px;">
-      <label class="form-label">메모 (선택)</label>
-      <input id="fNote" class="form-input" style="width:100%;" type="text" placeholder="특이사항">
+    <div class="form-grid" style="grid-template-columns:1fr;margin-bottom:20px;">
+      <div class="form-field">
+        <label>메모 (선택)</label>
+        <input id="fNote" type="text" placeholder="특이사항">
+      </div>
     </div>
 
     <!-- 미리보기 합계 -->
-    <div style="background:var(--bg2);border-radius:var(--r-md);padding:12px;margin-bottom:20px;font-size:13px;">
-      <div style="display:flex;justify-content:space-between;margin-bottom:6px;"><span class="clr-muted">연금합</span><span id="prevPension">0</span></div>
-      <div style="display:flex;justify-content:space-between;margin-bottom:6px;"><span class="clr-muted">투자합</span><span id="prevInvest">0</span></div>
-      <div style="display:flex;justify-content:space-between;margin-bottom:6px;"><span class="clr-muted">저축합</span><span id="prevSavings">0</span></div>
-      <div style="display:flex;justify-content:space-between;margin-bottom:6px;"><span class="clr-muted">자유입출금합</span><span id="prevLiquid">0</span></div>
-      <div style="display:flex;justify-content:space-between;margin-bottom:6px;"><span class="clr-muted">대출</span><span id="prevLoan" class="clr-red">0</span></div>
-      <div style="height:0.5px;background:var(--border);margin:8px 0;"></div>
-      <div style="display:flex;justify-content:space-between;font-weight:600;"><span>총 자본</span><span id="prevTotal" class="clr-accent">0</span></div>
+    <div class="preview-panel">
+      <div class="preview-row"><span class="lbl">연금합</span><span id="prevPension">0</span></div>
+      <div class="preview-row"><span class="lbl">투자합</span><span id="prevInvest">0</span></div>
+      <div class="preview-row"><span class="lbl">저축합</span><span id="prevSavings">0</span></div>
+      <div class="preview-row"><span class="lbl">자유입출금합</span><span id="prevLiquid">0</span></div>
+      <div class="preview-row"><span class="lbl">대출</span><span id="prevLoan" style="color:#ef4444;">0</span></div>
+      <div class="preview-divider"></div>
+      <div class="preview-row total"><span>총 자본</span><span id="prevTotal" style="color:#667eea;">0</span></div>
     </div>
 
-    <div style="display:flex;gap:8px;justify-content:flex-end;">
-      <button class="btn btn-ghost" onclick="closeEntryModal()">취소</button>
-      <button class="btn btn-primary" onclick="submitEntry()" id="submitBtn">저장</button>
+    <div style="display:flex;gap:10px;justify-content:flex-end;">
+      <button class="btn-soft" onclick="closeEntryModal()">취소</button>
+      <button class="btn-gradient" onclick="submitEntry()" id="submitBtn">저장</button>
     </div>
     <input type="hidden" id="fEditId" value="">
   </div>
 </div>
 
 <!-- ── CSV 모달 ── -->
-<div id="importModal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.45);z-index:200;overflow-y:auto;">
-  <div style="max-width:600px;margin:60px auto;background:var(--bg);border-radius:var(--r-lg);padding:24px;position:relative;">
-    <button onclick="closeImportModal()" style="position:absolute;top:16px;right:16px;background:none;border:none;font-size:18px;cursor:pointer;color:var(--text2);">✕</button>
-    <h2 style="font-size:16px;font-weight:600;margin-bottom:8px;">CSV 가져오기</h2>
-    <p style="font-size:13px;color:var(--text2);margin-bottom:16px;">CSV 파일을 선택하세요. 기존 날짜 데이터는 덮어씁니다.</p>
-    <label class="form-label">CSV 파일 선택</label>
-    <input type="file" id="csvFileInput" accept=".csv" class="form-input" style="width:100%;margin-bottom:12px;">
-    <div id="csvPreview" style="font-size:12px;color:var(--text2);margin-bottom:16px;display:none;"></div>
-    <div style="display:flex;gap:8px;justify-content:flex-end;">
-      <button class="btn btn-ghost" onclick="closeImportModal()">취소</button>
-      <button class="btn btn-primary" onclick="submitImport()" id="importBtn">가져오기</button>
+<div id="importModal" class="modal-overlay">
+  <div class="modal-box sm">
+    <button onclick="closeImportModal()" class="modal-close">✕</button>
+    <h2 class="modal-title">CSV 가져오기</h2>
+    <p style="font-size:13px;color:var(--text2);margin-bottom:20px;">CSV 파일을 선택하세요. 기존 날짜 데이터는 덮어씁니다.</p>
+    <div class="form-field" style="margin-bottom:16px;">
+      <label>CSV 파일 선택</label>
+      <input type="file" id="csvFileInput" accept=".csv" style="width:100%;padding:10px 12px;background:var(--bg2);border:1px solid var(--glass-border);border-radius:8px;color:var(--text);font-size:13px;">
+    </div>
+    <div id="csvPreview" style="font-size:12px;color:var(--text2);margin-bottom:20px;display:none;"></div>
+    <div style="display:flex;gap:10px;justify-content:flex-end;">
+      <button class="btn-soft" onclick="closeImportModal()">취소</button>
+      <button class="btn-gradient" onclick="submitImport()" id="importBtn">가져오기</button>
     </div>
   </div>
 </div>
 
 <!-- ── 계좌 추가 모달 ── -->
-<div id="addAccModal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.45);z-index:300;overflow-y:auto;">
-  <div style="max-width:380px;margin:120px auto;background:var(--bg);border-radius:var(--r-lg);padding:24px;position:relative;">
-    <button onclick="closeAddAccModal()" style="position:absolute;top:16px;right:16px;background:none;border:none;font-size:18px;cursor:pointer;color:var(--text2);">✕</button>
-    <h2 style="font-size:16px;font-weight:600;margin-bottom:20px;">계좌 추가</h2>
-    <div style="margin-bottom:12px;">
-      <label class="form-label">계좌명</label>
-      <input id="newAccName" class="form-input" style="width:100%;" placeholder="예: 국민은행 입출금">
+<div id="addAccModal" class="modal-overlay" style="z-index:300;">
+  <div class="modal-box sm">
+    <button onclick="closeAddAccModal()" class="modal-close">✕</button>
+    <h2 class="modal-title">자산 추가</h2>
+    <div class="form-field" style="margin-bottom:14px;">
+      <label>계좌명</label>
+      <input id="newAccName" placeholder="예: 국민은행 입출금">
     </div>
-    <div style="margin-bottom:20px;">
-      <label class="form-label">분류</label>
-      <select id="newAccCat" class="form-input" style="width:100%;">
+    <div class="form-field" style="margin-bottom:24px;">
+      <label>분류</label>
+      <select id="newAccCat">
         <option value="pension">연금</option>
         <option value="invest">투자</option>
         <option value="savings">저축</option>
         <option value="liquid" selected>자유입출금</option>
+        <option value="realestate">부동산</option>
         <option value="loan">대출</option>
       </select>
     </div>
-    <div style="display:flex;gap:8px;justify-content:flex-end;">
-      <button class="btn btn-ghost" onclick="closeAddAccModal()">취소</button>
-      <button class="btn btn-primary" onclick="saveNewAccount()" id="saveAccBtn">추가</button>
+    <div style="display:flex;gap:10px;justify-content:flex-end;">
+      <button class="btn-soft" onclick="closeAddAccModal()">취소</button>
+      <button class="btn-gradient" onclick="saveNewAccount()" id="saveAccBtn">추가</button>
     </div>
   </div>
 </div>
 
-<style>
-.pg-tab {
-  padding: 8px 16px;
-  font-size: 13px;
-  font-weight: 500;
-  color: var(--text2);
-  background: none;
-  border: none;
-  border-bottom: 2px solid transparent;
-  cursor: pointer;
-  transition: all .15s;
-  margin-bottom: -1px;
-}
-.pg-tab:hover { color: var(--text); }
-.pg-tab.active { color: var(--accent); border-bottom-color: var(--accent); }
-</style>
 
+<!-- ══════════════════════════════════════
+     SCRIPT
+══════════════════════════════════════ -->
 <script>
 let allData = [];
 let customAccounts = [];
-let deactivatedBuiltins = new Set();  // 숨기기된 기본 계좌 key 목록
-let chartTotal = null, chartCategory = null;
+let deactivatedBuiltins = new Set();
+let chartTotal = null, chartCategory = null, accountDoughnutChart = null;
 let csvContent = null;
 let currentTab = 'recent';
 let currentPg  = 0;
 
-const CAT_LABEL = {pension:'연금', invest:'투자', savings:'저축', liquid:'자유입출금', loan:'대출'};
-const CAT_COLOR = {pension:'#6366f1', invest:'#10b981', savings:'#f59e0b', liquid:'#3b82f6', loan:'#ef4444'};
-const CAT_ORDER = ['liquid','invest','pension','savings','loan'];
+const CAT_LABEL = {pension:'연금', invest:'투자', savings:'저축', liquid:'자유입출금', realestate:'부동산', loan:'대출'};
+const CAT_COLOR = {pension:'#6366f1', invest:'#10b981', savings:'#f59e0b', liquid:'#3b82f6', realestate:'#a16207', loan:'#ef4444'};
+const CAT_ORDER = ['liquid','invest','pension','savings','realestate','loan'];
 
-// built-in 계좌 정의
 const BUILT_IN = [
   {key:'dc',             name:'DC (퇴직연금)',       cat:'pension'},
   {key:'irpMiraeasset',  name:'IRP 미래에셋',         cat:'pension'},
@@ -400,58 +1009,183 @@ function renderCards() {
     const pct  = (diff / Math.abs(prev.totalCapital) * 100).toFixed(1);
     const sign = diff >= 0 ? '+' : '';
     const el   = document.getElementById('cardTotalChange');
-    el.textContent = `전월比 ${sign}${pct}%`;
-    el.style.color = diff >= 0 ? 'rgba(255,255,255,1)' : 'rgba(255,180,180,1)';
+    el.textContent = `${sign}${pct}% 전월比`;
+    el.className = 'hero-badge ' + (diff >= 0 ? 'up' : 'down');
+    el.style.display = 'inline-flex';
   }
-  document.getElementById('cardPension').textContent  = fmtKrw(last.pensionTotal);
-  document.getElementById('cardInvest').textContent   = fmtKrw(last.investTotal);
-  document.getElementById('cardSavings').textContent  = fmtKrw(last.savingsTotal);
-  document.getElementById('cardLiquid').textContent   = fmtKrw(last.liquidTotal);
-  document.getElementById('cardLoan').textContent     = last.hanaLoan > 0 ? '-' + fmtKrw(last.hanaLoan) : '없음';
+  document.getElementById('cardPension').textContent     = fmtKrw(last.pensionTotal);
+  document.getElementById('cardInvest').textContent      = fmtKrw(last.investTotal);
+  document.getElementById('cardSavings').textContent     = fmtKrw(last.savingsTotal);
+  document.getElementById('cardLiquid').textContent      = fmtKrw(last.liquidTotal);
+  document.getElementById('cardRealestate').textContent  = last.realestateTotal > 0 ? fmtKrw(last.realestateTotal) : '0원';
+  document.getElementById('cardLoan').textContent        = last.hanaLoan > 0 ? '-' + fmtKrw(last.hanaLoan) : '없음';
+  renderAccountDoughnut(last);
+}
+
+// ── 계좌 유형별 도넛 차트 ──
+function renderAccountDoughnut(last) {
+  const grossAssets = (last.pensionTotal||0) + (last.investTotal||0) + (last.savingsTotal||0) + (last.liquidTotal||0) + (last.realestateTotal||0);
+  const loan        = grossAssets - last.totalCapital;  // 대출 = 총자산 - 순자산
+  const netAsset    = last.totalCapital;
+  const debtRatio   = grossAssets > 0 ? (loan / grossAssets * 100).toFixed(1) : '0.0';
+
+  document.getElementById('doughnutSummaryNet').textContent  = fmtKrw(netAsset);
+  document.getElementById('doughnutDebtRatio').textContent   = debtRatio + '%';
+
+  const cats = [
+    {label:'투자',      color:'#10b981', val: last.investTotal||0},
+    {label:'연금',      color:'#6366f1', val: last.pensionTotal||0},
+    {label:'저축',      color:'#f59e0b', val: last.savingsTotal||0},
+    {label:'자유입출금',color:'#3b82f6', val: last.liquidTotal||0},
+    {label:'부동산',    color:'#a16207', val: last.realestateTotal||0},
+    {label:'대출',      color:'#ef4444', val: loan},
+  ];
+
+  // 목록 렌더
+  const total = grossAssets;
+  document.getElementById('accountTypeRows').innerHTML = cats.map(c => {
+    const pct = total > 0 ? (c.val / total * 100).toFixed(1) : '0.0';
+    const isLoan = c.label === '대출';
+    return `<div style="display:grid;grid-template-columns:2fr 1.5fr 0.7fr;align-items:center;padding:9px 4px;border-bottom:1px solid var(--border2);">
+      <div style="display:flex;align-items:center;gap:8px;">
+        <span style="width:8px;height:8px;border-radius:2px;background:${c.color};flex-shrink:0;display:inline-block;"></span>
+        <span style="font-size:13px;font-weight:500;${isLoan?'color:#ef4444;':''}">${c.label}</span>
+      </div>
+      <div style="text-align:right;font-size:13px;color:var(--text2);">${isLoan&&c.val>0?'-':''}${fmtKrw(c.val)}</div>
+      <div style="text-align:right;font-size:13px;font-weight:700;color:${c.color};">${pct}%</div>
+    </div>`;
+  }).join('');
+
+  // 도넛 차트 중앙 텍스트 플러그인
+  const isDark = document.documentElement.getAttribute('data-theme') === 'dark';
+  const centerTextColor = isDark ? '#ebebeb' : '#1a1a1a';
+  const centerSubColor  = isDark ? '#a8b3c0' : '#6b7280';
+  const centerPlugin = {
+    id: 'centerText',
+    afterDatasetsDraw(chart) {
+      const { ctx: c, chartArea: { top, bottom, left, right } } = chart;
+      const cx = (left + right) / 2, cy = (top + bottom) / 2;
+      c.save();
+      c.textAlign = 'center';
+      c.textBaseline = 'middle';
+      c.font = '11px -apple-system, sans-serif';
+      c.fillStyle = centerSubColor;
+      c.fillText('순자산', cx, cy - 14);
+      c.font = 'bold 17px -apple-system, sans-serif';
+      c.fillStyle = centerTextColor;
+      c.fillText(fmtKrw(netAsset), cx, cy + 6);
+      c.restore();
+    }
+  };
+
+  Chart.Tooltip.positioners.donutTop = function(items) {
+    if (!items.length) return false;
+    const chart = items[0].element.$context.chart;
+    const ca = chart.chartArea;
+    return { x: (ca.left + ca.right) / 2, y: ca.top };
+  };
+
+  const ctx = document.getElementById('accountDoughnutChart').getContext('2d');
+  if (accountDoughnutChart) accountDoughnutChart.destroy();
+  accountDoughnutChart = new Chart(ctx, {
+    type: 'doughnut',
+    data: {
+      labels: cats.map(c => c.label),
+      datasets: [{
+        data: cats.map(c => c.val),
+        backgroundColor: cats.map(c => c.color),
+        borderColor: isDark ? '#2a2a2a' : '#ffffff',
+        borderWidth: 3,
+        hoverOffset: 8,
+      }]
+    },
+    options: {
+      responsive: true, maintainAspectRatio: false, cutout: '68%',
+      plugins: {
+        legend: { display: false },
+        tooltip: {
+          backgroundColor: 'rgba(15,15,30,1)',
+          borderColor: '#334155',
+          borderWidth: 1,
+          padding: 10,
+          displayColors: true,
+          boxWidth: 10,
+          boxHeight: 10,
+          callbacks: {
+            title: () => '',
+            label: ctx2 => {
+              const pct = (ctx2.raw / total * 100).toFixed(1);
+              return ` ${ctx2.label}: ${fmtKrw(ctx2.raw)} (${pct}%)`;
+            }
+          }
+        }
+      }
+    },
+    plugins: [centerPlugin],
+  });
 }
 
 // ── 차트 ──
 function renderCharts() {
+  const tickColor = getComputedStyle(document.documentElement).getPropertyValue('--text2').trim() || '#a8b3c0';
   const labels = allData.map(d => d.date.slice(0,7));
   const ctxT = document.getElementById('chartTotal').getContext('2d');
   if (chartTotal) chartTotal.destroy();
+
+  // 그라데이션 생성
+  const gradientUp = ctxT.createLinearGradient(0, 0, 0, 240);
+  gradientUp.addColorStop(0, 'rgba(16,185,129,0.8)');
+  gradientUp.addColorStop(1, 'rgba(16,185,129,0.4)');
+  const gradientDown = ctxT.createLinearGradient(0, 0, 0, 240);
+  gradientDown.addColorStop(0, 'rgba(239,68,68,0.8)');
+  gradientDown.addColorStop(1, 'rgba(239,68,68,0.4)');
+  const gradientFirst = ctxT.createLinearGradient(0, 0, 0, 240);
+  gradientFirst.addColorStop(0, 'rgba(102,126,234,0.8)');
+  gradientFirst.addColorStop(1, 'rgba(102,126,234,0.4)');
+
   chartTotal = new Chart(ctxT, {
     type: 'bar',
     data: { labels, datasets: [{
       label: '총 자산', data: allData.map(d => d.totalCapital),
       backgroundColor: allData.map((d, i) => {
-        if (i === 0) return 'rgba(24,95,165,.75)';
-        return d.totalCapital >= allData[i-1].totalCapital ? 'rgba(16,185,129,.75)' : 'rgba(239,68,68,.75)';
+        if (i === 0) return gradientFirst;
+        return d.totalCapital >= allData[i-1].totalCapital ? gradientUp : gradientDown;
       }),
-      hoverBackgroundColor: allData.map((d, i) => {
-        if (i === 0) return '#185FA5';
-        return d.totalCapital >= allData[i-1].totalCapital ? '#10b981' : '#ef4444';
-      }),
-      borderRadius: 3,
+      borderRadius: 6,
+      borderSkipped: false,
     }]},
     options: {
       responsive: true, maintainAspectRatio: false,
       plugins: {
         legend: { display: false },
-        tooltip: { callbacks: {
-          label: ctx => {
-            const i = ctx.dataIndex;
-            const cur = allData[i].totalCapital;
-            const prev = i > 0 ? allData[i-1].totalCapital : null;
-            const lines = [fmtKrwFull(cur)];
-            if (prev) {
-              const diff = cur - prev;
-              const pct = (diff / Math.abs(prev) * 100).toFixed(1);
-              const sign = diff >= 0 ? '+' : '';
-              lines.push(`전월比 ${sign}${pct}% (${sign}${fmtKrw(diff)})`);
+        tooltip: {
+          backgroundColor: 'rgba(15,15,30,0.95)',
+          titleFont: { size: 12, weight: '600' },
+          bodyFont: { size: 12 },
+          padding: 12,
+          cornerRadius: 8,
+          borderColor: 'rgba(255,255,255,0.1)',
+          borderWidth: 1,
+          callbacks: {
+            label: ctx => {
+              const i = ctx.dataIndex;
+              const cur = allData[i].totalCapital;
+              const prev = i > 0 ? allData[i-1].totalCapital : null;
+              const lines = [fmtKrwFull(cur)];
+              if (prev) {
+                const diff = cur - prev;
+                const pct = (diff / Math.abs(prev) * 100).toFixed(1);
+                const sign = diff >= 0 ? '+' : '';
+                lines.push(`전월比 ${sign}${pct}% (${sign}${fmtKrw(diff)})`);
+              }
+              return lines;
             }
-            return lines;
           }
-        }}
+        }
       },
       scales: {
-        x: { ticks: { font:{size:10}, maxTicksLimit:12 }, grid:{display:false} },
-        y: { ticks: { font:{size:10}, callback: v => fmtKrw(v) }},
+        x: { ticks: { font:{size:10}, maxTicksLimit:12, color: tickColor }, grid:{display:false} },
+        y: { ticks: { font:{size:10}, callback: v => fmtKrw(v), color: tickColor }, grid:{color:'rgba(128,128,128,0.1)'}},
       }
     }
   });
@@ -464,18 +1198,29 @@ function renderCharts() {
     data: {
       labels: recent.map(d => d.date.slice(0,7)),
       datasets: [
-        {label:'연금',      data: recent.map(d=>d.pensionTotal), backgroundColor:'#6366f1', stack:'s'},
-        {label:'투자',      data: recent.map(d=>d.investTotal),  backgroundColor:'#10b981', stack:'s'},
-        {label:'저축',      data: recent.map(d=>d.savingsTotal), backgroundColor:'#f59e0b', stack:'s'},
-        {label:'자유입출금',data: recent.map(d=>d.liquidTotal),  backgroundColor:'#3b82f6', stack:'s'},
+        {label:'연금',      data: recent.map(d=>d.pensionTotal),     backgroundColor:'rgba(99,102,241,0.75)',  borderRadius:{topLeft:0,topRight:0}, stack:'s'},
+        {label:'투자',      data: recent.map(d=>d.investTotal),      backgroundColor:'rgba(16,185,129,0.75)',  borderRadius:0, stack:'s'},
+        {label:'저축',      data: recent.map(d=>d.savingsTotal),     backgroundColor:'rgba(245,158,11,0.75)',  borderRadius:0, stack:'s'},
+        {label:'자유입출금',data: recent.map(d=>d.liquidTotal),      backgroundColor:'rgba(59,130,246,0.75)',  borderRadius:0, stack:'s'},
+        {label:'부동산',    data: recent.map(d=>d.realestateTotal||0),backgroundColor:'rgba(161,98,7,0.75)',  borderRadius:{topLeft:6,topRight:6}, stack:'s'},
       ]
     },
     options: {
       responsive: true, maintainAspectRatio: false,
-      plugins: { legend:{display:false}, tooltip:{ callbacks:{ label: ctx => ctx.dataset.label+': '+fmtKrwFull(ctx.raw) }}},
+      plugins: {
+        legend:{display:false},
+        tooltip:{
+          backgroundColor: 'rgba(15,15,30,0.95)',
+          padding: 12,
+          cornerRadius: 8,
+          borderColor: 'rgba(255,255,255,0.1)',
+          borderWidth: 1,
+          callbacks:{ label: ctx => ctx.dataset.label+': '+fmtKrwFull(ctx.raw) }
+        }
+      },
       scales: {
-        x: { stacked:true, ticks:{font:{size:10}}, grid:{display:false} },
-        y: { stacked:true, ticks:{font:{size:10}, callback: v=>fmtKrw(v) }},
+        x: { stacked:true, ticks:{font:{size:10},color: tickColor}, grid:{display:false} },
+        y: { stacked:true, ticks:{font:{size:10}, callback: v=>fmtKrw(v), color: tickColor}, grid:{color:'rgba(128,128,128,0.1)'}},
       }
     }
   });
@@ -484,10 +1229,8 @@ function renderCharts() {
 // ── 항목 관리 테이블 ──
 function setTab(tab) {
   currentTab = tab;
-  document.getElementById('tabRecent').className = tab==='recent' ? 'btn btn-primary' : 'btn btn-ghost';
-  document.getElementById('tabAll').className    = tab==='all'    ? 'btn btn-primary' : 'btn btn-ghost';
-  document.getElementById('tabRecent').style.cssText = 'padding:4px 12px;font-size:12px;';
-  document.getElementById('tabAll').style.cssText    = 'padding:4px 12px;font-size:12px;';
+  document.getElementById('tabRecent').classList.toggle('active', tab==='recent');
+  document.getElementById('tabAll').classList.toggle('active', tab==='all');
   renderTable();
 }
 
@@ -495,7 +1238,7 @@ function renderTable() {
   const tbody = document.getElementById('assetTableBody');
   if (!allData.length) {
     document.getElementById('rowCount').textContent = '0건';
-    tbody.innerHTML = '<tr><td colspan="8" class="empty-state">데이터가 없습니다. "+ 항목 추가" 또는 "CSV 가져오기"로 시작하세요.</td></tr>';
+    tbody.innerHTML = '<tr><td colspan="8"><div class="empty-state-box"><div class="icon">📊</div><div class="msg">데이터가 없습니다. "+ 항목 추가" 또는 "CSV 가져오기"로 시작하세요.</div></div></td></tr>';
     return;
   }
   const sorted = [...allData].sort((a,b) => b.date.localeCompare(a.date));
@@ -511,22 +1254,23 @@ function renderTable() {
     rows = sorted;
   }
   document.getElementById('rowCount').textContent =
-    currentTab==='recent' ? `최근 1년 ${rows.length}건 / 전체 ${allData.length}건` : `전체 ${allData.length}건`;
+    currentTab==='recent' ? `최근 ${rows.length}건 / 전체 ${allData.length}건` : `전체 ${allData.length}건`;
 
   tbody.innerHTML = rows.map(d => `
     <tr>
-      <td style="white-space:nowrap;">${d.date}</td>
-      <td style="text-align:right;font-weight:600;">${fmtKrw(d.totalCapital)}</td>
-      <td style="text-align:right;">${fmtKrw(d.pensionTotal)}</td>
-      <td style="text-align:right;">${fmtKrw(d.investTotal)}</td>
-      <td style="text-align:right;">${fmtKrw(d.savingsTotal)}</td>
-      <td style="text-align:right;">${fmtKrw(d.liquidTotal)}</td>
-      <td style="text-align:right;${d.hanaLoan>0?'color:var(--red);':'color:var(--text2);'}">
+      <td class="date-cell">${d.date}</td>
+      <td class="num-cell" style="font-weight:700;">${fmtKrw(d.totalCapital)}</td>
+      <td class="num-cell">${fmtKrw(d.pensionTotal)}</td>
+      <td class="num-cell">${fmtKrw(d.investTotal)}</td>
+      <td class="num-cell">${fmtKrw(d.savingsTotal)}</td>
+      <td class="num-cell">${fmtKrw(d.liquidTotal)}</td>
+      <td class="num-cell">${fmtKrw(d.realestateTotal||0)}</td>
+      <td class="num-cell" style="${d.hanaLoan>0?'color:#ef4444;':'color:var(--text2);'}">
         ${d.hanaLoan>0 ? '-'+fmtKrw(d.hanaLoan) : '—'}
       </td>
-      <td style="text-align:right;white-space:nowrap;">
-        <button class="btn btn-ghost" style="padding:4px 10px;font-size:12px;" onclick="openEntryModal(${d.id})">수정</button>
-        <button class="btn btn-danger" style="padding:4px 10px;font-size:12px;margin-left:4px;" onclick="deleteRow(${d.id},'${d.date}')">삭제</button>
+      <td class="actions-cell">
+        <button class="btn-icon" onclick="openEntryModal(${d.id})" title="수정">✏️</button>
+        <button class="btn-icon danger" onclick="deleteRow(${d.id},'${d.date}')" title="삭제">🗑</button>
       </td>
     </tr>`).join('');
 }
@@ -534,91 +1278,74 @@ function renderTable() {
 // ── 통장별 현황 ──
 function renderAccountBreakdown() {
   if (!allData.length) {
-    document.getElementById('accountBreakdown').innerHTML = '<p class="empty-state">데이터를 먼저 입력해주세요.</p>';
+    document.getElementById('accountBreakdown').innerHTML = '<div class="empty-state-box"><div class="icon">🏦</div><div class="msg">데이터를 먼저 입력해주세요.</div></div>';
     return;
   }
   const last = allData[allData.length - 1];
-
-  // 숨기기된 계좌 섹션 (맨 아래에 모음)
   const deactivatedRows = [];
-
   let html = '';
+
   CAT_ORDER.forEach(cat => {
-    // 활성 built-in + 커스텀
     const bi = BUILT_IN.filter(a => a.cat === cat && !deactivatedBuiltins.has(a.key));
     const biDeact = BUILT_IN.filter(a => a.cat === cat && deactivatedBuiltins.has(a.key));
     const cu = customAccounts.filter(a => a.category === cat);
-
-    // 숨기기 목록에 추가
     biDeact.forEach(a => deactivatedRows.push({name:a.name, key:a.key, cat}));
 
-    if (!bi.length && !cu.length) return;
-
-    // 카테고리 합계 (잔액 있는 것만)
     let catSum = bi.reduce((s,a) => s + (last[a.key]||0), 0);
     cu.forEach(a => { catSum += parseFloat((last.extra||{})[String(a.id)]||0); });
 
     const activeRows = [
       ...bi.map(a => ({name:a.name, val:last[a.key]||0, isCustom:false, key:a.key})),
       ...cu.map(a => ({name:a.name, val:parseFloat((last.extra||{})[String(a.id)]||0), isCustom:true, cid:a.id})),
-    ].filter(r => r.val > 0).sort((a,b) => b.val-a.val);
+    ].sort((a,b) => b.val-a.val);
 
-    if (!catSum && !activeRows.length) return;
+    // 부동산은 계좌가 없어도 항목 표시 (커스텀 계좌 추가 유도)
+    // 항상 표시
 
     html += `
-    <div class="card" style="margin-bottom:1rem;">
-      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;">
-        <div style="display:flex;align-items:center;gap:8px;">
-          <span style="width:10px;height:10px;border-radius:2px;background:${CAT_COLOR[cat]};display:inline-block;"></span>
-          <span style="font-weight:600;font-size:14px;">${CAT_LABEL[cat]}</span>
+    <div class="acc-category-card">
+      <div class="acc-category-header">
+        <div class="acc-category-name">
+          <span class="bar" style="background:${CAT_COLOR[cat]};"></span>
+          ${CAT_LABEL[cat]}
         </div>
-        <span style="font-weight:700;font-size:15px;">${cat==='loan'?'-':''}${fmtKrw(catSum)}</span>
+        <span style="font-weight:700;font-size:16px;font-variant-numeric:tabular-nums;">${cat==='loan'?'-':''}${fmtKrw(catSum)}</span>
       </div>
-      <table style="width:100%;font-size:13px;border-collapse:collapse;">
-        ${activeRows.map(row => {
-          const pct = catSum ? (row.val/catSum*100).toFixed(1) : '0.0';
-          return `<tr>
-            <td style="padding:5px 0;">${row.name}${row.isCustom?` <span style="font-size:10px;color:var(--accent);background:var(--bg2);padding:1px 5px;border-radius:3px;">커스텀</span>`:''}</td>
-            <td style="text-align:right;font-weight:500;padding:5px 0;">${fmtKrw(row.val)}</td>
-            <td style="text-align:right;color:var(--text2);font-size:11px;padding:5px 0 5px 10px;">${pct}%</td>
-            <td style="text-align:right;padding:5px 0 5px 4px;width:80px;">
-              ${row.isCustom
-                ? `<button class="btn btn-ghost" style="padding:2px 6px;font-size:11px;color:var(--red);" onclick="deleteAccount(${row.cid},'${row.name}')">삭제</button>`
-                : `<button class="btn btn-ghost" style="padding:2px 6px;font-size:11px;color:var(--text2);" onclick="deactivateBuiltin('${row.key}','${row.name}')">숨기기</button>`
-              }
-            </td>
-          </tr>`;
-        }).join('')}
-        ${bi.filter(a => !(last[a.key]||0)).map(a => `
-          <tr style="opacity:.45;">
-            <td style="padding:5px 0;">${a.name}</td>
-            <td style="text-align:right;padding:5px 0;color:var(--text2);">—</td>
-            <td></td>
-            <td style="text-align:right;padding:5px 0 5px 4px;width:80px;">
-              <button class="btn btn-ghost" style="padding:2px 6px;font-size:11px;color:var(--text2);" onclick="deactivateBuiltin('${a.key}','${a.name}')">숨기기</button>
-            </td>
-          </tr>`).join('')}
-      </table>
+      ${activeRows.map(row => {
+        const pct = catSum ? (row.val/catSum*100).toFixed(1) : '0.0';
+        const isZero = row.val === 0;
+        return `<div class="acc-row${isZero?' zero':''}">
+          <div class="name">
+            ${row.name}
+            ${row.isCustom ? '<span class="badge">커스텀</span>' : ''}
+          </div>
+          <div class="right">
+            <span class="amount">${isZero ? '—' : fmtKrw(row.val)}</span>
+            ${!isZero ? `<span class="pct">${pct}%</span>` : '<span class="pct">—</span>'}
+            ${row.isCustom
+              ? `<button class="btn-icon danger" style="width:28px;height:28px;font-size:12px;" onclick="deleteAccount(${row.cid},'${row.name}')" title="삭제">×</button>`
+              : `<button class="btn-icon" style="width:28px;height:28px;font-size:10px;" onclick="deactivateBuiltin('${row.key}','${row.name}')" title="숨기기">👁‍🗨</button>`
+            }
+          </div>
+        </div>`;
+      }).join('')}
     </div>`;
   });
 
-  // 숨기기된 계좌 목록
   if (deactivatedRows.length) {
     html += `
-    <div class="card" style="margin-bottom:1rem;opacity:.7;">
-      <div style="font-size:13px;font-weight:600;color:var(--text2);margin-bottom:10px;">숨기기된 계좌</div>
-      <div style="display:flex;flex-wrap:wrap;gap:8px;">
-        ${deactivatedRows.map(r => `
-          <div style="display:flex;align-items:center;gap:6px;background:var(--bg2);border-radius:var(--r-md);padding:5px 10px;font-size:12px;">
-            <span style="color:var(--text2);">${r.name}</span>
-            <span style="font-size:10px;color:var(--text2);">${CAT_LABEL[r.cat]}</span>
-            <button onclick="reactivateBuiltin('${r.key}')" style="background:none;border:none;cursor:pointer;font-size:11px;color:var(--accent);padding:0 0 0 4px;">복구</button>
-          </div>`).join('')}
-      </div>
+    <div class="deactivated-panel">
+      <div class="title">숨기기된 계좌</div>
+      ${deactivatedRows.map(r => `
+        <span class="deactivated-chip">
+          <span>${r.name}</span>
+          <span style="font-size:10px;color:var(--text2);">${CAT_LABEL[r.cat]}</span>
+          <button class="restore-btn" onclick="reactivateBuiltin('${r.key}')">복구</button>
+        </span>`).join('')}
     </div>`;
   }
 
-  document.getElementById('accountBreakdown').innerHTML = html || '<p class="empty-state">잔액 있는 계좌가 없습니다.</p>';
+  document.getElementById('accountBreakdown').innerHTML = html || '<div class="empty-state-box"><div class="icon">🏦</div><div class="msg">잔액 있는 계좌가 없습니다.</div></div>';
 }
 
 // ── 기본 계좌 숨기기 / 복구 ──
@@ -657,11 +1384,11 @@ function renderCustomAccList() {
   }
   el.innerHTML = `<div style="display:flex;flex-wrap:wrap;gap:8px;">` +
     customAccounts.map(a => `
-      <div style="display:flex;align-items:center;gap:6px;background:var(--bg2);border-radius:var(--r-md);padding:6px 10px;font-size:13px;">
+      <div style="display:inline-flex;align-items:center;gap:8px;background:var(--bg2);border:1px solid var(--glass-border);border-radius:10px;padding:8px 14px;font-size:13px;">
         <span style="width:8px;height:8px;border-radius:50%;background:${CAT_COLOR[a.category]};display:inline-block;"></span>
-        <span>${a.name}</span>
+        <span style="font-weight:500;">${a.name}</span>
         <span style="font-size:11px;color:var(--text2);">${CAT_LABEL[a.category]}</span>
-        <button onclick="deleteAccount(${a.id},'${a.name}')" style="background:none;border:none;color:var(--text2);cursor:pointer;font-size:14px;line-height:1;padding:0 0 0 4px;">×</button>
+        <button onclick="deleteAccount(${a.id},'${a.name}')" style="background:none;border:none;color:var(--text2);cursor:pointer;font-size:16px;line-height:1;padding:0 0 0 4px;opacity:0.5;transition:opacity 0.15s;" onmouseover="this.style.opacity='1'" onmouseout="this.style.opacity='.5'">×</button>
       </div>`).join('') + `</div>`;
 }
 
@@ -678,9 +1405,9 @@ function renderCustomAccInputs() {
   section.style.display = '';
   noBtn.style.display   = 'none';
   wrap.innerHTML = customAccounts.map(a => `
-    <div>
-      <label class="form-label">${a.name} <span style="color:${CAT_COLOR[a.category]}">(${CAT_LABEL[a.category]})</span></label>
-      <input id="cAcc_${a.id}" class="form-input" style="width:100%;" type="number" placeholder="0">
+    <div class="form-field">
+      <label>${a.name} <span style="color:${CAT_COLOR[a.category]}">(${CAT_LABEL[a.category]})</span></label>
+      <input id="cAcc_${a.id}" type="number" placeholder="0">
     </div>`).join('');
   document.querySelectorAll('[id^="cAcc_"]').forEach(el => el.addEventListener('input', updatePreview));
 }
@@ -728,8 +1455,9 @@ function openEntryModal(id) {
   const d = id ? allData.find(x => x.id === id) : null;
   document.getElementById('modalTitle').textContent = d ? '항목 수정' : '항목 추가';
 
+  const today = new Date().toLocaleDateString('sv-SE').replace(/-/g,'/').replace(/(\d{4})\/(\d{2})\/(\d{2})/, '$1/$2/$3');
   const fields = {
-    fDate: d?d.date:'', fDc: d?d.dc:0, fIrpMiraeasset: d?d.irpMiraeasset:0,
+    fDate: d?d.date:today, fDc: d?d.dc:0, fIrpMiraeasset: d?d.irpMiraeasset:0,
     fIrpSamsung: d?d.irpSamsung:0, fPersonalPension: d?d.personalPension:0,
     fPensionCma: d?d.pensionCma:0, fIsa: d?d.isa:0, fMiraeasset: d?d.miraeasset:0,
     fSamsungTrading: d?d.samsungTrading:0, fTossSecurities: d?d.tossSecurities:0,
@@ -743,7 +1471,6 @@ function openEntryModal(id) {
     const el = document.getElementById(fid);
     if (el) el.value = val;
   }
-  // 커스텀 계좌 값 채우기
   customAccounts.forEach(acc => {
     const el = document.getElementById('cAcc_'+acc.id);
     if (el) el.value = d ? (parseFloat((d.extra||{})[String(acc.id)])||0) : 0;

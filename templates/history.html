@@ -2,57 +2,285 @@
 {% block title %}💰 Money — 히스토리{% endblock %}
 {% block content %}
 
-<div class="page-header">
-  <h1>📈 투자 히스토리</h1>
-  <p class="clr-muted" id="historyNote">매일 홈 화면 접속 시 자동 저장됩니다</p>
+<style>
+/* ── Design Tokens (홈/마일스톤과 동일) ── */
+:root {
+  --ms-gradient: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  --glass: rgba(255,255,255,0.03);
+  --glass-border: var(--border);
+  --shadow-sm: 0 1px 3px rgba(0,0,0,0.08);
+  --shadow-md: 0 4px 16px rgba(0,0,0,0.12);
+  --shadow-lg: 0 8px 32px rgba(0,0,0,0.18);
+  --shadow-glow: 0 0 40px rgba(102,126,234,0.15);
+  --ease-out: cubic-bezier(0.16, 1, 0.3, 1);
+  --r-xl: 16px;
+  --r-2xl: 20px;
+  --green: #10b981;
+  --amber: #f59e0b;
+  --blue: #667eea;
+  --red: #ef4444;
+}
+
+/* ── Page Header ── */
+.hist-page-header {
+  text-align: center;
+  padding: 32px 0 24px;
+}
+.hist-page-header h1 {
+  font-size: 28px;
+  font-weight: 800;
+  letter-spacing: -0.5px;
+  background: var(--ms-gradient);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+  margin-bottom: 6px;
+}
+.hist-page-header p {
+  font-size: 14px;
+  color: var(--text2);
+  font-weight: 400;
+}
+
+/* ── Empty State ── */
+.hist-empty {
+  text-align: center;
+  padding: 60px 24px;
+  background: var(--bg);
+  border: 1px solid var(--glass-border);
+  border-radius: var(--r-xl);
+}
+.hist-empty .icon { font-size: 48px; margin-bottom: 14px; opacity: 0.3; }
+.hist-empty .title {
+  font-weight: 700; font-size: 15px;
+  color: var(--text); margin-bottom: 6px;
+}
+.hist-empty .msg {
+  font-size: 13px; color: var(--text2);
+}
+
+/* ── Hero Card ── */
+.hist-hero {
+  background: var(--ms-gradient);
+  border-radius: var(--r-2xl);
+  padding: 28px 32px;
+  color: white;
+  position: relative;
+  overflow: hidden;
+  box-shadow: var(--shadow-glow), var(--shadow-lg);
+  margin-bottom: 20px;
+}
+.hist-hero::before {
+  content: '';
+  position: absolute;
+  top: -60%; right: -15%;
+  width: 280px; height: 280px;
+  background: radial-gradient(circle, rgba(255,255,255,0.1) 0%, transparent 70%);
+  pointer-events: none;
+}
+.hist-hero::after {
+  content: '';
+  position: absolute;
+  bottom: -40%; left: -8%;
+  width: 180px; height: 180px;
+  background: radial-gradient(circle, rgba(255,255,255,0.06) 0%, transparent 70%);
+  pointer-events: none;
+}
+.hist-hero-top {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 8px;
+  position: relative; z-index: 1;
+}
+.hist-hero-label {
+  font-size: 13px; font-weight: 500;
+  opacity: 0.7; text-transform: uppercase; letter-spacing: 1.5px;
+}
+.hist-hero-badge {
+  font-size: 12px; font-weight: 600; opacity: 0.9;
+  padding: 4px 12px;
+  background: rgba(255,255,255,0.15);
+  border-radius: 99px;
+}
+.hist-hero-value {
+  font-size: 36px; font-weight: 800; letter-spacing: -1px;
+  position: relative; z-index: 1;
+  margin-bottom: 2px;
+}
+.hist-hero-sub {
+  font-size: 14px; opacity: 0.65; position: relative; z-index: 1;
+}
+
+/* ── Summary Row ── */
+.hist-summary-row {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+  margin-bottom: 20px;
+}
+@media (max-width: 500px) { .hist-summary-row { grid-template-columns: 1fr; } }
+
+.hist-stat-card {
+  background: var(--bg);
+  border: 1px solid var(--glass-border);
+  border-radius: var(--r-xl);
+  padding: 20px 22px;
+  transition: all 0.3s var(--ease-out);
+  position: relative;
+  overflow: hidden;
+}
+.hist-stat-card:hover {
+  transform: translateY(-2px);
+  box-shadow: var(--shadow-md);
+  border-color: rgba(255,255,255,0.1);
+}
+.hist-stat-card::before {
+  content: '';
+  position: absolute; left: 0; top: 0; bottom: 0;
+  width: 4px; border-radius: 4px 0 0 4px;
+}
+.hist-stat-card.green::before { background: var(--green); }
+.hist-stat-card.red::before { background: var(--red); }
+.hist-stat-card.amber::before { background: var(--amber); }
+.hist-stat-card.blue::before { background: var(--blue); }
+
+.hist-stat-label {
+  font-size: 12px; font-weight: 500; color: var(--text2);
+  margin-bottom: 8px;
+  display: flex; align-items: center; gap: 8px;
+}
+.hist-stat-label .dot {
+  width: 8px; height: 8px; border-radius: 50%;
+}
+.hist-stat-value {
+  font-size: 24px; font-weight: 800;
+  letter-spacing: -0.5px;
+  font-variant-numeric: tabular-nums;
+}
+
+/* ── Chart Cards ── */
+.hist-chart-card {
+  background: var(--bg);
+  border: 1px solid var(--glass-border);
+  border-radius: var(--r-xl);
+  padding: 24px;
+  margin-bottom: 20px;
+  transition: all 0.3s var(--ease-out);
+}
+.hist-chart-card:hover { box-shadow: var(--shadow-sm); }
+
+.hist-chart-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 16px;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+.hist-chart-title {
+  font-size: 15px; font-weight: 700; color: var(--text);
+}
+.hist-chart-value {
+  font-size: 16px; font-weight: 800;
+  font-variant-numeric: tabular-nums;
+}
+.hist-chart-wrap {
+  position: relative;
+  width: 100%;
+}
+
+/* Legend */
+.hist-legend {
+  display: flex; gap: 14px;
+}
+.hist-legend-item {
+  display: flex; align-items: center; gap: 5px;
+  font-size: 11px; color: var(--text2); font-weight: 500;
+}
+.hist-legend-dot {
+  width: 10px; height: 10px; border-radius: 3px;
+}
+
+/* ── Responsive ── */
+@media (max-width: 600px) {
+  .hist-hero { padding: 24px 20px; }
+  .hist-hero-value { font-size: 28px; }
+  .hist-chart-card { padding: 18px; }
+}
+</style>
+
+
+<!-- ══════════════════════════════════════
+     PAGE HEADER
+══════════════════════════════════════ -->
+<div class="hist-page-header">
+  <h1>투자 히스토리</h1>
+  <p id="historyNote">매일 홈 화면 접속 시 자동 저장됩니다</p>
 </div>
 
-<div id="noDataMsg" style="display:none;" class="highlight-card">
-  <div style="text-align:center; padding:2rem; color:var(--text2);">
-    <div style="font-size:2rem; margin-bottom:0.5rem;">📭</div>
-    <div style="font-weight:600; margin-bottom:0.25rem;">아직 데이터가 없습니다</div>
-    <div style="font-size:13px;">홈 화면을 방문하면 오늘부터 데이터가 쌓이기 시작합니다</div>
+
+<!-- ══════════════════════════════════════
+     EMPTY STATE
+══════════════════════════════════════ -->
+<div id="noDataMsg" style="display:none;">
+  <div class="hist-empty">
+    <div class="icon">📭</div>
+    <div class="title">아직 데이터가 없습니다</div>
+    <div class="msg">홈 화면을 방문하면 오늘부터 데이터가 쌓이기 시작합니다</div>
   </div>
 </div>
 
+
+<!-- ══════════════════════════════════════
+     MAIN CONTENT
+══════════════════════════════════════ -->
 <div id="chartsWrap" style="display:none;">
 
-  <!-- 포트폴리오 평가액 -->
-  <div class="highlight-card" style="margin-bottom:1.25rem;">
-    <div style="display:flex; justify-content:space-between; align-items:baseline; margin-bottom:0.75rem;">
-      <div class="highlight-title" style="margin:0;">📊 포트폴리오 평가액</div>
-      <div id="val-total" style="font-size:1.1rem; font-weight:700; color:var(--accent);"></div>
+  <!-- Chart 1: 포트폴리오 평가액 -->
+  <div class="hist-chart-card">
+    <div class="hist-chart-header">
+      <span class="hist-chart-title">포트폴리오 평가액</span>
+      <span class="hist-chart-value" style="color:var(--blue);" id="val-total"></span>
     </div>
-    <canvas id="chart-total" height="90"></canvas>
+    <div class="hist-chart-wrap">
+      <canvas id="chart-total" height="90"></canvas>
+    </div>
   </div>
 
-  <!-- 평가이익 -->
-  <div class="highlight-card" style="margin-bottom:1.25rem;">
-    <div style="display:flex; justify-content:space-between; align-items:baseline; margin-bottom:0.75rem;">
-      <div class="highlight-title" style="margin:0;">💹 평가이익</div>
-      <div id="val-gain" style="font-size:1.1rem; font-weight:700;"></div>
+  <!-- Chart 2: 평가이익 -->
+  <div class="hist-chart-card">
+    <div class="hist-chart-header">
+      <span class="hist-chart-title">평가이익 추이</span>
+      <span class="hist-chart-value" id="val-gain2">—</span>
     </div>
-    <canvas id="chart-gain" height="90"></canvas>
+    <div class="hist-chart-wrap">
+      <canvas id="chart-gain" height="90"></canvas>
+    </div>
   </div>
 
-  <!-- 월 매출 / 영업이익 / 순이익 (3개 합쳐서 1차트) -->
-  <div class="highlight-card" style="margin-bottom:1.25rem;">
-    <div style="display:flex; justify-content:space-between; align-items:baseline; margin-bottom:0.75rem;">
-      <div class="highlight-title" style="margin:0;">📋 지분비례 월 손익</div>
-      <div style="display:flex; gap:12px; font-size:12px;">
-        <span style="color:#3B82F6;">● 매출</span>
-        <span style="color:#10B981;">● 영업이익</span>
-        <span style="color:#F59E0B;">● 순이익</span>
+  <!-- Chart 3: 월 손익 통합 -->
+  <div class="hist-chart-card">
+    <div class="hist-chart-header">
+      <span class="hist-chart-title">지분비례 월 손익</span>
+      <div class="hist-legend">
+        <span class="hist-legend-item"><span class="hist-legend-dot" style="background:rgba(102,126,234,0.7);"></span>매출</span>
+        <span class="hist-legend-item"><span class="hist-legend-dot" style="background:rgba(16,185,129,0.7);"></span>영업이익</span>
+        <span class="hist-legend-item"><span class="hist-legend-dot" style="background:rgba(245,158,11,0.7);"></span>순이익</span>
       </div>
     </div>
-    <canvas id="chart-income" height="100"></canvas>
+    <div class="hist-chart-wrap">
+      <canvas id="chart-income" height="100"></canvas>
+    </div>
   </div>
-
 
 </div>
 
+
+<!-- ══════════════════════════════════════
+     SCRIPT
+══════════════════════════════════════ -->
 <script>
-// ── 포맷 헬퍼 ─────────────────────────────────────────────
 function fmtW(w) {
   const sign = w < 0 ? '-' : '', a = Math.abs(w);
   if (a >= 1e12) return sign + (a/1e12).toFixed(2) + '조원';
@@ -67,13 +295,10 @@ function fmtUSD(v) {
   if (a >= 1e3) return sign + '$' + (a/1e3).toFixed(2) + 'K';
   return sign + '$' + a.toFixed(2);
 }
+function gainColor(v) { return v >= 0 ? '#10B981' : '#EF4444'; }
 
-function gainColor(v) {
-  return v >= 0 ? '#10B981' : '#EF4444';
-}
-
-// ── 차트 공통 옵션 ────────────────────────────────────────
-function baseOptions(fmt, colorFn) {
+function baseOptions() {
+  const tickColor = getComputedStyle(document.documentElement).getPropertyValue('--text2').trim() || '#a8b3c0';
   return {
     responsive: true,
     maintainAspectRatio: true,
@@ -81,27 +306,33 @@ function baseOptions(fmt, colorFn) {
     plugins: {
       legend: { display: false },
       tooltip: {
-        callbacks: {
-          label: ctx => ' ' + fmtW(ctx.parsed.y),
-        }
-      }
+        backgroundColor: 'rgba(15,20,35,0.95)',
+        titleColor: '#fff', bodyColor: '#ccc',
+        borderColor: 'rgba(255,255,255,0.08)', borderWidth: 1,
+        cornerRadius: 10, padding: 12,
+        callbacks: { label: ctx => ' ' + fmtW(ctx.parsed.y) },
+      },
     },
     scales: {
       x: {
         grid: { display: false },
+        border: { display: false },
         ticks: {
-          font: { size: 11 },
+          font: { size: 10 },
+          color: tickColor,
           maxTicksLimit: 12,
-          callback: function(val, idx) {
+          callback: function(val) {
             const lbl = this.getLabelForValue(val);
-            return lbl ? lbl.slice(2) : '';   // "2025-03" → "25.03"
+            return lbl ? lbl.slice(2) : '';
           }
         }
       },
       y: {
-        grid: { color: 'rgba(128,128,128,0.08)' },
+        grid: { color: 'rgba(128,128,128,0.1)', drawBorder: false },
+        border: { display: false },
         ticks: {
-          font: { size: 11 },
+          font: { size: 10 },
+          color: tickColor,
           callback: v => fmtW(v),
         }
       }
@@ -118,11 +349,10 @@ function makeDataset(data, color, fill = true) {
     pointRadius: data.length <= 12 ? 3 : 0,
     pointHoverRadius: 5,
     fill,
-    tension: 0.3,
+    tension: 0.35,
   };
 }
 
-// ── 데이터 로드 & 렌더 ────────────────────────────────────
 fetch('/api/history')
   .then(r => r.json())
   .then(data => {
@@ -138,34 +368,33 @@ fetch('/api/history')
     const op      = data.map(d => d.monthlyOpKrw);
     const net     = data.map(d => d.monthlyNetKrw);
     const gain    = data.map(d => d.unrealizedGainUsd);
+    const last    = data[data.length - 1];
 
-    const last = data[data.length - 1];
-
-    // 최신값 표시
-    document.getElementById('val-total').textContent = fmtW(last.totalValueKrw);
-    const gainEl = document.getElementById('val-gain');
-    gainEl.textContent = fmtUSD(last.unrealizedGainUsd);
-    gainEl.style.color = gainColor(last.unrealizedGainKrw);
-
-    // 데이터 개수 안내
     if (data.length === 1) {
       document.getElementById('historyNote').textContent =
         '데이터 1개월 — 매일 홈 접속 시 자동으로 쌓입니다';
     } else {
       document.getElementById('historyNote').textContent =
-        `${data.length}개월 데이터 기록됨`;
+        data.length + '개월 데이터 기록됨';
     }
+
+    /* Chart header values */
+    document.getElementById('val-total').textContent = fmtW(last.totalValueKrw);
+
+    const gain2El = document.getElementById('val-gain2');
+    gain2El.textContent = fmtUSD(last.unrealizedGainUsd);
+    gain2El.style.color = gainColor(last.unrealizedGainUsd);
 
     const ctx = id => document.getElementById(id).getContext('2d');
 
-    // 1. 평가액
+    /* Chart 1: 평가액 */
     new Chart(ctx('chart-total'), {
       type: 'line',
-      data: { labels: months, datasets: [makeDataset(total, '#3B82F6')] },
+      data: { labels: months, datasets: [makeDataset(total, '#667eea')] },
       options: baseOptions(),
     });
 
-    // 2. 평가이익 (달러, 양수/음수 색상)
+    /* Chart 2: 평가이익 */
     const gainOpts = baseOptions();
     gainOpts.plugins.tooltip.callbacks.label = ctx2 => ' ' + fmtUSD(ctx2.parsed.y);
     gainOpts.scales.y.ticks.callback = v => fmtUSD(v);
@@ -178,23 +407,20 @@ fetch('/api/history')
       options: gainOpts,
     });
 
-    // 3. 통합 손익 차트
+    /* Chart 3: 통합 손익 */
     new Chart(ctx('chart-income'), {
       type: 'line',
       data: { labels: months, datasets: [
-        makeDataset(revenue, '#3B82F6', false),
+        makeDataset(revenue, '#667eea', false),
         makeDataset(op,      '#10B981', false),
         makeDataset(net,     '#F59E0B', false),
       ]},
-      options: { ...baseOptions(), plugins: {
-        ...baseOptions().plugins,
-        legend: { display: false },
-      }},
+      options: baseOptions(),
     });
-
   })
   .catch(() => {
     document.getElementById('noDataMsg').style.display = '';
   });
 </script>
+
 {% endblock %}

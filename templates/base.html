@@ -4,6 +4,7 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>{% block title %}💰 Holding Company{% endblock %}</title>
+  <link rel="icon" type="image/svg+xml" href="/static/favicon.svg">
   <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.js"></script>
   <link rel="stylesheet" href="/static/style.css?v=5">
   {% block head %}{% endblock %}
@@ -27,6 +28,12 @@
       <div class="sidebar-section-title">자산관리</div>
       <a href="/assets"     class="sidebar-link {% if active == 'assets'     %}active{% endif %}">💼 자산 현황</a>
       <a href="/milestones" class="sidebar-link {% if active == 'milestones' %}active{% endif %}">🗺️ 마일스톤</a>
+    </div>
+
+    <!-- 부동산 -->
+    <div class="sidebar-section">
+      <div class="sidebar-section-title">부동산</div>
+      <a href="/realestate" class="sidebar-link {% if active == 'realestate' %}active{% endif %}">🏠 부동산 히스토리</a>
     </div>
 
     <!-- 해외 투자 -->

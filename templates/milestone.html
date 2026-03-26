@@ -2,123 +2,720 @@
 {% block title %}마일스톤 — Holding Company{% endblock %}
 
 {% block content %}
-<div class="page-header" style="margin-bottom:1.25rem;">
-  <h1>🗺️ 마일스톤</h1>
-  <p>인생 목표 달성 현황</p>
+
+<!-- ── 전용 스타일 ── -->
+<style>
+/* ── Design Tokens (자산관리와 동일) ── */
+:root {
+  --ms-gradient: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  --glass: rgba(255,255,255,0.03);
+  --glass-border: var(--border);
+  --shadow-sm: 0 1px 3px rgba(0,0,0,0.08);
+  --shadow-md: 0 4px 16px rgba(0,0,0,0.12);
+  --shadow-lg: 0 8px 32px rgba(0,0,0,0.18);
+  --shadow-glow: 0 0 40px rgba(102,126,234,0.15);
+  --ease-out: cubic-bezier(0.16, 1, 0.3, 1);
+  --r-xl: 16px;
+  --r-2xl: 20px;
+}
+
+/* ── Page Header ── */
+.ms-page-header {
+  text-align: center;
+  padding: 32px 0 24px;
+}
+.ms-page-header h1 {
+  font-size: 28px;
+  font-weight: 800;
+  letter-spacing: -0.5px;
+  background: var(--ms-gradient);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+  margin-bottom: 6px;
+}
+.ms-page-header p {
+  font-size: 14px;
+  color: var(--text2);
+  font-weight: 400;
+}
+
+/* ── Tabs ── */
+.ms-tabs {
+  display: flex;
+  gap: 4px;
+  background: var(--bg2);
+  border-radius: 12px;
+  padding: 4px;
+  width: 60%;
+}
+.ms-tab {
+  flex: 1;
+  padding: 10px 16px;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text2);
+  background: none;
+  border: none;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: all 0.25s var(--ease-out);
+  text-align: center;
+}
+.ms-tab:hover { color: var(--text); background: rgba(255,255,255,0.03); }
+.ms-tab.active {
+  color: white;
+  background: var(--ms-gradient);
+  box-shadow: 0 2px 12px rgba(102,126,234,0.35);
+}
+
+/* ── Hero Progress Card ── */
+.ms-hero {
+  background: var(--ms-gradient);
+  border-radius: var(--r-2xl);
+  padding: 28px 32px;
+  color: white;
+  position: relative;
+  overflow: hidden;
+  box-shadow: var(--shadow-glow), var(--shadow-lg);
+  margin-bottom: 28px;
+}
+.ms-hero::before {
+  content: '';
+  position: absolute;
+  top: -60%;
+  right: -15%;
+  width: 280px;
+  height: 280px;
+  background: radial-gradient(circle, rgba(255,255,255,0.1) 0%, transparent 70%);
+  pointer-events: none;
+}
+.ms-hero::after {
+  content: '';
+  position: absolute;
+  bottom: -40%;
+  left: -8%;
+  width: 180px;
+  height: 180px;
+  background: radial-gradient(circle, rgba(255,255,255,0.06) 0%, transparent 70%);
+  pointer-events: none;
+}
+.ms-hero-top {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 16px;
+  position: relative;
+  z-index: 1;
+}
+.ms-hero-label {
+  font-size: 13px;
+  font-weight: 500;
+  opacity: 0.7;
+  text-transform: uppercase;
+  letter-spacing: 1.5px;
+}
+.ms-hero-stats {
+  font-size: 14px;
+  font-weight: 600;
+  opacity: 0.9;
+}
+.ms-hero-bar-track {
+  background: rgba(255,255,255,0.15);
+  border-radius: 99px;
+  height: 12px;
+  overflow: hidden;
+  position: relative;
+  z-index: 1;
+  backdrop-filter: blur(4px);
+}
+.ms-hero-bar-fill {
+  height: 100%;
+  background: linear-gradient(90deg, rgba(255,255,255,0.6), rgba(255,255,255,0.95));
+  border-radius: 99px;
+  width: 0%;
+  transition: width 0.8s var(--ease-out);
+  position: relative;
+}
+.ms-hero-bar-fill::after {
+  content: '';
+  position: absolute;
+  right: 0;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: white;
+  box-shadow: 0 0 8px rgba(255,255,255,0.6);
+}
+.ms-hero-pct {
+  text-align: center;
+  font-size: 36px;
+  font-weight: 800;
+  letter-spacing: -1px;
+  margin-top: 14px;
+  position: relative;
+  z-index: 1;
+}
+.ms-hero-pct span {
+  font-size: 18px;
+  font-weight: 500;
+  opacity: 0.6;
+}
+
+/* ── Toolbar ── */
+.ms-toolbar {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 24px;
+  flex-wrap: wrap;
+  gap: 12px;
+}
+
+/* ── Buttons (자산관리와 동일) ── */
+.btn-gradient {
+  background: var(--ms-gradient);
+  color: white;
+  border: none;
+  padding: 10px 20px;
+  border-radius: 10px;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s var(--ease-out);
+  box-shadow: 0 2px 12px rgba(102,126,234,0.3);
+}
+.btn-gradient:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 4px 20px rgba(102,126,234,0.45);
+}
+.btn-soft {
+  background: var(--bg2);
+  color: var(--text);
+  border: 1px solid var(--glass-border);
+  padding: 10px 20px;
+  border-radius: 10px;
+  font-size: 13px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s var(--ease-out);
+}
+.btn-soft:hover {
+  background: rgba(255,255,255,0.06);
+  border-color: rgba(255,255,255,0.12);
+}
+.btn-icon-sm {
+  background: none;
+  border: 1px solid transparent;
+  width: 30px;
+  height: 30px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 8px;
+  cursor: pointer;
+  font-size: 13px;
+  color: var(--text2);
+  transition: all 0.15s;
+}
+.btn-icon-sm:hover {
+  background: var(--bg2);
+  border-color: var(--glass-border);
+  color: var(--text);
+}
+.btn-icon-sm.danger:hover {
+  background: rgba(239,68,68,0.1);
+  border-color: rgba(239,68,68,0.2);
+  color: #ef4444;
+}
+
+/* ── In-progress Card ── */
+.ms-card {
+  background: var(--bg);
+  border: 1px solid var(--glass-border);
+  border-radius: var(--r-xl);
+  padding: 20px 24px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 16px;
+  transition: all 0.3s var(--ease-out);
+  position: relative;
+  overflow: hidden;
+}
+.ms-card:hover {
+  transform: translateY(-2px);
+  box-shadow: var(--shadow-md);
+  border-color: rgba(255,255,255,0.1);
+}
+.ms-card::before {
+  content: '';
+  position: absolute;
+  left: 0;
+  top: 0;
+  bottom: 0;
+  width: 4px;
+  border-radius: 4px 0 0 4px;
+}
+.ms-card[data-cat="education"]::before       { background: #6366f1; }
+.ms-card[data-cat="career_start"]::before     { background: #0ea5e9; }
+.ms-card[data-cat="economic_growth"]::before  { background: #f59e0b; }
+.ms-card[data-cat="asset_expansion"]::before  { background: #10b981; }
+.ms-card[data-cat="stability"]::before        { background: #ec4899; }
+.ms-card[data-cat="freedom"]::before          { background: #8b5cf6; }
+.ms-card[data-cat="completion"]::before       { background: #f97316; }
+.ms-card[data-cat="retrospective"]::before    { background: #64748b; }
+.ms-card[data-cat=""]::before                 { background: var(--glass-border); }
+
+.ms-card .pulse-dot {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  background: #f59e0b;
+  flex-shrink: 0;
+  margin-top: 4px;
+  position: relative;
+}
+.ms-card .pulse-dot::after {
+  content: '';
+  position: absolute;
+  inset: -3px;
+  border-radius: 50%;
+  border: 2px solid rgba(245,158,11,0.3);
+  animation: pulse-ring 2s ease-out infinite;
+}
+@keyframes pulse-ring {
+  0% { transform: scale(1); opacity: 1; }
+  100% { transform: scale(1.6); opacity: 0; }
+}
+
+.ms-card .title {
+  font-weight: 600;
+  font-size: 15px;
+  color: var(--text);
+  margin-bottom: 2px;
+}
+.ms-card .meta {
+  font-size: 12px;
+  color: var(--text2);
+  margin-top: 4px;
+}
+.ms-card .badge {
+  display: inline-block;
+  font-size: 11px;
+  padding: 2px 10px;
+  border-radius: 99px;
+  font-weight: 600;
+  flex-shrink: 0;
+}
+.ms-card .actions {
+  display: flex;
+  gap: 4px;
+  flex-shrink: 0;
+  opacity: 0;
+  transition: opacity 0.2s;
+}
+.ms-card:hover .actions { opacity: 1; }
+
+/* ── Completed Card ── */
+.ms-done-card {
+  background: var(--bg);
+  border: 1px solid var(--glass-border);
+  border-radius: 12px;
+  padding: 14px 20px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 12px;
+  transition: all 0.25s var(--ease-out);
+}
+.ms-done-card:hover {
+  background: rgba(255,255,255,0.02);
+  border-color: rgba(255,255,255,0.1);
+}
+.ms-done-card .check {
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, #10b981, #059669);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  font-size: 12px;
+  color: white;
+  box-shadow: 0 2px 8px rgba(16,185,129,0.3);
+}
+.ms-done-card .title {
+  font-weight: 500;
+  font-size: 14px;
+}
+.ms-done-card .meta {
+  font-size: 12px;
+  color: var(--text2);
+}
+.ms-done-card .actions {
+  display: flex;
+  gap: 4px;
+  flex-shrink: 0;
+  opacity: 0;
+  transition: opacity 0.2s;
+}
+.ms-done-card:hover .actions { opacity: 1; }
+
+/* ── Section Card ── */
+.ms-section-card {
+  background: var(--bg);
+  border: 1px solid var(--glass-border);
+  border-radius: var(--r-xl);
+  padding: 24px;
+  margin-bottom: 20px;
+  transition: all 0.3s var(--ease-out);
+}
+.ms-section-card:hover { box-shadow: var(--shadow-sm); }
+
+/* ── Timeline (연도별) ── */
+.ms-year-header {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  margin-bottom: 20px;
+}
+.ms-year-badge {
+  font-size: 22px;
+  font-weight: 800;
+  letter-spacing: -0.5px;
+  background: var(--ms-gradient);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+.ms-year-count {
+  font-size: 12px;
+  color: var(--text2);
+  background: var(--bg2);
+  padding: 4px 12px;
+  border-radius: 99px;
+  font-weight: 500;
+}
+.ms-year-line {
+  flex: 1;
+  height: 1px;
+  background: var(--glass-border);
+}
+
+.ms-timeline {
+  position: relative;
+  padding-left: 28px;
+}
+.ms-timeline::before {
+  content: '';
+  position: absolute;
+  left: 6px;
+  top: 8px;
+  bottom: 8px;
+  width: 2px;
+  background: linear-gradient(to bottom, var(--glass-border), transparent);
+  border-radius: 2px;
+}
+.ms-tl-item {
+  position: relative;
+  padding-bottom: 20px;
+}
+.ms-tl-item:last-child { padding-bottom: 0; }
+.ms-tl-dot { display: none; }
+.ms-tl-content {
+  background: var(--bg);
+  border: 1px solid var(--glass-border);
+  border-radius: 12px;
+  padding: 14px 18px;
+  transition: all 0.25s var(--ease-out);
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 12px;
+}
+.ms-tl-content:hover {
+  border-color: rgba(255,255,255,0.1);
+  box-shadow: var(--shadow-sm);
+}
+.ms-tl-content .title {
+  font-weight: 600;
+  font-size: 14px;
+  margin-bottom: 2px;
+}
+.ms-tl-content .meta {
+  font-size: 12px;
+  color: var(--text2);
+}
+.ms-tl-content .actions {
+  display: flex;
+  gap: 4px;
+  flex-shrink: 0;
+  opacity: 0;
+  transition: opacity 0.2s;
+}
+.ms-tl-content:hover .actions { opacity: 1; }
+
+/* ── Category Badge ── */
+.cat-badge {
+  display: inline-block;
+  font-size: 11px;
+  padding: 2px 10px;
+  border-radius: 99px;
+  font-weight: 600;
+  flex-shrink: 0;
+  white-space: nowrap;
+}
+
+/* ── Modal ── */
+.modal-overlay {
+  display: none;
+  position: fixed;
+  inset: 0;
+  background: rgba(0,0,0,0.6);
+  backdrop-filter: blur(4px);
+  z-index: 200;
+  overflow-y: auto;
+  animation: fadeIn 0.2s var(--ease-out);
+}
+.modal-box {
+  max-width: 500px;
+  margin: 60px auto;
+  background: var(--bg);
+  border: 1px solid var(--glass-border);
+  border-radius: var(--r-2xl);
+  padding: 32px;
+  position: relative;
+  animation: slideUp 0.35s var(--ease-out);
+  box-shadow: var(--shadow-lg);
+}
+.modal-close {
+  position: absolute;
+  top: 20px;
+  right: 20px;
+  background: var(--bg2);
+  border: none;
+  width: 32px;
+  height: 32px;
+  border-radius: 8px;
+  cursor: pointer;
+  color: var(--text2);
+  font-size: 14px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.15s;
+}
+.modal-close:hover { background: rgba(255,255,255,0.08); color: var(--text); }
+.modal-title {
+  font-size: 18px;
+  font-weight: 700;
+  margin-bottom: 24px;
+  letter-spacing: -0.3px;
+}
+
+@keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+@keyframes slideUp { from { opacity: 0; transform: translateY(20px); } to { opacity: 1; transform: translateY(0); } }
+
+/* ── Form ── */
+.form-field {
+  margin-bottom: 14px;
+}
+.form-field label {
+  display: block;
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--text2);
+  margin-bottom: 6px;
+}
+.form-field input,
+.form-field select {
+  width: 100%;
+  padding: 10px 14px;
+  background: var(--bg2);
+  border: 1px solid var(--glass-border);
+  border-radius: 10px;
+  color: var(--text);
+  font-size: 13px;
+  transition: border-color 0.2s;
+  outline: none;
+}
+.form-field input:focus,
+.form-field select:focus {
+  border-color: #667eea;
+  box-shadow: 0 0 0 3px rgba(102,126,234,0.15);
+}
+.form-field input::placeholder { color: var(--text2); opacity: 0.5; }
+
+/* ── Empty State ── */
+.ms-empty {
+  text-align: center;
+  padding: 48px 24px;
+  color: var(--text2);
+}
+.ms-empty .icon { font-size: 40px; margin-bottom: 12px; opacity: 0.3; }
+.ms-empty .msg { font-size: 14px; }
+
+/* ── Responsive ── */
+@media (max-width: 600px) {
+  .ms-hero { padding: 24px 20px; }
+  .ms-hero-pct { font-size: 28px; }
+  .ms-card { padding: 16px 18px; }
+  .ms-card .actions, .ms-done-card .actions, .ms-tl-content .actions { opacity: 1; }
+  .modal-box { margin: 16px; padding: 24px; }
+  .ms-toolbar { flex-direction: column; align-items: stretch; }
+}
+</style>
+
+
+<!-- ══════════════════════════════════════
+     PAGE HEADER
+══════════════════════════════════════ -->
+<div class="ms-page-header">
+  <h1>마일스톤</h1>
+  <p>인생 목표 달성 현황을 한눈에 확인</p>
 </div>
 
-<!-- 달성률 바 (항상 표시) -->
-<div class="card" style="margin-bottom:1.25rem;">
-  <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;">
-    <span style="font-weight:600;font-size:14px;">전체 달성률</span>
-    <span id="statsText" style="font-size:13px;color:var(--text2);">로딩 중...</span>
+
+<!-- ══════════════════════════════════════
+     HERO — 달성률
+══════════════════════════════════════ -->
+<div class="ms-hero">
+  <div class="ms-hero-top">
+    <span class="ms-hero-label">ACHIEVEMENT</span>
+    <span class="ms-hero-stats" id="statsText">로딩 중...</span>
   </div>
-  <div style="background:var(--bg2);border-radius:99px;height:10px;overflow:hidden;">
-    <div id="progressBar" style="height:100%;background:var(--accent);border-radius:99px;width:0%;transition:width .5s ease;"></div>
+  <div class="ms-hero-bar-track">
+    <div class="ms-hero-bar-fill" id="progressBar"></div>
+  </div>
+  <div class="ms-hero-pct" id="heroPct">0<span>%</span></div>
+</div>
+
+
+<!-- ══════════════════════════════════════
+     TOOLBAR
+══════════════════════════════════════ -->
+<div class="ms-toolbar">
+  <div class="ms-tabs">
+    <button id="pgBtn0" class="ms-tab active" onclick="showPg(0)">진행 중</button>
+    <button id="pgBtn1" class="ms-tab"        onclick="showPg(1)">달성 완료</button>
+    <button id="pgBtn2" class="ms-tab"        onclick="showPg(2)">연도별</button>
+  </div>
+  <div style="display:flex;gap:8px;">
+    <button class="btn-soft" style="padding:8px 14px;" onclick="openImportModal()">CSV 가져오기</button>
+    <button class="btn-gradient" style="padding:8px 16px;" onclick="openModal(null)">+ 추가</button>
   </div>
 </div>
 
-<!-- 탭 -->
-<div style="display:flex;align-items:center;margin-bottom:1.25rem;border-bottom:1px solid var(--border);">
-  <button id="pgBtn0" class="pg-tab active" onclick="showPg(0)">진행 중</button>
-  <button id="pgBtn1" class="pg-tab"        onclick="showPg(1)">달성 완료</button>
-  <button id="pgBtn2" class="pg-tab"        onclick="showPg(2)">연도별</button>
-  <div style="flex:1;"></div>
-  <div style="display:flex;gap:6px;padding-bottom:4px;">
-    <button class="btn btn-ghost" style="font-size:12px;padding:4px 10px;" onclick="openImportModal()">CSV 가져오기</button>
-    <button class="btn btn-primary" style="font-size:12px;padding:4px 10px;" onclick="openModal(null)">+ 추가</button>
-  </div>
-</div>
 
-<!-- ── TAB 0: 진행 중 ── -->
+<!-- ══════════════════════════════════════
+     TAB 0 — 진행 중
+══════════════════════════════════════ -->
 <div id="pg0">
-  <div id="listInProgress" style="display:flex;flex-direction:column;gap:10px;"></div>
-  <div id="emptyInProgress" style="display:none;" class="empty-state">진행 중인 마일스톤이 없습니다.</div>
+  <div id="listInProgress" style="display:flex;flex-direction:column;gap:12px;"></div>
+  <div id="emptyInProgress" style="display:none;">
+    <div class="ms-empty"><div class="icon">🎯</div><div class="msg">진행 중인 마일스톤이 없습니다.</div></div>
+  </div>
 </div>
 
-<!-- ── TAB 1: 달성 완료 ── -->
+
+<!-- ══════════════════════════════════════
+     TAB 1 — 달성 완료
+══════════════════════════════════════ -->
 <div id="pg1" style="display:none;">
-  <div id="listCompleted" style="display:flex;flex-direction:column;gap:8px;"></div>
-  <div id="emptyCompleted" style="display:none;" class="empty-state">달성 완료된 마일스톤이 없습니다.</div>
+  <div id="listCompleted" style="display:flex;flex-direction:column;gap:10px;"></div>
+  <div id="emptyCompleted" style="display:none;">
+    <div class="ms-empty"><div class="icon">🏆</div><div class="msg">달성 완료된 마일스톤이 없습니다.</div></div>
+  </div>
 </div>
 
-<!-- ── TAB 2: 연도별 ── -->
+
+<!-- ══════════════════════════════════════
+     TAB 2 — 연도별
+══════════════════════════════════════ -->
 <div id="pg2" style="display:none;">
   <div id="yearlyView"></div>
 </div>
 
-<!-- ── 입력 모달 ── -->
-<div id="modal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.45);z-index:200;overflow-y:auto;">
-  <div style="max-width:480px;margin:80px auto;background:var(--bg);border-radius:var(--r-lg);padding:24px;position:relative;">
-    <button onclick="closeModal()" style="position:absolute;top:16px;right:16px;background:none;border:none;font-size:18px;cursor:pointer;color:var(--text2);">✕</button>
-    <h2 id="modalTitle" style="font-size:16px;font-weight:600;margin-bottom:20px;">마일스톤 추가</h2>
-    <div style="margin-bottom:12px;">
-      <label class="form-label">제목</label>
-      <input id="mTitle" class="form-input" style="width:100%;" placeholder="예: 순자산 5억 만들기">
+
+<!-- ══════════════════════════════════════
+     입력 모달
+══════════════════════════════════════ -->
+<div id="modal" class="modal-overlay">
+  <div class="modal-box">
+    <button onclick="closeModal()" class="modal-close">✕</button>
+    <h2 class="modal-title" id="modalTitle">마일스톤 추가</h2>
+
+    <div class="form-field">
+      <label>제목</label>
+      <input id="mTitle" placeholder="예: 순자산 5억 만들기">
     </div>
-    <div style="margin-bottom:12px;">
-      <label class="form-label">상태</label>
-      <select id="mStatus" class="form-input" style="width:100%;">
-        <option value="in_progress">진행 중</option>
-        <option value="completed">달성 완료</option>
-      </select>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;">
+      <div class="form-field">
+        <label>상태</label>
+        <select id="mStatus">
+          <option value="in_progress">진행 중</option>
+          <option value="completed">달성 완료</option>
+        </select>
+      </div>
+      <div class="form-field">
+        <label>카테고리</label>
+        <select id="mCategory">
+          <option value="">— 미분류 —</option>
+          <option value="education">🎓 성장 &amp; 학습</option>
+          <option value="career_start">💼 사회 진출</option>
+          <option value="economic_growth">💰 경제적 성장</option>
+          <option value="asset_expansion">📊 자산 확장</option>
+          <option value="stability">🏡 안정화</option>
+          <option value="freedom">🧘‍♂️ 자유 추구</option>
+          <option value="completion">👑 완성 &amp; 영향력</option>
+          <option value="retrospective">🧓 회고 &amp; 유산</option>
+        </select>
+      </div>
     </div>
-    <div style="margin-bottom:12px;">
-      <label class="form-label">카테고리</label>
-      <select id="mCategory" class="form-input" style="width:100%;">
-        <option value="">— 미분류 —</option>
-        <option value="education">🎓 성장 &amp; 학습</option>
-        <option value="career_start">💼 사회 진출</option>
-        <option value="economic_growth">💰 경제적 성장</option>
-        <option value="asset_expansion">📊 자산 확장</option>
-        <option value="stability">🏡 안정화</option>
-        <option value="freedom">🧘‍♂️ 자유 추구</option>
-        <option value="completion">👑 완성 &amp; 영향력</option>
-        <option value="retrospective">🧓 회고 &amp; 유산</option>
-      </select>
+    <div class="form-field">
+      <label id="mDateLabel">날짜 (YYYY-MM-DD)</label>
+      <input id="mDate" type="text" placeholder="2026-12-31">
     </div>
-    <div style="margin-bottom:12px;">
-      <label class="form-label" id="mDateLabel">날짜 (YYYY-MM-DD)</label>
-      <input id="mDate" class="form-input" style="width:100%;" type="text" placeholder="2026-12-31">
+    <div class="form-field" style="margin-bottom:24px;">
+      <label>메모 (선택)</label>
+      <input id="mNote" placeholder="특이사항">
     </div>
-    <div style="margin-bottom:20px;">
-      <label class="form-label">메모 (선택)</label>
-      <input id="mNote" class="form-input" style="width:100%;" placeholder="특이사항">
-    </div>
-    <div style="display:flex;gap:8px;justify-content:flex-end;">
-      <button class="btn btn-ghost" onclick="closeModal()">취소</button>
-      <button class="btn btn-primary" id="modalSaveBtn" onclick="saveItem()">저장</button>
+
+    <div style="display:flex;gap:10px;justify-content:flex-end;">
+      <button class="btn-soft" onclick="closeModal()">취소</button>
+      <button class="btn-gradient" id="modalSaveBtn" onclick="saveItem()">저장</button>
     </div>
     <input type="hidden" id="mEditId" value="">
   </div>
 </div>
 
+
 <!-- ── CSV 모달 ── -->
-<div id="importModal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.45);z-index:200;overflow-y:auto;">
-  <div style="max-width:480px;margin:80px auto;background:var(--bg);border-radius:var(--r-lg);padding:24px;position:relative;">
-    <button onclick="closeImportModal()" style="position:absolute;top:16px;right:16px;background:none;border:none;font-size:18px;cursor:pointer;color:var(--text2);">✕</button>
-    <h2 style="font-size:16px;font-weight:600;margin-bottom:8px;">CSV 가져오기</h2>
-    <p style="font-size:13px;color:var(--text2);margin-bottom:16px;">노션에서 내보낸 마일스톤 CSV 파일을 선택하세요.</p>
-    <input type="file" id="csvInput" accept=".csv" class="form-input" style="width:100%;margin-bottom:12px;">
-    <div id="csvPreview" style="font-size:12px;color:var(--text2);margin-bottom:16px;display:none;"></div>
-    <div style="display:flex;gap:8px;justify-content:flex-end;">
-      <button class="btn btn-ghost" onclick="closeImportModal()">취소</button>
-      <button class="btn btn-primary" id="importBtn" onclick="submitImport()">가져오기</button>
+<div id="importModal" class="modal-overlay">
+  <div class="modal-box" style="max-width:460px;">
+    <button onclick="closeImportModal()" class="modal-close">✕</button>
+    <h2 class="modal-title">CSV 가져오기</h2>
+    <p style="font-size:13px;color:var(--text2);margin-bottom:20px;">노션에서 내보낸 마일스톤 CSV 파일을 선택하세요.</p>
+    <div class="form-field">
+      <label>CSV 파일 선택</label>
+      <input type="file" id="csvInput" accept=".csv">
+    </div>
+    <div id="csvPreview" style="font-size:12px;color:var(--text2);margin-bottom:20px;display:none;"></div>
+    <div style="display:flex;gap:10px;justify-content:flex-end;">
+      <button class="btn-soft" onclick="closeImportModal()">취소</button>
+      <button class="btn-gradient" id="importBtn" onclick="submitImport()">가져오기</button>
     </div>
   </div>
 </div>
 
-<style>
-.pg-tab {
-  padding: 8px 16px; font-size: 13px; font-weight: 500;
-  color: var(--text2); background: none; border: none;
-  border-bottom: 2px solid transparent; cursor: pointer;
-  transition: all .15s; margin-bottom: -1px;
-}
-.pg-tab:hover { color: var(--text); }
-.pg-tab.active { color: var(--accent); border-bottom-color: var(--accent); }
-</style>
 
+<!-- ══════════════════════════════════════
+     SCRIPT
+══════════════════════════════════════ -->
 <script>
 let items = [];
 let csvContent = null;
@@ -138,7 +735,10 @@ const CAT = {
 function catBadge(cat) {
   const c = CAT[cat];
   if (!c) return '';
-  return `<span style="display:inline-block;font-size:11px;padding:1px 8px;border-radius:99px;background:${c.color}22;color:${c.color};font-weight:600;flex-shrink:0;">${c.label}</span>`;
+  return `<span class="cat-badge" style="background:${c.color}18;color:${c.color};">${c.label}</span>`;
+}
+function catColor(cat) {
+  return CAT[cat]?.color || '#64748b';
 }
 
 function showPg(idx) {
@@ -159,13 +759,14 @@ async function load() {
   if (currentPg === 2) renderYearly();
 }
 
-// ── 달성률 바 ──
+// ── 달성률 ──
 function renderStats() {
   const total = items.length;
   const done  = items.filter(d => d.status === 'completed').length;
   const pct   = total ? Math.round(done/total*100) : 0;
-  document.getElementById('statsText').textContent   = `${done} / ${total} 달성 (${pct}%)`;
+  document.getElementById('statsText').textContent   = `${done} / ${total} 달성`;
   document.getElementById('progressBar').style.width = pct + '%';
+  document.getElementById('heroPct').innerHTML        = `${pct}<span>%</span>`;
 }
 
 // ── TAB 0: 진행 중 ──
@@ -173,19 +774,20 @@ function renderInProgress() {
   const inProgress = items.filter(d => d.status === 'in_progress');
   document.getElementById('emptyInProgress').style.display = inProgress.length ? 'none' : '';
   document.getElementById('listInProgress').innerHTML = inProgress.map(d => `
-    <div style="background:var(--bg);border:1px solid var(--border);border-radius:var(--r-lg);padding:16px 18px;display:flex;justify-content:space-between;align-items:flex-start;gap:12px;">
-      <div style="flex:1;min-width:0;">
-        <div style="display:flex;align-items:center;gap:8px;margin-bottom:4px;flex-wrap:wrap;">
-          <span style="width:8px;height:8px;border-radius:50%;background:#f59e0b;flex-shrink:0;display:inline-block;"></span>
-          <span style="font-weight:600;font-size:15px;">${d.title}</span>
-          ${catBadge(d.category)}
+    <div class="ms-card" data-cat="${d.category||''}">
+      <div style="display:flex;gap:14px;flex:1;min-width:0;align-items:center;">
+        <div style="width:10px;height:10px;border-radius:50%;background:${catColor(d.category)};flex-shrink:0;"></div>
+        <div style="flex:1;min-width:0;">
+          <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-bottom:2px;">
+            <span class="title">${d.title}</span>
+            ${catBadge(d.category)}
+          </div>
+          ${d.date || d.note ? `<div class="meta">${d.date ? '📅 목표일: '+d.date : ''}${d.date && d.note ? ' · ' : ''}${d.note ? d.note : ''}</div>` : ''}
         </div>
-        ${d.date ? `<div style="font-size:12px;color:var(--text2);margin-left:16px;">목표일: ${d.date}</div>` : ''}
-        ${d.note ? `<div style="font-size:12px;color:var(--text2);margin-left:16px;margin-top:2px;">${d.note}</div>` : ''}
       </div>
-      <div style="display:flex;gap:6px;flex-shrink:0;">
-        <button class="btn btn-ghost" style="padding:4px 10px;font-size:12px;" onclick="openModal(${d.id})">수정</button>
-        <button class="btn btn-ghost" style="padding:4px 10px;font-size:12px;color:var(--red);" onclick="deleteItem(${d.id},'${esc(d.title)}')">삭제</button>
+      <div class="actions">
+        <button class="btn-icon-sm" onclick="openModal(${d.id})" title="수정">✏️</button>
+        <button class="btn-icon-sm danger" onclick="deleteItem(${d.id},'${esc(d.title)}')" title="삭제">🗑</button>
       </div>
     </div>`).join('');
 }
@@ -195,34 +797,33 @@ function renderCompleted() {
   const completed = items.filter(d => d.status === 'completed').sort((a,b) => (b.date||'').localeCompare(a.date||''));
   document.getElementById('emptyCompleted').style.display = completed.length ? 'none' : '';
   document.getElementById('listCompleted').innerHTML = completed.map(d => `
-    <div style="background:var(--bg2);border-radius:var(--r-md);padding:12px 16px;display:flex;justify-content:space-between;align-items:center;gap:12px;opacity:.85;">
-      <div style="display:flex;align-items:center;gap:10px;flex:1;min-width:0;">
-        <span style="color:#10b981;font-size:16px;flex-shrink:0;">✓</span>
+    <div class="ms-done-card">
+      <div style="display:flex;align-items:center;gap:14px;flex:1;min-width:0;">
+        <div class="check">✓</div>
         <div style="flex:1;min-width:0;">
-          <div style="display:flex;align-items:center;gap:6px;flex-wrap:wrap;">
-            <span style="font-weight:500;font-size:14px;">${d.title}</span>
+          <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;">
+            <span class="title">${d.title}</span>
             ${catBadge(d.category)}
           </div>
-          <div style="font-size:12px;color:var(--text2);">${d.date ? d.date+(d.note?' · ':'') : ''}${d.note||''}</div>
+          <div class="meta">${d.date ? d.date+(d.note?' · ':'') : ''}${d.note||''}</div>
         </div>
       </div>
-      <div style="display:flex;gap:6px;flex-shrink:0;">
-        <button class="btn btn-ghost" style="padding:3px 8px;font-size:11px;" onclick="openModal(${d.id})">수정</button>
-        <button class="btn btn-ghost" style="padding:3px 8px;font-size:11px;color:var(--red);" onclick="deleteItem(${d.id},'${esc(d.title)}')">삭제</button>
+      <div class="actions">
+        <button class="btn-icon-sm" onclick="openModal(${d.id})" title="수정">✏️</button>
+        <button class="btn-icon-sm danger" onclick="deleteItem(${d.id},'${esc(d.title)}')" title="삭제">🗑</button>
       </div>
     </div>`).join('');
 }
 
-// ── TAB 1: 연도별 ──
+// ── TAB 2: 연도별 ──
 function renderYearly() {
   const completed = items.filter(d => d.status === 'completed');
 
   if (!completed.length) {
-    document.getElementById('yearlyView').innerHTML = '<p class="empty-state">달성 완료된 항목이 없습니다.</p>';
+    document.getElementById('yearlyView').innerHTML = '<div class="ms-empty"><div class="icon">📅</div><div class="msg">달성 완료된 항목이 없습니다.</div></div>';
     return;
   }
 
-  // 연도별 그룹핑 (날짜 없는 항목은 '날짜 미지정'으로)
   const byYear = {};
   completed.forEach(d => {
     const y = d.date ? d.date.slice(0,4) : '날짜 미지정';
@@ -230,7 +831,6 @@ function renderYearly() {
     byYear[y].push(d);
   });
 
-  // 연도 내림차순 정렬 ('날짜 미지정'은 맨 뒤)
   const years = Object.keys(byYear).sort((a,b) => {
     if (a === '날짜 미지정') return 1;
     if (b === '날짜 미지정') return -1;
@@ -239,35 +839,28 @@ function renderYearly() {
 
   let html = '';
   years.forEach(year => {
-    const list = byYear[year].sort((a,b) => b.date.localeCompare(a.date));
+    const list = byYear[year].sort((a,b) => (b.date||'').localeCompare(a.date||''));
     html += `
-    <div style="margin-bottom:1.5rem;">
-      <div style="display:flex;align-items:center;gap:12px;margin-bottom:12px;">
-        <span style="font-size:18px;font-weight:700;color:var(--accent);">${year}</span>
-        <span style="font-size:12px;color:var(--text2);background:var(--bg2);padding:2px 8px;border-radius:99px;">${list.length}개 달성</span>
-        <div style="flex:1;height:1px;background:var(--border);"></div>
+    <div class="ms-section-card">
+      <div class="ms-year-header">
+        <span class="ms-year-badge">${year}</span>
+        <span class="ms-year-count">${list.length}개 달성</span>
+        <div class="ms-year-line"></div>
       </div>
-      <div style="display:flex;flex-direction:column;gap:8px;">
-        ${list.map((d,i) => `
-        <div style="display:flex;align-items:flex-start;gap:14px;">
-          <!-- 타임라인 점 -->
-          <div style="display:flex;flex-direction:column;align-items:center;padding-top:3px;flex-shrink:0;">
-            <div style="width:10px;height:10px;border-radius:50%;background:${CAT[d.category]?.color||'#10b981'};flex-shrink:0;"></div>
-            ${i < list.length-1 ? `<div style="width:2px;flex:1;min-height:20px;background:var(--border);margin-top:4px;"></div>` : ''}
-          </div>
-          <!-- 내용 -->
-          <div style="flex:1;padding-bottom:${i < list.length-1 ? '8' : '0'}px;">
-            <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:8px;">
-              <div style="flex:1;min-width:0;">
-                <div style="display:flex;align-items:center;gap:6px;flex-wrap:wrap;margin-bottom:2px;">
-                  <span style="font-weight:500;font-size:14px;">${d.title}</span>
-                  ${catBadge(d.category)}
-                </div>
-                <div style="font-size:12px;color:var(--text2);">
-                  ${d.date ? d.date : ''}${d.date && d.note ? ' · ' : ''}${d.note || ''}
-                </div>
+      <div class="ms-timeline">
+        ${list.map(d => `
+        <div class="ms-tl-item">
+          <div class="ms-tl-content">
+            <div style="width:10px;height:10px;border-radius:50%;background:${catColor(d.category)};flex-shrink:0;margin-right:4px;"></div>
+            <div style="flex:1;min-width:0;">
+              <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;">
+                <span class="title">${d.title}</span>
+                ${catBadge(d.category)}
               </div>
-              <button class="btn btn-ghost" style="padding:2px 8px;font-size:11px;flex-shrink:0;" onclick="openModal(${d.id})">수정</button>
+              <div class="meta">${d.date ? d.date : ''}${d.date && d.note ? ' · ' : ''}${d.note || ''}</div>
+            </div>
+            <div class="actions">
+              <button class="btn-icon-sm" onclick="openModal(${d.id})" title="수정">✏️</button>
             </div>
           </div>
         </div>`).join('')}

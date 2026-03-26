@@ -1,0 +1,1004 @@
+{% extends "base.html" %}
+{% block title %}부동산 — Holding Company{% endblock %}
+
+{% block content %}
+
+<!-- ── 전용 스타일 ── -->
+<style>
+:root {
+  --re-color:    #a16207;
+  --re-light:    #ca8a04;
+  --re-gradient: linear-gradient(135deg, #a16207 0%, #ca8a04 100%);
+  --glass: rgba(255,255,255,0.03);
+  --glass-border: var(--border);
+  --shadow-sm: 0 1px 3px rgba(0,0,0,0.08);
+  --shadow-md: 0 4px 16px rgba(0,0,0,0.12);
+  --shadow-lg: 0 8px 32px rgba(0,0,0,0.18);
+  --ease-out: cubic-bezier(0.16, 1, 0.3, 1);
+  --r-xl: 16px;
+  --r-2xl: 20px;
+}
+
+/* ── Page Header ── */
+.re-page-header {
+  text-align: center;
+  padding: 32px 0 24px;
+}
+.re-page-header h1 {
+  font-size: 28px;
+  font-weight: 800;
+  letter-spacing: -0.5px;
+  background: var(--re-gradient);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+  margin-bottom: 6px;
+}
+.re-page-header p {
+  font-size: 14px;
+  color: var(--text2);
+  font-weight: 400;
+}
+
+/* ── Card Grid ── */
+.re-card-grid {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 20px;
+  margin-bottom: 32px;
+}
+
+/* ── Property Card ── */
+.re-card {
+  background: var(--bg2);
+  border: 1px solid var(--glass-border);
+  border-radius: var(--r-2xl);
+  overflow: hidden;
+  transition: box-shadow 0.2s var(--ease-out), transform 0.2s var(--ease-out);
+}
+.re-card:hover {
+  box-shadow: var(--shadow-lg);
+  transform: translateY(-2px);
+}
+.re-card-header {
+  background: var(--re-gradient);
+  padding: 18px 20px 14px;
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 8px;
+}
+.re-card-header.rent-header {
+  background: linear-gradient(135deg, #1d4ed8 0%, #3b82f6 100%);
+}
+.re-card-header-left {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.re-badge {
+  display: inline-block;
+  font-size: 11px;
+  font-weight: 700;
+  padding: 2px 8px;
+  border-radius: 20px;
+  background: rgba(255,255,255,0.25);
+  color: white;
+  letter-spacing: 0.03em;
+  width: fit-content;
+}
+.re-card-name {
+  font-size: 17px;
+  font-weight: 800;
+  color: white;
+  line-height: 1.3;
+}
+.re-card-actions {
+  display: flex;
+  gap: 6px;
+  flex-shrink: 0;
+}
+.re-btn-icon {
+  background: rgba(255,255,255,0.2);
+  border: none;
+  border-radius: 8px;
+  color: white;
+  width: 32px;
+  height: 32px;
+  font-size: 14px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: background 0.15s;
+}
+.re-btn-icon:hover { background: rgba(255,255,255,0.35); }
+
+/* ── Card Body ── */
+.re-card-body {
+  padding: 18px 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+/* price row */
+.re-price-row {
+  display: grid;
+  grid-template-columns: 1fr 1fr 1fr;
+  gap: 8px;
+  background: var(--bg);
+  border-radius: 12px;
+  padding: 14px 12px;
+}
+.re-price-row.cols-2 { grid-template-columns: 1fr 1fr; }
+.re-price-row.cols-4 { grid-template-columns: 1fr 1fr 1fr 1fr; }
+@media (max-width: 480px) {
+  .re-price-row.cols-4 { grid-template-columns: 1fr 1fr; }
+}
+.re-price-item {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+.re-price-item-label {
+  font-size: 10px;
+  color: var(--text2);
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+.re-price-item-value {
+  font-size: 14px;
+  font-weight: 700;
+  color: var(--text);
+}
+.re-price-item-value.gain { color: var(--green); }
+.re-price-item-value.loss { color: var(--red); }
+.re-price-item-sub {
+  font-size: 10px;
+  color: var(--text2);
+  font-weight: 400;
+}
+
+/* loan / net row */
+.re-loan-row {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+}
+.re-loan-row.cols-3 { grid-template-columns: 1fr 1fr 1fr; }
+@media (max-width: 480px) {
+  .re-loan-row.cols-3 { grid-template-columns: 1fr; }
+}
+.re-loan-item {
+  background: var(--bg);
+  border-radius: 10px;
+  padding: 10px 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+.re-loan-label {
+  font-size: 10px;
+  color: var(--text2);
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+.re-loan-value {
+  font-size: 14px;
+  font-weight: 700;
+  color: var(--text);
+}
+.re-loan-value.red { color: var(--red); }
+.re-loan-value.green { color: var(--green); }
+.re-loan-sub {
+  font-size: 10px;
+  color: var(--text2);
+}
+
+/* ── 계약 상세 섹션 ── */
+.re-contract-detail {
+  background: var(--bg);
+  border-radius: 12px;
+  padding: 14px 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+.re-contract-detail-title {
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--text);
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+.re-contract-detail-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+}
+@media (max-width: 480px) {
+  .re-contract-detail-grid { grid-template-columns: 1fr; }
+}
+.re-detail-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 6px 0;
+  border-bottom: 1px solid var(--glass-border);
+}
+.re-detail-item:last-child { border-bottom: none; }
+.re-detail-key {
+  font-size: 12px;
+  color: var(--text2);
+  font-weight: 500;
+}
+.re-detail-val {
+  font-size: 13px;
+  color: var(--text);
+  font-weight: 600;
+  text-align: right;
+}
+.re-detail-val.warn { color: var(--red); }
+.re-detail-val.ok { color: var(--green); }
+
+/* ── 계약 기간 프로그레스바 ── */
+.re-progress-bar-wrap {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.re-progress-labels {
+  display: flex;
+  justify-content: space-between;
+  font-size: 11px;
+  color: var(--text2);
+}
+.re-progress-bar {
+  height: 8px;
+  border-radius: 6px;
+  background: var(--glass-border);
+  overflow: hidden;
+  position: relative;
+}
+.re-progress-fill {
+  height: 100%;
+  border-radius: 6px;
+  transition: width 0.6s var(--ease-out);
+}
+.re-progress-fill.normal { background: linear-gradient(90deg, #22c55e, #16a34a); }
+.re-progress-fill.warning { background: linear-gradient(90deg, #eab308, #f59e0b); }
+.re-progress-fill.danger { background: linear-gradient(90deg, #ef4444, #dc2626); }
+.re-progress-center {
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--text2);
+  text-align: center;
+  margin-top: 2px;
+}
+
+/* meta info */
+.re-meta-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+.re-meta-chip {
+  font-size: 11px;
+  color: var(--text2);
+  background: var(--bg);
+  border-radius: 6px;
+  padding: 3px 8px;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+.re-memo {
+  font-size: 12px;
+  color: var(--text2);
+  line-height: 1.5;
+  padding-top: 4px;
+  border-top: 1px solid var(--glass-border);
+}
+
+/* ── Empty State ── */
+.re-empty {
+  text-align: center;
+  padding: 60px 20px;
+  color: var(--text2);
+  grid-column: 1 / -1;
+}
+.re-empty-icon { font-size: 48px; margin-bottom: 12px; }
+.re-empty-title { font-size: 18px; font-weight: 700; color: var(--text); margin-bottom: 6px; }
+.re-empty-desc { font-size: 14px; }
+
+/* ── Add Button ── */
+.re-add-wrap {
+  display: flex;
+  justify-content: center;
+  margin-bottom: 40px;
+}
+.re-add-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 14px 32px;
+  background: var(--re-gradient);
+  color: white;
+  font-size: 15px;
+  font-weight: 700;
+  border: none;
+  border-radius: 14px;
+  cursor: pointer;
+  box-shadow: 0 4px 20px rgba(161,98,7,0.35);
+  transition: opacity 0.2s, transform 0.2s;
+}
+.re-add-btn:hover { opacity: 0.9; transform: translateY(-1px); }
+
+/* ── Modal ── */
+.re-modal-overlay {
+  display: none;
+  position: fixed;
+  inset: 0;
+  background: rgba(0,0,0,0.6);
+  z-index: 1000;
+  align-items: center;
+  justify-content: center;
+  padding: 20px;
+}
+.re-modal-overlay.open { display: flex; }
+.re-modal {
+  background: var(--bg2);
+  border: 1px solid var(--glass-border);
+  border-radius: var(--r-2xl);
+  width: 100%;
+  max-width: 560px;
+  max-height: 90vh;
+  overflow-y: auto;
+  box-shadow: var(--shadow-lg);
+}
+.re-modal-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 20px 24px 16px;
+  border-bottom: 1px solid var(--glass-border);
+}
+.re-modal-title {
+  font-size: 17px;
+  font-weight: 800;
+  color: var(--text);
+}
+.re-modal-close {
+  background: none;
+  border: none;
+  font-size: 20px;
+  color: var(--text2);
+  cursor: pointer;
+  line-height: 1;
+}
+.re-modal-close:hover { color: var(--text); }
+.re-modal-body {
+  padding: 20px 24px;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+.re-field {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+}
+.re-field label {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--text2);
+}
+.re-field input,
+.re-field select,
+.re-field textarea {
+  background: var(--bg);
+  border: 1px solid var(--glass-border);
+  border-radius: 10px;
+  padding: 10px 14px;
+  font-size: 14px;
+  color: var(--text);
+  width: 100%;
+  box-sizing: border-box;
+  outline: none;
+  transition: border-color 0.15s;
+}
+.re-field input:focus,
+.re-field select:focus,
+.re-field textarea:focus {
+  border-color: var(--re-color);
+}
+.re-field textarea { resize: vertical; min-height: 70px; }
+.re-field-row {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+}
+.re-field-row.cols-3 {
+  grid-template-columns: 1fr 1fr 1fr;
+}
+.re-modal-footer {
+  display: flex;
+  gap: 10px;
+  padding: 16px 24px 20px;
+  border-top: 1px solid var(--glass-border);
+  justify-content: flex-end;
+}
+.re-btn-cancel {
+  padding: 10px 20px;
+  font-size: 14px;
+  font-weight: 600;
+  background: var(--bg);
+  border: 1px solid var(--glass-border);
+  border-radius: 10px;
+  color: var(--text2);
+  cursor: pointer;
+  transition: color 0.15s;
+}
+.re-btn-cancel:hover { color: var(--text); }
+.re-btn-save {
+  padding: 10px 24px;
+  font-size: 14px;
+  font-weight: 700;
+  background: var(--re-gradient);
+  border: none;
+  border-radius: 10px;
+  color: white;
+  cursor: pointer;
+  transition: opacity 0.15s;
+}
+.re-btn-save:hover { opacity: 0.88; }
+
+/* ── 섹션 제목 ── */
+.re-section-title {
+  font-size: 16px;
+  font-weight: 700;
+  color: var(--text);
+  margin-bottom: 14px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+</style>
+
+<!-- ── 헤더 ── -->
+<div class="re-page-header">
+  <h1>🏠 부동산</h1>
+  <p>부동산 히스토리 및 계약 상세</p>
+</div>
+
+<!-- ── 카드 목록 ── -->
+<div class="re-section-title">📋 부동산 히스토리</div>
+<div class="re-card-grid" id="cardGrid">
+  <div class="re-empty">
+    <div class="re-empty-icon">🏠</div>
+    <div class="re-empty-title">불러오는 중...</div>
+  </div>
+</div>
+
+<!-- ── 추가 버튼 ── -->
+<div class="re-add-wrap">
+  <button class="re-add-btn" onclick="openModal()">＋ 부동산 추가</button>
+</div>
+
+<!-- ── 모달 ── -->
+<div class="re-modal-overlay" id="modalOverlay" onclick="closeModalOnBg(event)">
+  <div class="re-modal">
+    <div class="re-modal-header">
+      <div class="re-modal-title" id="modalTitle">부동산 추가</div>
+      <button class="re-modal-close" onclick="closeModal()">✕</button>
+    </div>
+    <div class="re-modal-body">
+      <input type="hidden" id="editId">
+
+      <!-- 계약 유형 탭 -->
+      <div style="display:flex;gap:6px;margin-bottom:18px;">
+        <button id="tabSale" onclick="setContractType('sale')"
+          style="flex:1;padding:8px;border-radius:8px;font-size:13px;font-weight:600;cursor:pointer;border:1px solid var(--glass-border);transition:all 0.15s;">
+          🏠 매매
+        </button>
+        <button id="tabRent" onclick="setContractType('rent')"
+          style="flex:1;padding:8px;border-radius:8px;font-size:13px;font-weight:600;cursor:pointer;border:1px solid var(--glass-border);transition:all 0.15s;">
+          🔑 임대차
+        </button>
+      </div>
+
+      <div class="re-field">
+        <label>매물명 *</label>
+        <input type="text" id="fName" placeholder="예: 잠실 아파트">
+      </div>
+
+      <!-- 공통 -->
+      <div class="re-field-row">
+        <div class="re-field">
+          <label>주소</label>
+          <input type="text" id="fAddress" placeholder="서울특별시 송파구 ...">
+        </div>
+        <div class="re-field" style="max-width:110px;">
+          <label>면적 (m²)</label>
+          <input type="number" id="fArea" placeholder="0" min="0" step="0.01">
+        </div>
+      </div>
+
+      <!-- 매매 전용 -->
+      <div id="saleFields">
+        <div class="re-field-row">
+          <div class="re-field">
+            <label>종류</label>
+            <select id="fType">
+              <option value="아파트">아파트</option>
+              <option value="빌라">빌라</option>
+              <option value="오피스텔">오피스텔</option>
+              <option value="토지">토지</option>
+              <option value="상가">상가</option>
+              <option value="기타">기타</option>
+            </select>
+          </div>
+          <div class="re-field">
+            <label>매입일</label>
+            <input type="date" id="fPurchaseDate">
+          </div>
+        </div>
+        <div class="re-field-row">
+          <div class="re-field">
+            <label>매입가 (만원)</label>
+            <input type="number" id="fPurchasePrice" placeholder="0" min="0" step="1" oninput="showKrw(this,'purchasePriceKrw')">
+            <div id="purchasePriceKrw" style="font-size:11px;color:var(--text2);margin-top:4px;min-height:16px;"></div>
+          </div>
+          <div class="re-field">
+            <label>현재 시세 (만원)</label>
+            <input type="number" id="fCurrentValue" placeholder="0" min="0" step="1" oninput="showKrw(this,'currentValueKrw')">
+            <div id="currentValueKrw" style="font-size:11px;color:var(--text2);margin-top:4px;min-height:16px;"></div>
+          </div>
+        </div>
+        <div class="re-field-row">
+          <div class="re-field">
+            <label>대출금 (만원)</label>
+            <input type="number" id="fLoanAmount" placeholder="0" min="0" step="1" oninput="showKrw(this,'loanAmountKrw')">
+            <div id="loanAmountKrw" style="font-size:11px;color:var(--text2);margin-top:4px;min-height:16px;"></div>
+          </div>
+          <div class="re-field">
+            <label>대출 이자율 (%)</label>
+            <input type="number" id="fLoanRate" placeholder="0" min="0" step="0.01" max="30">
+          </div>
+        </div>
+      </div>
+
+      <!-- 임대차 전용 -->
+      <div id="rentFields" style="display:none;">
+        <div class="re-field-row">
+          <div class="re-field">
+            <label>계약 종류</label>
+            <select id="fRentType" onchange="toggleMonthlyRent()">
+              <option value="전세">전세</option>
+              <option value="월세">월세</option>
+            </select>
+          </div>
+          <div class="re-field">
+            <label>보증금 (만원)</label>
+            <input type="number" id="fDeposit" placeholder="0" min="0" step="1" oninput="showKrw(this,'depositKrw')">
+            <div id="depositKrw" style="font-size:11px;color:var(--text2);margin-top:4px;min-height:16px;"></div>
+          </div>
+        </div>
+        <div class="re-field">
+          <label>보증금 대출 (만원)</label>
+          <input type="number" id="fDepositLoan" placeholder="0" min="0" step="1" oninput="showKrw(this,'depositLoanKrw')">
+          <div id="depositLoanKrw" style="font-size:11px;color:var(--text2);margin-top:4px;min-height:16px;"></div>
+        </div>
+        <div class="re-field" id="monthlyRentField">
+          <label>월세 (만원/월)</label>
+          <input type="number" id="fMonthlyRent" placeholder="0" min="0" step="1" oninput="showKrw(this,'monthlyRentKrw')">
+          <div id="monthlyRentKrw" style="font-size:11px;color:var(--text2);margin-top:4px;min-height:16px;"></div>
+        </div>
+        <div class="re-field-row">
+          <div class="re-field">
+            <label>계약 시작일</label>
+            <input type="date" id="fContractStart">
+          </div>
+          <div class="re-field">
+            <label>계약 종료일</label>
+            <input type="date" id="fContractEnd">
+          </div>
+        </div>
+      </div>
+
+      <div class="re-field">
+        <label>메모</label>
+        <textarea id="fMemo" placeholder="메모를 입력하세요"></textarea>
+      </div>
+    </div>
+    <div class="re-modal-footer">
+      <button class="re-btn-cancel" onclick="closeModal()">취소</button>
+      <button class="re-btn-save" onclick="saveItem()">저장</button>
+    </div>
+  </div>
+</div>
+
+<script>
+let items = [];
+
+/* ── 데이터 로드 ── */
+async function loadData() {
+  try {
+    const res = await fetch('/api/realestate');
+    items = await res.json();
+    render();
+  } catch (e) {
+    console.error(e);
+  }
+}
+
+/* ── 만원 → 한글 변환 ── */
+function toKrwText(man) {
+  if (!man || isNaN(man) || man <= 0) return '';
+  const v = man * 10000;
+  const eok  = Math.floor(v / 1e8);
+  const rest = v % 1e8;
+  const chun = Math.floor(rest / 1e7);
+  const baek = Math.floor((rest % 1e7) / 1e6);
+  const sip  = Math.floor((rest % 1e6) / 1e4);
+  const parts = [];
+  if (eok)  parts.push(eok  + '억');
+  if (chun) parts.push(chun + '천');
+  if (baek) parts.push(baek + '백');
+  if (sip)  parts.push(sip  + '십');
+  const remain = Math.round(rest % 1e4);
+  if (remain) parts.push(remain.toLocaleString());
+  return parts.join(' ') + '원';
+}
+function showKrw(input, targetId) {
+  const val = parseFloat(input.value) || 0;
+  document.getElementById(targetId).textContent = val > 0 ? '= ' + toKrwText(val) : '';
+}
+
+/* ── 숫자 포맷 ── */
+function fmt(n) {
+  if (!n && n !== 0) return '—';
+  return Number(n).toLocaleString('ko-KR');
+}
+function fmtPct(n) {
+  if (!isFinite(n)) return '—';
+  const s = n.toFixed(1);
+  return (n >= 0 ? '+' : '') + s + '%';
+}
+
+/* ── 날짜 계산 ── */
+function daysBetween(d1, d2) {
+  const a = new Date(d1), b = new Date(d2);
+  return Math.ceil((b - a) / (1000 * 60 * 60 * 24));
+}
+function daysFromNow(d) {
+  return daysBetween(new Date().toISOString().slice(0,10), d);
+}
+function holdingPeriod(purchaseDate) {
+  if (!purchaseDate) return '—';
+  const days = daysBetween(purchaseDate, new Date().toISOString().slice(0,10));
+  if (days < 0) return '—';
+  const years = Math.floor(days / 365);
+  const months = Math.floor((days % 365) / 30);
+  if (years > 0) return years + '년 ' + months + '개월';
+  if (months > 0) return months + '개월 ' + (days % 30) + '일';
+  return days + '일';
+}
+
+/* ══════════════════════════════════════════
+   카드 렌더링
+   ══════════════════════════════════════════ */
+function render() {
+  const grid = document.getElementById('cardGrid');
+  if (items.length === 0) {
+    grid.innerHTML = `<div class="re-empty">
+      <div class="re-empty-icon">🏠</div>
+      <div class="re-empty-title">등록된 부동산이 없습니다</div>
+      <div class="re-empty-desc">아래 버튼을 눌러 부동산을 추가해보세요</div>
+    </div>`;
+    return;
+  }
+  grid.innerHTML = items.map(item => buildCard(item)).join('');
+}
+
+function buildCard(item) {
+  const isRent = item.contract_type === 'rent';
+
+  const headerClass = isRent ? 're-card-header rent-header' : 're-card-header';
+  const badgeLabel  = isRent ? '🔑 임대차' : '🏠 매매';
+  const subLabel    = isRent ? (item.rent_type || '전세') : (item.property_type || '아파트');
+
+  let bodyHtml = '';
+  let contractDetailHtml = '';
+
+  if (!isRent) {
+    const gain    = (item.current_value || 0) - (item.purchase_price || 0);
+    const gainPct = item.purchase_price > 0 ? gain / item.purchase_price * 100 : 0;
+    const ltv     = item.current_value  > 0 ? (item.loan_amount || 0) / item.current_value * 100 : 0;
+    const netVal  = (item.current_value || 0) - (item.loan_amount || 0);
+    const gainCls = gain >= 0 ? 'gain' : 'loss';
+
+    bodyHtml = `
+      <div class="re-price-row cols-4">
+        <div class="re-price-item">
+          <div class="re-price-item-label">현재 시세</div>
+          <div class="re-price-item-value">${fmt(item.current_value || 0)}</div>
+          <div class="re-price-item-sub">만원</div>
+        </div>
+        <div class="re-price-item">
+          <div class="re-price-item-label">매입가</div>
+          <div class="re-price-item-value">${fmt(item.purchase_price || 0)}</div>
+          <div class="re-price-item-sub">만원</div>
+        </div>
+        <div class="re-price-item">
+          <div class="re-price-item-label">손익</div>
+          <div class="re-price-item-value ${gainCls}">${fmtPct(gainPct)}</div>
+          <div class="re-price-item-sub">${gain >= 0 ? '+' : ''}${fmt(gain)}만</div>
+        </div>
+        <div class="re-price-item">
+          <div class="re-price-item-label">순자산</div>
+          <div class="re-price-item-value">${fmt(netVal)}</div>
+          <div class="re-price-item-sub">만원</div>
+        </div>
+      </div>
+      <div class="re-loan-row cols-3">
+        <div class="re-loan-item">
+          <div class="re-loan-label">대출금</div>
+          <div class="re-loan-value red">${fmt(item.loan_amount || 0)}</div>
+          <div class="re-loan-sub">만원</div>
+        </div>
+        <div class="re-loan-item">
+          <div class="re-loan-label">LTV</div>
+          <div class="re-loan-value ${ltv > 70 ? 'red' : ltv > 50 ? '' : 'green'}">${ltv > 0 ? ltv.toFixed(1) + '%' : '—'}</div>
+        </div>
+        <div class="re-loan-item">
+          <div class="re-loan-label">보유 기간</div>
+          <div class="re-loan-value">${holdingPeriod(item.purchase_date)}</div>
+        </div>
+      </div>`;
+
+    if (item.purchase_date || item.address || item.area_m2) {
+      contractDetailHtml = `
+      <div class="re-contract-detail">
+        <div class="re-contract-detail-title">📋 상세 정보</div>
+        <div class="re-contract-detail-grid">
+          ${item.purchase_date ? `<div class="re-detail-item"><span class="re-detail-key">매입일</span><span class="re-detail-val">${item.purchase_date}</span></div>` : ''}
+          ${item.area_m2 ? `<div class="re-detail-item"><span class="re-detail-key">전용면적</span><span class="re-detail-val">${item.area_m2} m²</span></div>` : ''}
+          ${item.address ? `<div class="re-detail-item" style="grid-column:1/-1;"><span class="re-detail-key">주소</span><span class="re-detail-val" style="word-break:break-all;">${escHtml(item.address)}</span></div>` : ''}
+        </div>
+      </div>`;
+    }
+
+  } else {
+    const depositLoan = item.deposit_loan || 0;
+    const netDeposit  = (item.deposit || 0) - depositLoan;
+
+    bodyHtml = `
+      <div class="re-price-row cols-4">
+        <div class="re-price-item">
+          <div class="re-price-item-label">보증금</div>
+          <div class="re-price-item-value">${fmt(item.deposit || 0)}</div>
+          <div class="re-price-item-sub">만원</div>
+        </div>
+        <div class="re-price-item">
+          <div class="re-price-item-label">보증금 대출</div>
+          <div class="re-price-item-value ${depositLoan > 0 ? 'loss' : ''}">${depositLoan > 0 ? fmt(depositLoan) : '없음'}</div>
+          <div class="re-price-item-sub">${depositLoan > 0 ? '만원' : ''}</div>
+        </div>
+        <div class="re-price-item">
+          <div class="re-price-item-label">실 보증금</div>
+          <div class="re-price-item-value">${fmt(netDeposit)}</div>
+          <div class="re-price-item-sub">만원</div>
+        </div>
+        <div class="re-price-item">
+          <div class="re-price-item-label">월세</div>
+          <div class="re-price-item-value">${item.monthly_rent ? fmt(item.monthly_rent) : '없음'}</div>
+          <div class="re-price-item-sub">${item.monthly_rent ? '만원/월' : ''}</div>
+        </div>
+      </div>`;
+
+    if (item.contract_start && item.contract_end) {
+      const total   = daysBetween(item.contract_start, item.contract_end);
+      const elapsed = daysBetween(item.contract_start, new Date().toISOString().slice(0,10));
+      const pct     = Math.min(Math.max(elapsed / total * 100, 0), 100);
+      const remain  = daysFromNow(item.contract_end);
+      const fillCls = remain < 30 ? 'danger' : remain < 90 ? 'warning' : 'normal';
+      const remainLabel = remain < 0 ? '계약 만료' : remain + '일 남음';
+
+      contractDetailHtml = `
+      <div class="re-contract-detail">
+        <div class="re-contract-detail-title">📅 계약 기간</div>
+        <div class="re-progress-bar-wrap">
+          <div class="re-progress-labels">
+            <span>${item.contract_start}</span>
+            <span>${item.contract_end}</span>
+          </div>
+          <div class="re-progress-bar">
+            <div class="re-progress-fill ${fillCls}" style="width:${pct.toFixed(1)}%"></div>
+          </div>
+          <div class="re-progress-center">${remainLabel}</div>
+        </div>
+        ${item.area_m2 ? `<div class="re-detail-item"><span class="re-detail-key">전용면적</span><span class="re-detail-val">${item.area_m2} m²</span></div>` : ''}
+        ${item.address ? `<div class="re-detail-item"><span class="re-detail-key">주소</span><span class="re-detail-val" style="word-break:break-all;">${escHtml(item.address)}</span></div>` : ''}
+      </div>`;
+    } else if (item.area_m2 || item.address) {
+      contractDetailHtml = `
+      <div class="re-contract-detail">
+        <div class="re-contract-detail-title">📋 상세 정보</div>
+        <div class="re-contract-detail-grid">
+          ${item.area_m2 ? `<div class="re-detail-item"><span class="re-detail-key">전용면적</span><span class="re-detail-val">${item.area_m2} m²</span></div>` : ''}
+          ${item.address ? `<div class="re-detail-item" style="grid-column:1/-1;"><span class="re-detail-key">주소</span><span class="re-detail-val" style="word-break:break-all;">${escHtml(item.address)}</span></div>` : ''}
+        </div>
+      </div>`;
+    }
+  }
+
+  const memoHtml = item.memo ? `<div class="re-memo">💬 ${escHtml(item.memo)}</div>` : '';
+
+  return `
+  <div class="re-card">
+    <div class="${headerClass}">
+      <div class="re-card-header-left">
+        <span class="re-badge">${badgeLabel}</span>
+        <span class="re-badge" style="background:rgba(255,255,255,0.15);">${escHtml(subLabel)}</span>
+        <div class="re-card-name">${escHtml(item.name)}</div>
+      </div>
+      <div class="re-card-actions">
+        <button class="re-btn-icon" title="수정" onclick="openEdit(${item.id})">✏️</button>
+        <button class="re-btn-icon" title="삭제" onclick="deleteItem(${item.id})">🗑️</button>
+      </div>
+    </div>
+    <div class="re-card-body">
+      ${bodyHtml}
+      ${contractDetailHtml}
+      ${memoHtml}
+    </div>
+  </div>`;
+}
+
+
+function escHtml(s) {
+  return String(s || '')
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;');
+}
+
+/* ── 모달 ── */
+let currentContractType = 'sale';
+
+function setContractType(type) {
+  currentContractType = type;
+  document.getElementById('saleFields').style.display = type === 'sale' ? '' : 'none';
+  document.getElementById('rentFields').style.display = type === 'rent' ? '' : 'none';
+  const tabSale = document.getElementById('tabSale');
+  const tabRent = document.getElementById('tabRent');
+  const activeStyle = 'background:rgba(161,98,7,0.15);color:#a16207;border-color:rgba(161,98,7,0.3);';
+  const inactiveStyle = 'background:transparent;color:var(--text2);border-color:var(--glass-border);';
+  tabSale.style.cssText += type === 'sale' ? activeStyle : inactiveStyle;
+  tabRent.style.cssText += type === 'rent' ? activeStyle : inactiveStyle;
+}
+
+function toggleMonthlyRent() {
+  const isMonthly = document.getElementById('fRentType').value === '월세';
+  document.getElementById('monthlyRentField').style.display = isMonthly ? '' : 'none';
+}
+
+function openModal(item = null) {
+  document.getElementById('editId').value = item ? item.id : '';
+  document.getElementById('fName').value  = item ? item.name : '';
+  document.getElementById('fArea').value    = item ? (item.area_m2 || '') : '';
+  document.getElementById('fAddress').value = item ? item.address : '';
+  document.getElementById('fMemo').value    = item ? item.memo : '';
+
+  const ctype = item ? (item.contract_type || 'sale') : 'sale';
+  setContractType(ctype);
+
+  if (ctype === 'sale') {
+    document.getElementById('fType').value          = item ? (item.property_type || '아파트') : '아파트';
+    document.getElementById('fPurchasePrice').value = item ? (item.purchase_price || '') : '';
+    document.getElementById('fCurrentValue').value  = item ? (item.current_value  || '') : '';
+    document.getElementById('fLoanAmount').value    = item ? (item.loan_amount    || '') : '';
+    document.getElementById('fLoanRate').value      = item ? (item.loan_rate      || '') : '';
+    document.getElementById('fPurchaseDate').value  = item ? item.purchase_date : '';
+  } else {
+    document.getElementById('fRentType').value     = item ? (item.rent_type || '전세') : '전세';
+    document.getElementById('fDeposit').value      = item ? (item.deposit      || '') : '';
+    document.getElementById('fDepositLoan').value  = item ? (item.deposit_loan || '') : '';
+    document.getElementById('fMonthlyRent').value  = item ? (item.monthly_rent || '') : '';
+    document.getElementById('fContractStart').value = item ? item.contract_start : '';
+    document.getElementById('fContractEnd').value   = item ? item.contract_end : '';
+    toggleMonthlyRent();
+  }
+
+  document.getElementById('modalTitle').textContent = item ? '부동산 수정' : '부동산 추가';
+  document.getElementById('modalOverlay').classList.add('open');
+}
+
+function openEdit(id) {
+  const item = items.find(i => i.id === id);
+  if (item) openModal(item);
+}
+
+function closeModal() {
+  document.getElementById('modalOverlay').classList.remove('open');
+}
+
+function closeModalOnBg(e) {
+  if (e.target === document.getElementById('modalOverlay')) closeModal();
+}
+
+/* ── 저장 ── */
+async function saveItem() {
+  const id   = document.getElementById('editId').value;
+  const name = document.getElementById('fName').value.trim();
+  if (!name) { alert('매물명을 입력해주세요.'); return; }
+
+  const body = {
+    name,
+    contract_type: currentContractType,
+    address: document.getElementById('fAddress').value.trim(),
+    area_m2: parseFloat(document.getElementById('fArea').value) || 0,
+    memo:    document.getElementById('fMemo').value.trim(),
+  };
+
+  if (currentContractType === 'sale') {
+    body.property_type  = document.getElementById('fType').value;
+    body.purchase_price = parseFloat(document.getElementById('fPurchasePrice').value) || 0;
+    body.current_value  = parseFloat(document.getElementById('fCurrentValue').value) || 0;
+    body.loan_amount    = parseFloat(document.getElementById('fLoanAmount').value) || 0;
+    body.loan_rate      = parseFloat(document.getElementById('fLoanRate').value) || 0;
+    body.purchase_date  = document.getElementById('fPurchaseDate').value;
+  } else {
+    body.rent_type      = document.getElementById('fRentType').value;
+    body.deposit        = parseFloat(document.getElementById('fDeposit').value)     || 0;
+    body.deposit_loan   = parseFloat(document.getElementById('fDepositLoan').value) || 0;
+    body.monthly_rent   = parseFloat(document.getElementById('fMonthlyRent').value) || 0;
+    body.contract_start = document.getElementById('fContractStart').value;
+    body.contract_end   = document.getElementById('fContractEnd').value;
+  }
+
+  const url    = id ? `/api/realestate/${id}` : '/api/realestate';
+  const method = id ? 'PUT' : 'POST';
+
+  try {
+    const res = await fetch(url, {
+      method,
+      headers: {'Content-Type': 'application/json'},
+      body: JSON.stringify(body),
+    });
+    if (!res.ok) {
+      const err = await res.json();
+      alert(err.detail || '저장 실패');
+      return;
+    }
+    closeModal();
+    await loadData();
+  } catch (e) {
+    alert('저장 중 오류가 발생했습니다.');
+    console.error(e);
+  }
+}
+
+/* ── 삭제 ── */
+async function deleteItem(id) {
+  if (!confirm('이 부동산을 삭제하시겠습니까?')) return;
+  try {
+    await fetch(`/api/realestate/${id}`, {method: 'DELETE'});
+    await loadData();
+  } catch (e) {
+    alert('삭제 중 오류가 발생했습니다.');
+    console.error(e);
+  }
+}
+
+/* ── 초기 로드 ── */
+loadData();
+</script>
+
+{% endblock %}

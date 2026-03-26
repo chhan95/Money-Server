@@ -300,6 +300,15 @@ def fetch_stock_quick(ticker: str) -> dict | None:
         return None
 
 
+def fetch_current_price(ticker: str) -> float | None:
+    """현재가만 빠르게 조회 (fast_info 사용). 실패 시 None."""
+    try:
+        price = yf.Ticker(ticker.upper()).fast_info.last_price
+        return float(price) if price and price > 0 else None
+    except Exception:
+        return None
+
+
 def fetch_krw_rate() -> float:
     """현재 USD/KRW 환율 조회. 실패 시 1380 반환."""
     for sym in ("USDKRW=X", "KRW=X"):

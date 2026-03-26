@@ -3,7 +3,7 @@ from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
 from fastapi.responses import HTMLResponse, RedirectResponse, JSONResponse
 from sqlalchemy.orm import Session
-from datetime import datetime, timedelta, timezone
+from datetime import datetime, timedelta, timezone, date
 from typing import Optional
 import json, logging
 
@@ -244,12 +244,45 @@ def save_daily_snapshot(db: Session) -> None:
 # 페이지 라우트 (HTML)
 # ════════════════════════════════════════════════════════════
 
+@app.get("/api/refresh-prices")
+def api_refresh_prices(db: Session = Depends(get_db)):
+    """포트폴리오 종목 현재가 갱신 (하루 1회, 홈/포트폴리오 페이지용)."""
+    today = date.today()
+    portfolio = db.query(models.Portfolio).all()
+    updated = []
+    for p in portfolio:
+        stock = db.query(models.Stock).filter(models.Stock.ticker == p.ticker).first()
+        last_date = stock.fetched_at.date() if (stock and stock.fetched_at) else None
+        if last_date is None or last_date < today:
+            price = fetcher.fetch_current_price(p.ticker)
+            if price and stock:
+                stock.current_price = price
+                stock.fetched_at = _now()
+                db.commit()
+                updated.append(p.ticker)
+                logger.info("[%s] 현재가 갱신: %.2f", p.ticker, price)
+    try:
+        save_daily_snapshot(db)
+    except Exception as e:
+        logger.warning("스냅샷 저장 실패: %s", e)
+    return {"updated": updated}
+
+
 @app.get("/", response_class=HTMLResponse)
 def page_home(request: Request, db: Session = Depends(get_db)):
     portfolio = (
         db.query(models.Portfolio)
         .order_by(models.Portfolio.display_order, models.Portfolio.created_at)
         .all()
+    )
+
+    # 오늘 아직 갱신 안 된 종목이 있으면 클라이언트에서 로딩 화면 후 갱신
+    today = date.today()
+    needs_refresh = any(
+        (lambda s: s is None or s.fetched_at is None or s.fetched_at.date() < today)(
+            db.query(models.Stock).filter(models.Stock.ticker == p.ticker).first()
+        )
+        for p in portfolio
     )
 
     items = []
@@ -301,20 +334,25 @@ def page_home(request: Request, db: Session = Depends(get_db)):
     except Exception:
         fx_rate = 1380.0
 
+    items.sort(key=lambda x: x["shares_owned"] * x["current_price"], reverse=True)
+
     # 오늘 스냅샷 저장 (최신 가격 기준)
     try:
         save_daily_snapshot(db)
     except Exception as e:
         logger.warning("스냅샷 저장 실패: %s", e)
 
-    return templates.TemplateResponse("index.html", {
-        "request":       request,
-        "items_json":    json.dumps(items, ensure_ascii=False),
-        "fx_default":    fx_rate,
-        "has_items":     len(portfolio) > 0,
-        "stale_tickers": json.dumps(stale_tickers),
-        "active":        "home",
+    resp = templates.TemplateResponse("index.html", {
+        "request":        request,
+        "items_json":     json.dumps(items, ensure_ascii=False),
+        "fx_default":     fx_rate,
+        "has_items":      len(portfolio) > 0,
+        "stale_tickers":  json.dumps(stale_tickers),
+        "needs_refresh":  json.dumps(needs_refresh),
+        "active":         "home",
     })
+    resp.headers["Cache-Control"] = "no-store"
+    return resp
 
 
 @app.get("/calculator", response_class=HTMLResponse)
@@ -344,14 +382,26 @@ def page_calculator(
 
 @app.get("/portfolio", response_class=HTMLResponse)
 def page_portfolio(request: Request, db: Session = Depends(get_db)):
+    # 오늘 아직 갱신 안 된 종목이 있으면 클라이언트에서 로딩 화면 후 갱신
+    today = date.today()
+    needs_refresh_pf = any(
+        (lambda s: s is None or s.fetched_at is None or s.fetched_at.date() < today)(
+            db.query(models.Stock).filter(models.Stock.ticker == p.ticker).first()
+        )
+        for p in db.query(models.Portfolio).all()
+    )
+
     portfolio = (
         db.query(models.Portfolio)
         .order_by(models.Portfolio.display_order, models.Portfolio.created_at)
         .all()
     )
     items = []
+    stale_tickers = []
     for p in portfolio:
         stock = db.query(models.Stock).filter(models.Stock.ticker == p.ticker).first()
+        if _is_stale(stock):
+            stale_tickers.append(p.ticker)
         items.append({
             "id":            p.id,
             "ticker":        p.ticker,
@@ -362,15 +412,45 @@ def page_portfolio(request: Request, db: Session = Depends(get_db)):
             "memo":          p.memo or "",
         })
 
-    return templates.TemplateResponse("portfolio.html", {
-        "request": request,
-        "items":   items,
-        "active":  "portfolio",
+    items.sort(key=lambda x: x["shares_owned"] * x["current_price"], reverse=True)
+
+    try:
+        fx_rate = fetcher.fetch_krw_rate()
+    except Exception:
+        fx_rate = 1380.0
+
+    resp = templates.TemplateResponse("portfolio.html", {
+        "request":        request,
+        "items":          items,
+        "active":         "portfolio",
+        "fx_default":     fx_rate,
+        "error":          request.query_params.get("error", ""),
+        "stale_tickers":  json.dumps(stale_tickers),
+        "needs_refresh":  json.dumps(needs_refresh_pf),
     })
+    resp.headers["Cache-Control"] = "no-store"
+    return resp
 
 
 @app.get("/history", response_class=HTMLResponse)
-def page_history(request: Request):
+def page_history(request: Request, db: Session = Depends(get_db)):
+    today = date.today()
+    snap = db.query(models.DailySnapshot).filter(
+        models.DailySnapshot.snapshot_date == today
+    ).first()
+    if snap is None:
+        portfolio = db.query(models.Portfolio).all()
+        for p in portfolio:
+            stock = db.query(models.Stock).filter(models.Stock.ticker == p.ticker).first()
+            if _is_stale(stock):
+                try:
+                    get_or_refresh(p.ticker, db)
+                except Exception as e:
+                    logger.warning("히스토리 페이지 갱신 실패 %s: %s", p.ticker, e)
+        try:
+            save_daily_snapshot(db)
+        except Exception as e:
+            logger.warning("히스토리 스냅샷 저장 실패: %s", e)
     return templates.TemplateResponse("history.html", {
         "request": request,
         "active":  "history",
@@ -498,6 +578,7 @@ def portfolio_add(
         return RedirectResponse("/portfolio?error=티커를+입력해주세요", status_code=303)
 
     existing = db.query(models.Portfolio).filter(models.Portfolio.ticker == ticker).first()
+    is_new = existing is None
     if existing:
         existing.shares_owned = shares_owned
         existing.avg_price    = avg_price
@@ -511,8 +592,12 @@ def portfolio_add(
         ))
     db.commit()
 
-    # 종목 데이터 미리 캐시
-    get_or_refresh(ticker, db)
+    # 종목 데이터 캐시 — 신규 티커인데 데이터를 못 가져오면 롤백
+    stock = get_or_refresh(ticker, db)
+    if stock is None and is_new:
+        db.query(models.Portfolio).filter(models.Portfolio.ticker == ticker).delete()
+        db.commit()
+        return RedirectResponse(f"/portfolio?error={ticker}+종목을+찾을+수+없습니다", status_code=303)
 
     return RedirectResponse("/portfolio", status_code=303)
 
@@ -529,12 +614,12 @@ def portfolio_delete(item_id: int, db: Session = Depends(get_db)):
 # ════════════════════════════════════════════════════════════
 
 def _asset_to_dict(s: models.AssetSnapshot, custom_accounts: list = None) -> dict:
-    pension = (s.dc or 0) + (s.irp_miraeasset or 0) + (s.irp_samsung or 0) + (s.personal_pension or 0) + (s.pension_cma or 0)
-    invest  = (s.isa or 0) + (s.miraeasset or 0) + (s.samsung_trading or 0) + (s.toss_securities or 0)
-    # 저축합 = 주택청약종합저축만 (CSV 기준 — 급여적금·내집마련·정기예금합은 집계 미포함)
-    savings = s.housing_subscription or 0
-    liquid  = (s.young_hana or 0) + (s.naverpay_hana or 0) + (s.shinhan or 0) + (s.toss_savings or 0)
-    loan    = s.hana_loan or 0
+    pension     = (s.dc or 0) + (s.irp_miraeasset or 0) + (s.irp_samsung or 0) + (s.personal_pension or 0) + (s.pension_cma or 0)
+    invest      = (s.isa or 0) + (s.miraeasset or 0) + (s.samsung_trading or 0) + (s.toss_securities or 0)
+    savings     = (s.housing_subscription or 0) + (s.fixed_deposit or 0) + (s.hana_salary_savings or 0) + (s.hana_home_savings or 0)
+    liquid      = (s.young_hana or 0) + (s.naverpay_hana or 0) + (s.shinhan or 0) + (s.toss_savings or 0)
+    loan        = s.hana_loan or 0
+    realestate  = 0.0
 
     # 커스텀 계좌 집계
     try:
@@ -545,13 +630,14 @@ def _asset_to_dict(s: models.AssetSnapshot, custom_accounts: list = None) -> dic
     if custom_accounts:
         for acc in custom_accounts:
             val = float(extra.get(str(acc.id), 0) or 0)
-            if acc.category == 'pension':  pension  += val
-            elif acc.category == 'invest': invest   += val
-            elif acc.category == 'savings': savings += val
-            elif acc.category == 'liquid': liquid   += val
-            elif acc.category == 'loan':   loan     += val
+            if acc.category == 'pension':      pension     += val
+            elif acc.category == 'invest':     invest      += val
+            elif acc.category == 'savings':    savings     += val
+            elif acc.category == 'liquid':     liquid      += val
+            elif acc.category == 'loan':       loan        += val
+            elif acc.category == 'realestate': realestate  += val
 
-    total = pension + invest + savings + liquid - loan
+    total = pension + invest + savings + liquid + realestate - loan
     return {
         "id": s.id, "date": s.snapshot_date, "note": s.note or "",
         "dc": s.dc or 0, "irpMiraeasset": s.irp_miraeasset or 0,
@@ -567,6 +653,7 @@ def _asset_to_dict(s: models.AssetSnapshot, custom_accounts: list = None) -> dic
         "extra": extra,
         "pensionTotal": pension, "investTotal": invest,
         "savingsTotal": savings, "liquidTotal": liquid,
+        "realestateTotal": realestate,
         "totalCapital": total,
     }
 
@@ -574,6 +661,105 @@ def _asset_to_dict(s: models.AssetSnapshot, custom_accounts: list = None) -> dic
 @app.get("/assets", response_class=HTMLResponse)
 def page_assets(request: Request):
     return templates.TemplateResponse("assets.html", {"request": request, "active": "assets"})
+
+
+# ──────────────────────────────────────────────
+#  부동산
+# ──────────────────────────────────────────────
+
+@app.get("/realestate", response_class=HTMLResponse)
+def page_realestate(request: Request):
+    return templates.TemplateResponse("realestate.html", {"request": request, "active": "realestate"})
+
+
+def _realestate_to_dict(r: models.RealEstate) -> dict:
+    return {
+        "id":             r.id,
+        "name":           r.name,
+        "contract_type":  r.contract_type or "sale",
+        "property_type":  r.property_type or "아파트",
+        "purchase_price": r.purchase_price or 0,
+        "current_value":  r.current_value or 0,
+        "loan_amount":    r.loan_amount or 0,
+        "purchase_date":  r.purchase_date or "",
+        "rent_type":      r.rent_type or "전세",
+        "deposit":        r.deposit or 0,
+        "deposit_loan":   r.deposit_loan or 0,
+        "monthly_rent":   r.monthly_rent or 0,
+        "contract_start": r.contract_start or "",
+        "contract_end":   r.contract_end or "",
+        "address":        r.address or "",
+        "area_m2":        r.area_m2 or 0,
+        "memo":           r.memo or "",
+        "display_order":  r.display_order or 0,
+    }
+
+
+def _apply_realestate_body(row: models.RealEstate, body: dict):
+    row.name          = (body.get("name") or "").strip()
+    row.contract_type = body.get("contract_type") or "sale"
+    row.address       = (body.get("address") or "").strip()
+    row.area_m2       = float(body.get("area_m2") or 0)
+    row.memo          = (body.get("memo") or "").strip()
+    if row.contract_type == "sale":
+        row.property_type  = (body.get("property_type") or "아파트").strip()
+        row.purchase_price = float(body.get("purchase_price") or 0)
+        row.current_value  = float(body.get("current_value") or 0)
+        row.loan_amount    = float(body.get("loan_amount") or 0)
+        row.purchase_date  = (body.get("purchase_date") or "").strip()
+        row.rent_type = ""; row.deposit = 0; row.deposit_loan = 0; row.monthly_rent = 0
+        row.contract_start = ""; row.contract_end = ""
+    else:
+        row.rent_type      = body.get("rent_type") or "전세"
+        row.deposit        = float(body.get("deposit") or 0)
+        row.deposit_loan   = float(body.get("deposit_loan") or 0)
+        row.monthly_rent   = float(body.get("monthly_rent") or 0)
+        row.contract_start = (body.get("contract_start") or "").strip()
+        row.contract_end   = (body.get("contract_end") or "").strip()
+        row.property_type  = ""; row.purchase_price = 0
+        row.current_value  = 0; row.loan_amount = 0; row.purchase_date = ""
+
+
+@app.get("/api/realestate")
+def api_realestate_list(db: Session = Depends(get_db)):
+    rows = db.query(models.RealEstate).order_by(
+        models.RealEstate.display_order, models.RealEstate.id
+    ).all()
+    return [_realestate_to_dict(r) for r in rows]
+
+
+@app.post("/api/realestate")
+async def api_realestate_create(request: Request, db: Session = Depends(get_db)):
+    body = await request.json()
+    if not (body.get("name") or "").strip():
+        raise HTTPException(status_code=400, detail="매물명을 입력해주세요.")
+    row = models.RealEstate(display_order=db.query(models.RealEstate).count())
+    _apply_realestate_body(row, body)
+    db.add(row)
+    db.commit()
+    db.refresh(row)
+    return _realestate_to_dict(row)
+
+
+@app.put("/api/realestate/{rid}")
+async def api_realestate_update(rid: int, request: Request, db: Session = Depends(get_db)):
+    row = db.query(models.RealEstate).filter(models.RealEstate.id == rid).first()
+    if not row:
+        raise HTTPException(status_code=404, detail="Not found")
+    body = await request.json()
+    if not (body.get("name") or "").strip():
+        raise HTTPException(status_code=400, detail="매물명을 입력해주세요.")
+    _apply_realestate_body(row, body)
+    db.commit()
+    db.refresh(row)
+    return _realestate_to_dict(row)
+
+
+@app.delete("/api/realestate/{rid}")
+def api_realestate_delete(rid: int, db: Session = Depends(get_db)):
+    db.query(models.RealEstate).filter(models.RealEstate.id == rid).delete()
+    db.commit()
+    return {"ok": True}
 
 
 # ──────────────────────────────────────────────
@@ -702,7 +888,7 @@ async def api_accounts_create(request: Request, db: Session = Depends(get_db)):
     body = await request.json()
     name = (body.get("name") or "").strip()
     category = (body.get("category") or "").strip()
-    if not name or category not in ("pension", "invest", "savings", "liquid", "loan"):
+    if not name or category not in ("pension", "invest", "savings", "liquid", "realestate", "loan"):
         raise HTTPException(status_code=400, detail="이름과 분류를 확인해주세요.")
     max_order = db.query(models.CustomAccount).count()
     acc = models.CustomAccount(name=name, category=category, display_order=max_order)

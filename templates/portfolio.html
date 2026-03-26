@@ -1,40 +1,498 @@
 {% extends "base.html" %}
-{% block title %}💰 Money — 포트폴리오{% endblock %}
+{% block title %}Money — 포트폴리오{% endblock %}
 {% block content %}
 
-<!-- ── 헤더 ── -->
-<div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:1.5rem;flex-wrap:wrap;gap:10px;">
-  <div>
-    <h1 style="font-size:18px;font-weight:600;margin-bottom:4px;">📂 해외 포트폴리오</h1>
-    <p class="clr-muted" style="font-size:13px;">{{ items | length }}개 종목 보유</p>
-  </div>
-  <button class="btn btn-primary" onclick="openModal(null)" style="display:flex;align-items:center;gap:6px;">
-    <span style="font-size:16px;line-height:1;">+</span> 종목 추가
-  </button>
+<!-- ── 로딩 오버레이 ── -->
+<div id="priceLoadingOverlay" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.75);z-index:9999;flex-direction:column;align-items:center;justify-content:center;gap:20px;">
+  <div style="width:48px;height:48px;border:4px solid rgba(255,255,255,0.15);border-top-color:#667eea;border-radius:50%;animation:spin 0.8s linear infinite;"></div>
+  <div style="color:#fff;font-size:16px;font-weight:700;">현재가 업데이트 중...</div>
 </div>
+<style>@keyframes spin{to{transform:rotate(360deg)}}</style>
+
+<style>
+/* ── Design Tokens (홈/마일스톤과 동일) ── */
+:root {
+  --ms-gradient: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  --glass: rgba(255,255,255,0.03);
+  --glass-border: var(--border);
+  --shadow-sm: 0 1px 3px rgba(0,0,0,0.08);
+  --shadow-md: 0 4px 16px rgba(0,0,0,0.12);
+  --shadow-lg: 0 8px 32px rgba(0,0,0,0.18);
+  --shadow-glow: 0 0 40px rgba(102,126,234,0.15);
+  --ease-out: cubic-bezier(0.16, 1, 0.3, 1);
+  --r-xl: 16px;
+  --r-2xl: 20px;
+  --green: #10b981;
+  --amber: #f59e0b;
+  --blue: #667eea;
+  --red: #ef4444;
+}
+
+/* ── Page Header ── */
+.pf-page-header {
+  text-align: center;
+  padding: 32px 0 24px;
+}
+.pf-page-header h1 {
+  font-size: 28px;
+  font-weight: 800;
+  letter-spacing: -0.5px;
+  background: var(--ms-gradient);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+  margin-bottom: 6px;
+}
+.pf-page-header p {
+  font-size: 14px;
+  color: var(--text2);
+  font-weight: 400;
+}
+
+/* ── Buttons ── */
+.btn-gradient {
+  background: var(--ms-gradient);
+  color: white; border: none;
+  padding: 10px 20px; border-radius: 10px;
+  font-size: 13px; font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s var(--ease-out);
+  box-shadow: 0 2px 12px rgba(102,126,234,0.3);
+  display: inline-flex; align-items: center; gap: 6px;
+}
+.btn-gradient:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 4px 20px rgba(102,126,234,0.45);
+}
+.btn-soft {
+  background: var(--bg2);
+  color: var(--text);
+  border: 1px solid var(--glass-border);
+  padding: 8px 14px; border-radius: 8px;
+  font-size: 12px; font-weight: 500;
+  cursor: pointer;
+  transition: all 0.15s var(--ease-out);
+}
+.btn-soft:hover {
+  background: rgba(255,255,255,0.06);
+  border-color: rgba(255,255,255,0.12);
+}
+.btn-soft.danger:hover {
+  background: rgba(239,68,68,0.08);
+  border-color: rgba(239,68,68,0.2);
+  color: var(--red);
+}
+
+/* ── Hero Card ── */
+.pf-hero {
+  background: var(--ms-gradient);
+  border-radius: var(--r-2xl);
+  padding: 28px 32px;
+  color: white;
+  position: relative;
+  overflow: hidden;
+  box-shadow: var(--shadow-glow), var(--shadow-lg);
+  margin-bottom: 20px;
+}
+.pf-hero::before {
+  content: '';
+  position: absolute;
+  top: -60%; right: -15%;
+  width: 280px; height: 280px;
+  background: radial-gradient(circle, rgba(255,255,255,0.1) 0%, transparent 70%);
+  pointer-events: none;
+}
+.pf-hero::after {
+  content: '';
+  position: absolute;
+  bottom: -40%; left: -8%;
+  width: 180px; height: 180px;
+  background: radial-gradient(circle, rgba(255,255,255,0.06) 0%, transparent 70%);
+  pointer-events: none;
+}
+.pf-hero-top {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 8px;
+  position: relative; z-index: 1;
+}
+.pf-hero-label {
+  font-size: 13px; font-weight: 500;
+  opacity: 0.7; text-transform: uppercase; letter-spacing: 1.5px;
+}
+.pf-hero-count {
+  font-size: 14px; font-weight: 600; opacity: 0.9;
+}
+.pf-hero-value {
+  font-size: 36px; font-weight: 800; letter-spacing: -1px;
+  position: relative; z-index: 1;
+  margin-bottom: 2px;
+}
+.pf-hero-sub {
+  font-size: 14px; opacity: 0.65; position: relative; z-index: 1;
+}
+
+/* ── Summary Stats Row ── */
+.pf-summary-row {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 12px;
+  margin-bottom: 24px;
+}
+@media (max-width: 500px) { .pf-summary-row { grid-template-columns: 1fr; } }
+
+.pf-stat-card {
+  background: var(--bg);
+  border: 1px solid var(--glass-border);
+  border-radius: var(--r-xl);
+  padding: 20px 22px;
+  transition: all 0.3s var(--ease-out);
+  position: relative;
+  overflow: hidden;
+}
+.pf-stat-card:hover {
+  transform: translateY(-2px);
+  box-shadow: var(--shadow-md);
+  border-color: rgba(255,255,255,0.1);
+}
+.pf-stat-card::before {
+  content: '';
+  position: absolute; left: 0; top: 0; bottom: 0;
+  width: 4px; border-radius: 4px 0 0 4px;
+}
+.pf-stat-card.green::before { background: var(--green); }
+.pf-stat-card.red::before { background: var(--red); }
+.pf-stat-card.amber::before { background: var(--amber); }
+
+.pf-stat-label {
+  font-size: 12px; font-weight: 500; color: var(--text2);
+  margin-bottom: 8px;
+  display: flex; align-items: center; gap: 8px;
+}
+.pf-stat-label .dot {
+  width: 8px; height: 8px; border-radius: 50%;
+}
+.pf-stat-value {
+  font-size: 24px; font-weight: 800; letter-spacing: -0.5px;
+}
+
+/* ── Stock Card Grid ── */
+.pf-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 16px;
+  margin-bottom: 24px;
+}
+@media (max-width: 700px) { .pf-grid { grid-template-columns: 1fr; } }
+
+.pf-card {
+  background: var(--bg);
+  border: 1px solid var(--glass-border);
+  border-radius: var(--r-xl);
+  overflow: hidden;
+  transition: all 0.3s var(--ease-out);
+  position: relative;
+}
+.pf-card:hover {
+  transform: translateY(-2px);
+  box-shadow: var(--shadow-md);
+  border-color: rgba(255,255,255,0.1);
+}
+
+/* Gain color bar at top */
+.pf-gain-bar {
+  height: 4px;
+  width: 100%;
+  background: var(--glass-border);
+}
+
+.pf-card-body { padding: 20px; }
+
+/* Logo */
+.pf-logo {
+  width: 40px; height: 40px;
+  flex-shrink: 0; position: relative;
+}
+.pf-logo img {
+  width: 100%; height: 100%;
+  object-fit: contain; border-radius: 10px;
+}
+.pf-logo-fallback {
+  display: none;
+  position: absolute; inset: 0;
+  border-radius: 10px;
+  background: var(--ms-gradient);
+  color: white;
+  align-items: center; justify-content: center;
+  font-size: 11px; font-weight: 700;
+}
+
+/* Gain Badge */
+.pf-gain-badge {
+  padding: 5px 12px;
+  border-radius: 99px;
+  font-size: 12px;
+  font-weight: 700;
+  line-height: 1;
+  white-space: nowrap;
+}
+
+/* Stats inside card */
+.pf-mini-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 8px;
+  margin-bottom: 10px;
+}
+.pf-mini-stat {
+  background: var(--bg2);
+  border-radius: 8px;
+  padding: 8px 10px;
+}
+.pf-mini-stat-label {
+  font-size: 9px;
+  color: var(--text2);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  margin-bottom: 4px;
+  font-weight: 600;
+}
+.pf-mini-stat-value {
+  font-size: 13px;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+}
+
+/* Eval row */
+.pf-eval-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  background: var(--bg2);
+  border-radius: 8px;
+  padding: 8px 12px;
+}
+.pf-eval-value {
+  font-size: 14px;
+  font-weight: 700;
+  color: var(--blue);
+}
+
+/* Memo */
+.pf-memo {
+  font-size: 11px;
+  color: var(--text2);
+  margin-top: 10px;
+  padding: 8px 12px;
+  background: var(--bg2);
+  border-radius: 8px;
+  border-left: 3px solid var(--blue);
+}
+
+/* Action buttons */
+.pf-actions {
+  display: flex; gap: 8px; margin-top: 14px;
+  opacity: 0;
+  transition: opacity 0.2s;
+}
+.pf-card:hover .pf-actions { opacity: 1; }
+@media (max-width: 700px) { .pf-actions { opacity: 1; } }
+
+/* ── Empty State ── */
+.pf-empty {
+  text-align: center;
+  padding: 60px 24px;
+  color: var(--text2);
+}
+.pf-empty .icon { font-size: 48px; margin-bottom: 14px; opacity: 0.3; }
+.pf-empty .title { font-weight: 600; font-size: 15px; margin-bottom: 6px; color: var(--text); }
+.pf-empty .msg { font-size: 13px; margin-bottom: 20px; }
+
+/* ── Error Banner ── */
+.pf-error-banner {
+  display: flex; align-items: center; gap: 10px;
+  background: rgba(239,68,68,0.08);
+  border: 1px solid rgba(239,68,68,0.25);
+  border-radius: 12px;
+  padding: 12px 16px;
+  margin-bottom: 20px;
+  font-size: 13px; color: #ef4444; font-weight: 500;
+}
+.pf-error-banner .pf-error-close {
+  margin-left: auto; background: none; border: none;
+  color: #ef4444; cursor: pointer; font-size: 14px; opacity: 0.7;
+  line-height: 1; padding: 0;
+}
+.pf-error-banner .pf-error-close:hover { opacity: 1; }
+
+/* ── Disclaimer ── */
+.pf-disclaimer {
+  font-size: 11px;
+  color: var(--text2);
+  opacity: 0.6;
+  text-align: center;
+  padding: 0 16px 24px;
+}
+
+/* ── Modal ── */
+.pf-modal-overlay {
+  display: none;
+  position: fixed; inset: 0;
+  background: rgba(0,0,0,0.6);
+  backdrop-filter: blur(4px);
+  z-index: 200;
+  overflow-y: auto;
+}
+.pf-modal-box {
+  max-width: 460px;
+  margin: 60px auto;
+  background: var(--bg);
+  border: 1px solid var(--glass-border);
+  border-radius: var(--r-2xl);
+  overflow: hidden;
+  box-shadow: var(--shadow-lg);
+  animation: modalSlideUp 0.35s var(--ease-out);
+}
+@keyframes modalSlideUp {
+  from { opacity: 0; transform: translateY(20px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+.pf-modal-header {
+  padding: 20px 24px 16px;
+  border-bottom: 1px solid var(--glass-border);
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+.pf-modal-header h2 {
+  font-size: 16px; font-weight: 700;
+  margin: 0;
+}
+.pf-modal-close {
+  background: var(--bg2);
+  border: none;
+  width: 32px; height: 32px;
+  border-radius: 8px;
+  cursor: pointer;
+  color: var(--text2);
+  font-size: 14px;
+  display: flex; align-items: center; justify-content: center;
+  transition: all 0.15s;
+}
+.pf-modal-close:hover { background: rgba(255,255,255,0.08); color: var(--text); }
+
+.pf-modal-body { padding: 20px 24px 24px; }
+
+/* ── Form ── */
+.pf-form-field { margin-bottom: 14px; }
+.pf-form-field label {
+  display: block;
+  font-size: 12px; font-weight: 500;
+  color: var(--text2);
+  margin-bottom: 6px;
+}
+.pf-form-field input {
+  width: 100%;
+  padding: 10px 14px;
+  background: var(--bg2);
+  border: 1px solid var(--glass-border);
+  border-radius: 10px;
+  color: var(--text);
+  font-size: 13px;
+  outline: none;
+  transition: border-color 0.2s;
+}
+.pf-form-field input:focus {
+  border-color: #667eea;
+  box-shadow: 0 0 0 3px rgba(102,126,234,0.15);
+}
+.pf-form-field input::placeholder { color: var(--text2); opacity: 0.5; }
+.pf-form-field input.ticker-input {
+  text-transform: uppercase;
+  font-size: 20px; font-weight: 700;
+  letter-spacing: 0.06em;
+}
+.pf-form-row {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+}
+
+/* ── Responsive ── */
+@media (max-width: 600px) {
+  .pf-hero { padding: 24px 20px; }
+  .pf-hero-value { font-size: 28px; }
+  .pf-card-body { padding: 16px; }
+  .pf-modal-box { margin: 16px; }
+}
+</style>
+
+
+<!-- ══════════════════════════════════════
+     PAGE HEADER
+══════════════════════════════════════ -->
+<div class="pf-page-header">
+  <h1>해외 포트폴리오</h1>
+  <p>{{ items | length }}개 종목 보유</p>
+</div>
+
+{% if error %}
+<div class="pf-error-banner" id="errorBanner">
+  <span>⚠️ {{ error }}</span>
+  <button class="pf-error-close" onclick="document.getElementById('errorBanner').remove()">✕</button>
+</div>
+{% endif %}
+
+{% if stale_tickers and stale_tickers != '[]' %}
+<div id="refreshBanner" style="display:flex;align-items:center;gap:10px;background:rgba(245,158,11,0.06);border:1px solid rgba(245,158,11,0.12);color:var(--amber);border-radius:12px;padding:12px 16px;margin-bottom:20px;font-size:13px;font-weight:500;">
+  <div style="width:16px;height:16px;border:2px solid rgba(245,158,11,0.2);border-top-color:var(--amber);border-radius:50%;animation:pf-spin 0.8s linear infinite;flex-shrink:0;"></div>
+  데이터 갱신 중… 완료 후 자동으로 새로고침됩니다
+</div>
+<style>@keyframes pf-spin { to { transform: rotate(360deg); } }</style>
+{% endif %}
 
 {% if items %}
 
-<!-- ── 요약 배너 ── -->
-<div style="display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin-bottom:1.75rem;">
-  <div class="pf-summary-card" style="background:linear-gradient(135deg,var(--accent) 0%,#1a6ec0 100%);color:white;border:none;">
-    <div style="font-size:10px;opacity:.75;text-transform:uppercase;letter-spacing:.07em;margin-bottom:8px;">보유 종목</div>
-    <div style="font-size:26px;font-weight:700;line-height:1;">{{ items | length }}<span style="font-size:14px;font-weight:500;opacity:.8;">개</span></div>
-    <div style="position:absolute;bottom:-8px;right:-4px;font-size:56px;opacity:.1;pointer-events:none;">📂</div>
+<!-- ══════════════════════════════════════
+     HERO — 총 평가액
+══════════════════════════════════════ -->
+<div class="pf-hero">
+  <div class="pf-hero-top">
+    <span class="pf-hero-label">PORTFOLIO VALUE</span>
+    <span class="pf-hero-count">{{ items | length }}개 종목</span>
   </div>
-  <div class="pf-summary-card" style="background:linear-gradient(135deg,#0f766e 0%,#0d9488 100%);color:white;border:none;">
-    <div style="font-size:10px;opacity:.75;text-transform:uppercase;letter-spacing:.07em;margin-bottom:8px;">총 평가액</div>
-    <div style="font-size:22px;font-weight:700;line-height:1;" id="bannerTotal">—</div>
-    <div style="position:absolute;bottom:-8px;right:-4px;font-size:56px;opacity:.1;pointer-events:none;">💵</div>
+  <div class="pf-hero-value" id="bannerTotal">—</div>
+  <div class="pf-hero-sub" id="bannerTotalKrw">—</div>
+</div>
+
+
+<!-- ══════════════════════════════════════
+     SUMMARY STATS
+══════════════════════════════════════ -->
+<div class="pf-summary-row">
+  <div class="pf-stat-card" id="gainCard">
+    <div class="pf-stat-label">
+      <span class="dot" id="gainDot" style="background:var(--text2);"></span>
+      평균 수익률
+    </div>
+    <div class="pf-stat-value" id="bannerGain">—</div>
   </div>
-  <div class="pf-summary-card">
-    <div style="font-size:10px;color:var(--text2);text-transform:uppercase;letter-spacing:.07em;margin-bottom:8px;">평균 수익률</div>
-    <div style="font-size:26px;font-weight:700;line-height:1;" id="bannerGain">—</div>
+  <div class="pf-stat-card amber">
+    <div class="pf-stat-label">
+      <span class="dot" style="background:var(--amber);"></span>
+      총 투자금
+    </div>
+    <div class="pf-stat-value" id="bannerCost">—</div>
   </div>
 </div>
 
-<!-- ── 종목 카드 그리드 ── -->
-<div style="display:grid;grid-template-columns:repeat(2,1fr);gap:14px;margin-bottom:1.75rem;">
+
+
+<!-- ══════════════════════════════════════
+     STOCK CARD GRID
+══════════════════════════════════════ -->
+<div class="pf-grid">
   {% for item in items %}
   {% set gain_pct = ((item.current_price - item.avg_price) / item.avg_price * 100) if item.avg_price > 0 and item.current_price > 0 else none %}
   {% set eval_usd = item.shares_owned * item.current_price if item.current_price > 0 else 0 %}
@@ -43,29 +501,22 @@
        data-avg="{{ item.avg_price }}"
        data-cur="{{ item.current_price }}">
 
-    <!-- 게인 컬러 바 (상단) -->
     <div class="pf-gain-bar"></div>
 
-    <!-- 카드 바디 -->
-    <div style="padding:16px;">
-
-      <!-- 상단: 로고 + 티커 + 뱃지 -->
-      <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:14px;">
-        <div style="display:flex;align-items:center;gap:10px;">
+    <div class="pf-card-body">
+      <!-- Top: Logo + Ticker + Badge -->
+      <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:16px;">
+        <div style="display:flex;align-items:center;gap:12px;">
           <div class="pf-logo">
             <img src="/resources/icons/{{ item.ticker }}.png"
-                 style="width:100%;height:100%;object-fit:contain;border-radius:6px;"
                  onerror="this.style.display='none';this.parentElement.querySelector('.pf-logo-fallback').style.display='flex';" />
-            <div class="pf-logo-fallback" style="display:none;width:100%;height:100%;border-radius:6px;background:var(--accent);color:white;align-items:center;justify-content:center;font-size:11px;font-weight:700;letter-spacing:-.01em;">
-              {{ item.ticker[:2] }}
-            </div>
+            <div class="pf-logo-fallback">{{ item.ticker[:2] }}</div>
           </div>
           <div>
             <div style="font-size:16px;font-weight:700;letter-spacing:.02em;line-height:1.2;">{{ item.ticker }}</div>
-            <div style="font-size:11px;color:var(--text2);margin-top:2px;max-width:110px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">{{ item.name or '—' }}</div>
+            <div style="font-size:11px;color:var(--text2);margin-top:2px;max-width:120px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">{{ item.name or '—' }}</div>
           </div>
         </div>
-
         {% if gain_pct is not none %}
         <div class="pf-gain-badge" data-gain="{{ '%.2f'|format(gain_pct) }}">
           {{ '+' if gain_pct >= 0 else '' }}{{ "%.1f"|format(gain_pct) }}%
@@ -73,26 +524,26 @@
         {% endif %}
       </div>
 
-      <!-- 구분선 -->
-      <div style="height:1px;background:var(--border2);margin-bottom:12px;"></div>
+      <!-- Divider -->
+      <div style="height:1px;background:var(--glass-border);margin-bottom:14px;"></div>
 
-      <!-- 수치 그리드 -->
-      <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:6px;margin-bottom:10px;">
-        <div class="pf-stat">
-          <div class="pf-stat-label">보유주</div>
-          <div class="pf-stat-value">{{ item.shares_owned | int if item.shares_owned == (item.shares_owned | int) else item.shares_owned }}</div>
+      <!-- Stats Grid -->
+      <div class="pf-mini-grid">
+        <div class="pf-mini-stat">
+          <div class="pf-mini-stat-label">보유주</div>
+          <div class="pf-mini-stat-value">{{ item.shares_owned | int if item.shares_owned == (item.shares_owned | int) else item.shares_owned }}</div>
         </div>
-        <div class="pf-stat">
-          <div class="pf-stat-label">평균단가</div>
-          <div class="pf-stat-value">{% if item.avg_price > 0 %}${{ "%.2f"|format(item.avg_price) }}{% else %}—{% endif %}</div>
+        <div class="pf-mini-stat">
+          <div class="pf-mini-stat-label">평균단가</div>
+          <div class="pf-mini-stat-value">{% if item.avg_price > 0 %}${{ "%.2f"|format(item.avg_price) }}{% else %}—{% endif %}</div>
         </div>
-        <div class="pf-stat">
-          <div class="pf-stat-label">현재가</div>
-          <div class="pf-stat-value">{% if item.current_price > 0 %}${{ "%.2f"|format(item.current_price) }}{% else %}—{% endif %}</div>
+        <div class="pf-mini-stat">
+          <div class="pf-mini-stat-label">현재가</div>
+          <div class="pf-mini-stat-value">{% if item.current_price > 0 %}${{ "%.2f"|format(item.current_price) }}{% else %}—{% endif %}</div>
         </div>
       </div>
 
-      <!-- 평가액 배너 -->
+      <!-- Eval -->
       {% if eval_usd > 0 %}
       <div class="pf-eval-row">
         <span style="font-size:11px;color:var(--text2);">평가액</span>
@@ -100,14 +551,14 @@
       </div>
       {% endif %}
 
-      <!-- 메모 -->
+      <!-- Memo -->
       {% if item.memo %}
       <div class="pf-memo">{{ item.memo }}</div>
       {% endif %}
 
-      <!-- 버튼 -->
-      <div style="display:flex;gap:6px;margin-top:12px;">
-        <button class="btn btn-ghost" style="flex:1;font-size:12px;padding:6px 0;"
+      <!-- Actions -->
+      <div class="pf-actions">
+        <button class="btn-soft" style="flex:1;"
                 data-ticker="{{ item.ticker }}"
                 data-shares="{{ item.shares_owned }}"
                 data-avg="{{ item.avg_price }}"
@@ -115,163 +566,85 @@
                 onclick="openModalFromBtn(this)">✏️ 수정</button>
         <form method="post" action="/portfolio/delete/{{ item.id }}" style="flex:1;"
               onsubmit="return confirm('{{ item.ticker }} 종목을 삭제하시겠습니까?')">
-          <button type="submit" class="btn btn-ghost"
-                  style="width:100%;font-size:12px;padding:6px 0;color:var(--red);border-color:rgba(239,68,68,.25);">🗑️ 삭제</button>
+          <button type="submit" class="btn-soft danger" style="width:100%;">🗑️ 삭제</button>
         </form>
       </div>
-
-    </div><!-- /card body -->
+    </div>
   </div>
   {% endfor %}
 </div>
 
 {% else %}
-<div class="empty-state" style="padding:60px 20px;">
-  <div style="font-size:48px;margin-bottom:14px;">📭</div>
-  <div style="font-weight:600;font-size:15px;margin-bottom:6px;">보유 종목이 없습니다</div>
-  <div style="font-size:13px;color:var(--text2);margin-bottom:20px;">상단 "+ 종목 추가" 버튼으로 첫 종목을 추가하세요.</div>
-  <button class="btn btn-primary" onclick="openModal(null)">+ 종목 추가</button>
+
+<!-- ══════════════════════════════════════
+     EMPTY STATE
+══════════════════════════════════════ -->
+<div class="pf-empty">
+  <div class="icon">📭</div>
+  <div class="title">보유 종목이 없습니다</div>
+  <div class="msg">상단 "+ 종목 추가" 버튼으로 첫 종목을 추가하세요.</div>
+  <button class="btn-gradient" onclick="openModal(null)">+ 종목 추가</button>
 </div>
+
 {% endif %}
 
-<div class="disclaimer">
+<div style="display:flex;justify-content:center;margin:32px 0 16px;">
+  <button class="btn-gradient" onclick="openModal(null)" style="padding:14px 40px;font-size:15px;">
+    <span style="font-size:18px;line-height:1;">+</span> 종목 추가
+  </button>
+</div>
+
+<div class="pf-disclaimer">
   ※ 종목 추가 시 Yahoo Finance에서 재무 데이터를 자동으로 가져옵니다. 데이터는 24시간 캐시됩니다.
 </div>
 
-<!-- ── 추가/수정 모달 ── -->
-<div id="modal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:200;overflow-y:auto;backdrop-filter:blur(4px);">
-  <div style="max-width:440px;margin:80px auto;background:var(--bg);border-radius:16px;box-shadow:0 20px 60px rgba(0,0,0,.2);overflow:hidden;">
-    <!-- 모달 헤더 -->
-    <div style="padding:20px 24px 16px;border-bottom:1px solid var(--border);display:flex;justify-content:space-between;align-items:center;">
-      <h2 id="modalTitle" style="font-size:15px;font-weight:700;">종목 추가</h2>
-      <button onclick="closeModal()" style="background:var(--bg2);border:none;width:28px;height:28px;border-radius:50%;cursor:pointer;color:var(--text2);font-size:14px;display:flex;align-items:center;justify-content:center;">✕</button>
+
+<!-- ══════════════════════════════════════
+     MODAL
+══════════════════════════════════════ -->
+<div id="modal" class="pf-modal-overlay">
+  <div class="pf-modal-box">
+    <div class="pf-modal-header">
+      <h2 id="modalTitle">종목 추가</h2>
+      <button onclick="closeModal()" class="pf-modal-close">✕</button>
     </div>
-    <!-- 모달 바디 -->
-    <div style="padding:20px 24px 24px;">
+    <div class="pf-modal-body">
       <form method="post" action="/portfolio/add" id="addForm">
-        <div style="margin-bottom:14px;">
-          <label class="form-label">티커 (Ticker)</label>
-          <input type="text" name="ticker" id="f-ticker" class="form-input"
-                 placeholder="NVDA" required maxlength="12"
-                 style="text-transform:uppercase;width:100%;font-size:20px;font-weight:700;letter-spacing:.06em;padding:10px 14px;" />
+        <div class="pf-form-field">
+          <label>티커 (Ticker)</label>
+          <input type="text" name="ticker" id="f-ticker" class="ticker-input"
+                 placeholder="NVDA" required maxlength="12" />
         </div>
-        <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:14px;">
-          <div>
-            <label class="form-label">보유 주식 수</label>
-            <input type="number" name="shares_owned" id="f-shares" class="form-input"
-                   placeholder="100" min="0" step="0.01" required style="width:100%;" />
+        <div class="pf-form-row" style="margin-bottom:14px;">
+          <div class="pf-form-field" style="margin-bottom:0;">
+            <label>보유 주식 수</label>
+            <input type="number" name="shares_owned" id="f-shares"
+                   placeholder="100" min="0" step="0.01" required />
           </div>
-          <div>
-            <label class="form-label">평균 매수단가 ($)</label>
-            <input type="number" name="avg_price" id="f-price" class="form-input"
-                   placeholder="0.00" min="0" step="0.01" style="width:100%;" />
+          <div class="pf-form-field" style="margin-bottom:0;">
+            <label>평균 매수단가 ($)</label>
+            <input type="number" name="avg_price" id="f-price"
+                   placeholder="0.00" min="0" step="0.01" />
           </div>
         </div>
-        <div style="margin-bottom:20px;">
-          <label class="form-label">메모 (선택)</label>
-          <input type="text" name="memo" id="f-memo" class="form-input"
-                 placeholder="메모..." maxlength="200" style="width:100%;" />
+        <div class="pf-form-field" style="margin-bottom:24px;">
+          <label>메모 (선택)</label>
+          <input type="text" name="memo" id="f-memo"
+                 placeholder="메모..." maxlength="200" />
         </div>
-        <div style="display:flex;gap:8px;justify-content:flex-end;">
-          <button type="button" class="btn btn-ghost" onclick="closeModal()">취소</button>
-          <button type="submit" class="btn btn-primary" style="min-width:80px;">저장</button>
+        <div style="display:flex;gap:10px;justify-content:flex-end;">
+          <button type="button" class="btn-soft" onclick="closeModal()">취소</button>
+          <button type="submit" class="btn-gradient" style="padding:10px 24px;">저장</button>
         </div>
       </form>
     </div>
   </div>
 </div>
 
-<style>
-/* ── 포트폴리오 전용 스타일 ── */
-.pf-summary-card {
-  background: var(--bg2);
-  border: 0.5px solid var(--border);
-  border-radius: var(--r-lg);
-  padding: 16px;
-  position: relative;
-  overflow: hidden;
-}
 
-.pf-card {
-  background: var(--bg);
-  border: 0.5px solid var(--border);
-  border-radius: var(--r-lg);
-  overflow: hidden;
-  display: flex;
-  flex-direction: column;
-  transition: box-shadow .2s, transform .2s;
-  box-shadow: 0 1px 4px rgba(0,0,0,.04);
-}
-.pf-card:hover {
-  box-shadow: 0 4px 16px rgba(0,0,0,.08);
-  transform: translateY(-1px);
-}
-
-.pf-gain-bar {
-  height: 4px;
-  width: 100%;
-  background: var(--border2);
-}
-
-.pf-logo {
-  width: 40px;
-  height: 40px;
-  flex-shrink: 0;
-  position: relative;
-}
-
-.pf-gain-badge {
-  padding: 5px 11px;
-  border-radius: 99px;
-  font-size: 13px;
-  font-weight: 700;
-  line-height: 1;
-  white-space: nowrap;
-}
-
-.pf-stat {
-  background: var(--bg2);
-  border-radius: var(--r-md);
-  padding: 8px 10px;
-}
-.pf-stat-label {
-  font-size: 9px;
-  color: var(--text2);
-  text-transform: uppercase;
-  letter-spacing: .05em;
-  margin-bottom: 4px;
-}
-.pf-stat-value {
-  font-size: 13px;
-  font-weight: 600;
-}
-
-.pf-eval-row {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  background: var(--bg2);
-  border-radius: var(--r-md);
-  padding: 8px 10px;
-  margin-bottom: 0;
-}
-.pf-eval-value {
-  font-size: 14px;
-  font-weight: 700;
-  color: var(--accent);
-}
-
-.pf-memo {
-  font-size: 11px;
-  color: var(--text2);
-  margin-top: 8px;
-  padding: 6px 10px;
-  background: var(--bg2);
-  border-radius: var(--r-md);
-  border-left: 2px solid var(--accent);
-}
-</style>
-
+<!-- ══════════════════════════════════════
+     SCRIPT
+══════════════════════════════════════ -->
 <script>
 function openModal(ticker) {
   document.getElementById('modalTitle').textContent = '종목 추가';
@@ -309,8 +682,16 @@ document.getElementById('f-ticker').addEventListener('input', function() {
   this.value = this.value.toUpperCase();
 });
 
-// ── 카드 색상 + 요약 배너 계산 ──
+function fmtKRWraw(w) {
+  var s = w < 0 ? '-' : '', a = Math.abs(w);
+  if (a >= 1e12) return s + (a/1e12).toFixed(2) + '조원';
+  if (a >= 1e8)  return s + (a/1e8 ).toFixed(2) + '억원';
+  if (a >= 1e4)  return s + Math.round(a/1e4).toLocaleString() + '만원';
+  return s + Math.round(a).toLocaleString() + '원';
+}
+
 (function() {
+  var fxRate = {{ fx_default|int }};
   var cards = document.querySelectorAll('[data-shares][data-avg][data-cur]');
   var totalVal = 0, totalCost = 0, totalCur = 0;
 
@@ -327,7 +708,6 @@ document.getElementById('f-ticker').addEventListener('input', function() {
 
     var isGain = cur >= avg;
 
-    // 게인 바
     var bar = card.querySelector('.pf-gain-bar');
     if (bar && cur > 0 && avg > 0) {
       bar.style.background = isGain
@@ -335,49 +715,69 @@ document.getElementById('f-ticker').addEventListener('input', function() {
         : 'linear-gradient(90deg,#ef4444,#f87171)';
     }
 
-    // 뱃지
     var badge = card.querySelector('.pf-gain-badge');
     if (badge) {
       var gain = parseFloat(badge.dataset.gain);
       if (gain >= 0) {
-        badge.style.background = 'rgba(16,185,129,.13)';
-        badge.style.color = '#059669';
-        badge.style.border = '1px solid rgba(16,185,129,.25)';
+        badge.style.background = 'rgba(16,185,129,.1)';
+        badge.style.color = '#10b981';
+        badge.style.border = '1px solid rgba(16,185,129,.2)';
       } else {
-        badge.style.background = 'rgba(239,68,68,.1)';
+        badge.style.background = 'rgba(239,68,68,.08)';
         badge.style.color = '#ef4444';
-        badge.style.border = '1px solid rgba(239,68,68,.2)';
+        badge.style.border = '1px solid rgba(239,68,68,.15)';
       }
     }
   });
 
-  // 배너 업데이트
+  /* Hero */
   var bannerTotal = document.getElementById('bannerTotal');
-  var bannerGain  = document.getElementById('bannerGain');
+  var bannerTotalKrw = document.getElementById('bannerTotalKrw');
   if (bannerTotal && totalVal > 0) {
     bannerTotal.textContent = '$' + Math.round(totalVal).toLocaleString();
   }
+  if (bannerTotalKrw && totalVal > 0) {
+    bannerTotalKrw.textContent = '≈ ' + fmtKRWraw(totalVal * fxRate);
+  }
+
+  /* Cost */
+  var bannerCost = document.getElementById('bannerCost');
+  if (bannerCost && totalCost > 0) {
+    bannerCost.textContent = '$' + Math.round(totalCost).toLocaleString();
+  }
+
+  /* Gain */
+  var bannerGain = document.getElementById('bannerGain');
+  var gainCard   = document.getElementById('gainCard');
+  var gainDot    = document.getElementById('gainDot');
   if (bannerGain && totalCost > 0) {
     var pct = (totalCur - totalCost) / totalCost * 100;
     bannerGain.textContent = (pct >= 0 ? '+' : '') + pct.toFixed(1) + '%';
-    bannerGain.style.color = pct >= 0 ? 'rgba(255,255,255,.95)' : '#fca5a5';
-    // 배너 카드 색상
-    var gainCard = bannerGain.closest('.pf-summary-card');
-    if (gainCard) {
-      if (pct >= 0) {
-        gainCard.style.background = 'linear-gradient(135deg,#059669 0%,#10b981 100%)';
-        gainCard.style.color = 'white';
-        gainCard.style.border = 'none';
-        gainCard.querySelector('div').style.opacity = '.75';
-        gainCard.querySelector('div').style.color = 'rgba(255,255,255,.75)';
-      } else {
-        gainCard.style.background = 'linear-gradient(135deg,#dc2626 0%,#ef4444 100%)';
-        gainCard.style.color = 'white';
-        gainCard.style.border = 'none';
-      }
+    if (pct >= 0) {
+      bannerGain.style.color = 'var(--green)';
+      if (gainCard) gainCard.classList.add('green');
+      if (gainDot) gainDot.style.background = 'var(--green)';
+    } else {
+      bannerGain.style.color = 'var(--red)';
+      if (gainCard) gainCard.classList.add('red');
+      if (gainDot) gainDot.style.background = 'var(--red)';
     }
   }
 })();
+
+var STALE = {{ stale_tickers | safe }};
+var NEEDS_REFRESH = {{ needs_refresh | safe }};
+if (NEEDS_REFRESH) {
+  var overlay = document.getElementById('priceLoadingOverlay');
+  overlay.style.display = 'flex';
+  fetch('/api/refresh-prices')
+    .then(function() { location.reload(); })
+    .catch(function() { overlay.style.display = 'none'; });
+} else if (STALE.length > 0) {
+  Promise.all(STALE.map(function(t) {
+    return fetch('/api/stock/' + t).catch(function() { return null; });
+  })).then(function() { location.reload(); });
+}
 </script>
 
 {% endblock %}
