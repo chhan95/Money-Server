@@ -1,5 +1,5 @@
 {% extends "base.html" %}
-{% block title %}Money — 포트폴리오{% endblock %}
+{% block title %}Money — 국내 포트폴리오{% endblock %}
 {% block content %}
 
 <!-- ── 로딩 오버레이 ── -->
@@ -10,7 +10,7 @@
 <style>@keyframes spin{to{transform:rotate(360deg)}}</style>
 
 <style>
-/* ── Design Tokens (홈/마일스톤과 동일) ── */
+/* ── Design Tokens ── */
 :root {
   --ms-gradient: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
   --glass: rgba(255,255,255,0.03);
@@ -28,7 +28,6 @@
   --red: #ef4444;
 }
 
-/* ── Page Header ── */
 .pf-page-header {
   text-align: center;
   padding: 32px 0 24px;
@@ -49,7 +48,6 @@
   font-weight: 400;
 }
 
-/* ── Buttons ── */
 .btn-gradient {
   background: var(--ms-gradient);
   color: white; border: none;
@@ -83,7 +81,6 @@
   color: var(--red);
 }
 
-/* ── Hero Card ── */
 .pf-hero {
   background: var(--ms-gradient);
   border-radius: var(--r-2xl);
@@ -133,7 +130,6 @@
   font-size: 14px; opacity: 0.65; position: relative; z-index: 1;
 }
 
-/* ── Summary Stats Row ── */
 .pf-summary-row {
   display: grid;
   grid-template-columns: repeat(2, 1fr);
@@ -177,7 +173,6 @@
   font-size: 24px; font-weight: 800; letter-spacing: -0.5px;
 }
 
-/* ── Stock Card Grid ── */
 .pf-grid {
   display: grid;
   grid-template-columns: repeat(2, 1fr);
@@ -200,7 +195,6 @@
   border-color: rgba(255,255,255,0.1);
 }
 
-/* Gain color bar at top */
 .pf-gain-bar {
   height: 4px;
   width: 100%;
@@ -209,7 +203,6 @@
 
 .pf-card-body { padding: 20px; }
 
-/* Logo */
 .pf-logo {
   width: 40px; height: 40px;
   flex-shrink: 0; position: relative;
@@ -228,7 +221,6 @@
   font-size: 11px; font-weight: 700;
 }
 
-/* Gain Badge */
 .pf-gain-badge {
   padding: 5px 12px;
   border-radius: 99px;
@@ -238,7 +230,6 @@
   white-space: nowrap;
 }
 
-/* Stats inside card */
 .pf-mini-grid {
   display: grid;
   grid-template-columns: repeat(3, 1fr);
@@ -264,7 +255,6 @@
   font-variant-numeric: tabular-nums;
 }
 
-/* Eval row */
 .pf-eval-row {
   display: flex;
   justify-content: space-between;
@@ -279,7 +269,6 @@
   color: var(--blue);
 }
 
-/* Memo */
 .pf-memo {
   font-size: 11px;
   color: var(--text2);
@@ -290,7 +279,6 @@
   border-left: 3px solid var(--blue);
 }
 
-/* Action buttons */
 .pf-actions {
   display: flex; gap: 8px; margin-top: 14px;
   opacity: 0;
@@ -299,7 +287,6 @@
 .pf-card:hover .pf-actions { opacity: 1; }
 @media (max-width: 700px) { .pf-actions { opacity: 1; } }
 
-/* ── Empty State ── */
 .pf-empty {
   text-align: center;
   padding: 60px 24px;
@@ -309,7 +296,6 @@
 .pf-empty .title { font-weight: 600; font-size: 15px; margin-bottom: 6px; color: var(--text); }
 .pf-empty .msg { font-size: 13px; margin-bottom: 20px; }
 
-/* ── Error Banner ── */
 .pf-error-banner {
   display: flex; align-items: center; gap: 10px;
   background: rgba(239,68,68,0.08);
@@ -326,7 +312,6 @@
 }
 .pf-error-banner .pf-error-close:hover { opacity: 1; }
 
-/* ── Disclaimer ── */
 .pf-disclaimer {
   font-size: 11px;
   color: var(--text2);
@@ -335,7 +320,6 @@
   padding: 0 16px 24px;
 }
 
-/* ── Modal ── */
 .pf-modal-overlay {
   display: none;
   position: fixed; inset: 0;
@@ -384,7 +368,6 @@
 
 .pf-modal-body { padding: 20px 24px 24px; }
 
-/* ── Form ── */
 .pf-form-field { margin-bottom: 14px; }
 .pf-form-field label {
   display: block;
@@ -409,7 +392,6 @@
 }
 .pf-form-field input::placeholder { color: var(--text2); opacity: 0.5; }
 .pf-form-field input.ticker-input {
-  text-transform: uppercase;
   font-size: 20px; font-weight: 700;
   letter-spacing: 0.06em;
 }
@@ -419,7 +401,6 @@
   gap: 10px;
 }
 
-/* ── Responsive ── */
 @media (max-width: 600px) {
   .pf-hero { padding: 24px 20px; }
   .pf-hero-value { font-size: 28px; }
@@ -429,11 +410,9 @@
 </style>
 
 
-<!-- ══════════════════════════════════════
-     PAGE HEADER
-══════════════════════════════════════ -->
+<!-- PAGE HEADER -->
 <div class="pf-page-header">
-  <h1>해외 포트폴리오</h1>
+  <h1>국내 포트폴리오</h1>
   <p>{{ items | length }}개 종목 보유</p>
 </div>
 
@@ -454,22 +433,17 @@
 
 {% if items %}
 
-<!-- ══════════════════════════════════════
-     HERO — 총 평가액
-══════════════════════════════════════ -->
+<!-- HERO -->
 <div class="pf-hero">
   <div class="pf-hero-top">
     <span class="pf-hero-label">PORTFOLIO VALUE</span>
     <span class="pf-hero-count">{{ items | length }}개 종목</span>
   </div>
   <div class="pf-hero-value" id="bannerTotal">—</div>
-  <div class="pf-hero-sub" id="bannerTotalKrw">—</div>
+  <div class="pf-hero-sub" id="bannerTotalSub">—</div>
 </div>
 
-
-<!-- ══════════════════════════════════════
-     SUMMARY STATS
-══════════════════════════════════════ -->
+<!-- SUMMARY STATS -->
 <div class="pf-summary-row">
   <div class="pf-stat-card" id="gainCard">
     <div class="pf-stat-label">
@@ -487,15 +461,15 @@
   </div>
 </div>
 
-
-
-<!-- ══════════════════════════════════════
-     STOCK CARD GRID
-══════════════════════════════════════ -->
+<!-- STOCK CARD GRID -->
 <div class="pf-grid">
   {% for item in items %}
   {% set gain_pct = ((item.current_price - item.avg_price) / item.avg_price * 100) if item.avg_price > 0 and item.current_price > 0 else none %}
-  {% set eval_usd = item.shares_owned * item.current_price if item.current_price > 0 else 0 %}
+  {% set eval_krw = item.shares_owned * item.current_price if item.current_price > 0 else 0 %}
+
+  <!-- 종목 티커에서 .KS / .KQ 제거해서 표시용으로 사용 -->
+  {% set display_ticker = item.ticker.replace('.KS','').replace('.KQ','') %}
+
   <div class="pf-card"
        data-shares="{{ item.shares_owned }}"
        data-avg="{{ item.avg_price }}"
@@ -508,12 +482,12 @@
       <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:16px;">
         <div style="display:flex;align-items:center;gap:12px;">
           <div class="pf-logo">
-            <img src="/resources/icons/{{ item.ticker }}.png"
+            <img src="/resources/icons/{{ display_ticker }}.png"
                  onerror="this.style.display='none';this.parentElement.querySelector('.pf-logo-fallback').style.display='flex';" />
-            <div class="pf-logo-fallback">{{ item.ticker[:2] }}</div>
+            <div class="pf-logo-fallback">{{ display_ticker[:2] }}</div>
           </div>
           <div>
-            <div style="font-size:16px;font-weight:700;letter-spacing:.02em;line-height:1.2;">{{ item.ticker }}</div>
+            <div style="font-size:16px;font-weight:700;letter-spacing:.02em;line-height:1.2;">{{ display_ticker }}</div>
             <div style="font-size:11px;color:var(--text2);margin-top:2px;max-width:120px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">{{ item.name or '—' }}</div>
           </div>
         </div>
@@ -535,19 +509,19 @@
         </div>
         <div class="pf-mini-stat">
           <div class="pf-mini-stat-label">평균단가</div>
-          <div class="pf-mini-stat-value">{% if item.avg_price > 0 %}${{ "%.2f"|format(item.avg_price) }}{% else %}—{% endif %}</div>
+          <div class="pf-mini-stat-value">{% if item.avg_price > 0 %}{{ "{:,.0f}".format(item.avg_price) }}{% else %}—{% endif %}</div>
         </div>
         <div class="pf-mini-stat">
           <div class="pf-mini-stat-label">현재가</div>
-          <div class="pf-mini-stat-value">{% if item.current_price > 0 %}${{ "%.2f"|format(item.current_price) }}{% else %}—{% endif %}</div>
+          <div class="pf-mini-stat-value">{% if item.current_price > 0 %}{{ "{:,.0f}".format(item.current_price) }}{% else %}—{% endif %}</div>
         </div>
       </div>
 
       <!-- Eval -->
-      {% if eval_usd > 0 %}
+      {% if eval_krw > 0 %}
       <div class="pf-eval-row">
         <span style="font-size:11px;color:var(--text2);">평가액</span>
-        <span class="pf-eval-value">${{ "{:,.0f}".format(eval_usd) }}</span>
+        <span class="pf-eval-value">₩{{ "{:,.0f}".format(eval_krw) }}</span>
       </div>
       {% endif %}
 
@@ -560,12 +534,13 @@
       <div class="pf-actions">
         <button class="btn-soft" style="flex:1;"
                 data-ticker="{{ item.ticker }}"
+                data-display="{{ display_ticker }}"
                 data-shares="{{ item.shares_owned }}"
                 data-avg="{{ item.avg_price }}"
                 data-memo="{{ item.memo or '' }}"
                 onclick="openModalFromBtn(this)">✏️ 수정</button>
-        <form method="post" action="/portfolio/delete/{{ item.id }}" style="flex:1;"
-              onsubmit="return confirm('{{ item.ticker }} 종목을 삭제하시겠습니까?')">
+        <form method="post" action="/kr-portfolio/delete/{{ item.id }}" style="flex:1;"
+              onsubmit="return confirm('{{ display_ticker }} 종목을 삭제하시겠습니까?')">
           <button type="submit" class="btn-soft danger" style="width:100%;">🗑️ 삭제</button>
         </form>
       </div>
@@ -576,9 +551,7 @@
 
 {% else %}
 
-<!-- ══════════════════════════════════════
-     EMPTY STATE
-══════════════════════════════════════ -->
+<!-- EMPTY STATE -->
 <div class="pf-empty">
   <div class="icon">📭</div>
   <div class="title">보유 종목이 없습니다</div>
@@ -595,13 +568,12 @@
 </div>
 
 <div class="pf-disclaimer">
-  ※ 종목 추가 시 Yahoo Finance에서 재무 데이터를 자동으로 가져옵니다. 데이터는 24시간 캐시됩니다.
+  ※ 종목 추가 시 Yahoo Finance에서 현재가를 자동으로 가져옵니다. 데이터는 24시간 캐시됩니다.<br>
+  티커는 종목코드(예: 005930)를 입력하세요. KOSPI는 .KS, KOSDAQ은 .KQ가 자동으로 추가됩니다.
 </div>
 
 
-<!-- ══════════════════════════════════════
-     MODAL
-══════════════════════════════════════ -->
+<!-- MODAL -->
 <div id="modal" class="pf-modal-overlay">
   <div class="pf-modal-box">
     <div class="pf-modal-header">
@@ -609,11 +581,11 @@
       <button onclick="closeModal()" class="pf-modal-close">✕</button>
     </div>
     <div class="pf-modal-body">
-      <form method="post" action="/portfolio/add" id="addForm">
+      <form method="post" action="/kr-portfolio/add" id="addForm">
         <div class="pf-form-field">
-          <label>티커 (Ticker)</label>
+          <label>종목코드 (Ticker)</label>
           <input type="text" name="ticker" id="f-ticker" class="ticker-input"
-                 placeholder="NVDA" required maxlength="12" />
+                 placeholder="005930" required maxlength="15" />
         </div>
         <div class="pf-form-row" style="margin-bottom:14px;">
           <div class="pf-form-field" style="margin-bottom:0;">
@@ -622,9 +594,9 @@
                    placeholder="100" min="0" step="0.01" required />
           </div>
           <div class="pf-form-field" style="margin-bottom:0;">
-            <label>평균 매수단가 ($)</label>
+            <label>평균 매수단가 (₩)</label>
             <input type="number" name="avg_price" id="f-price"
-                   placeholder="0.00" min="0" step="0.01" />
+                   placeholder="0" min="0" step="1" />
           </div>
         </div>
         <div class="pf-form-field" style="margin-bottom:24px;">
@@ -642,9 +614,7 @@
 </div>
 
 
-<!-- ══════════════════════════════════════
-     SCRIPT
-══════════════════════════════════════ -->
+<!-- SCRIPT -->
 <script>
 function openModal(ticker) {
   document.getElementById('modalTitle').textContent = '종목 추가';
@@ -659,9 +629,9 @@ function openModal(ticker) {
 }
 
 function openModalFromBtn(btn) {
-  var ticker = btn.dataset.ticker;
-  document.getElementById('modalTitle').textContent = ticker + ' 수정';
-  document.getElementById('f-ticker').value = ticker;
+  var display = btn.dataset.display || btn.dataset.ticker;
+  document.getElementById('modalTitle').textContent = display + ' 수정';
+  document.getElementById('f-ticker').value = btn.dataset.ticker;
   document.getElementById('f-ticker').readOnly = true;
   document.getElementById('f-ticker').style.opacity = '0.5';
   document.getElementById('f-shares').value = btn.dataset.shares;
@@ -678,11 +648,7 @@ document.getElementById('modal').addEventListener('click', function(e) {
   if (e.target === this) closeModal();
 });
 
-document.getElementById('f-ticker').addEventListener('input', function() {
-  this.value = this.value.toUpperCase();
-});
-
-function fmtKRWraw(w) {
+function fmtKRW(w) {
   var s = w < 0 ? '-' : '', a = Math.abs(w);
   if (a >= 1e12) return s + (a/1e12).toFixed(2) + '조원';
   if (a >= 1e8)  return s + (a/1e8 ).toFixed(2) + '억원';
@@ -691,7 +657,6 @@ function fmtKRWraw(w) {
 }
 
 (function() {
-  var fxRate = {{ fx_default|int }};
   var cards = document.querySelectorAll('[data-shares][data-avg][data-cur]');
   var totalVal = 0, totalCost = 0, totalCur = 0;
 
@@ -715,19 +680,6 @@ function fmtKRWraw(w) {
         : 'linear-gradient(90deg,#ef4444,#f87171)';
     }
 
-    /* 평가액 원화 표시 */
-    var evalVal = card.querySelector('.pf-eval-value');
-    if (evalVal && cur > 0) {
-      var krwSpan = evalVal.querySelector('.eval-krw');
-      if (!krwSpan) {
-        krwSpan = document.createElement('span');
-        krwSpan.className = 'eval-krw';
-        krwSpan.style.cssText = 'display:block;font-size:10px;font-weight:500;color:var(--text2);margin-top:1px;';
-        evalVal.appendChild(krwSpan);
-      }
-      krwSpan.textContent = '≈ ' + fmtKRWraw(shares * cur * fxRate);
-    }
-
     var badge = card.querySelector('.pf-gain-badge');
     if (badge) {
       var gain = parseFloat(badge.dataset.gain);
@@ -745,18 +697,18 @@ function fmtKRWraw(w) {
 
   /* Hero */
   var bannerTotal = document.getElementById('bannerTotal');
-  var bannerTotalKrw = document.getElementById('bannerTotalKrw');
+  var bannerSub   = document.getElementById('bannerTotalSub');
   if (bannerTotal && totalVal > 0) {
-    bannerTotal.textContent = '$' + Math.round(totalVal).toLocaleString();
+    bannerTotal.textContent = fmtKRW(totalVal);
   }
-  if (bannerTotalKrw && totalVal > 0) {
-    bannerTotalKrw.textContent = '≈ ' + fmtKRWraw(totalVal * fxRate);
+  if (bannerSub && totalVal > 0) {
+    bannerSub.textContent = '₩' + Math.round(totalVal).toLocaleString();
   }
 
   /* Cost */
   var bannerCost = document.getElementById('bannerCost');
   if (bannerCost && totalCost > 0) {
-    bannerCost.textContent = '$' + Math.round(totalCost).toLocaleString();
+    bannerCost.textContent = fmtKRW(totalCost);
   }
 
   /* Gain */
@@ -783,12 +735,12 @@ var NEEDS_REFRESH = {{ needs_refresh | safe }};
 if (NEEDS_REFRESH) {
   var overlay = document.getElementById('priceLoadingOverlay');
   overlay.style.display = 'flex';
-  fetch('/api/refresh-prices')
+  fetch('/api/kr-refresh-prices')
     .then(function() { location.reload(); })
     .catch(function() { overlay.style.display = 'none'; });
 } else if (STALE.length > 0) {
   Promise.all(STALE.map(function(t) {
-    return fetch('/api/stock/' + t).catch(function() { return null; });
+    return fetch('/api/kr-stock/' + encodeURIComponent(t)).catch(function() { return null; });
   })).then(function() { location.reload(); });
 }
 </script>

@@ -22,6 +22,7 @@ except Exception:
 import yfinance as yf
 import pandas as pd
 import logging
+import requests
 
 logger = logging.getLogger(__name__)
 
@@ -56,7 +57,7 @@ def fetch_stock(ticker: str) -> dict | None:
         t = yf.Ticker(ticker.upper())
         info = t.info or {}
 
-        name  = info.get("longName") or info.get("shortName") or ticker.upper()
+        name  = info.get("shortName") or info.get("longName") or ticker.upper()
         price = float(info.get("currentPrice") or info.get("regularMarketPrice") or 0)
         shares_m = float(info.get("sharesOutstanding") or 0) / 1e6
         dividend_rate  = float(info.get("trailingAnnualDividendRate") or info.get("dividendRate") or 0)
@@ -232,6 +233,71 @@ def fetch_stock(ticker: str) -> dict | None:
         return None
 
 
+def fetch_rule_of_40(ticker: str) -> dict | None:
+    """
+    Rule of 40 지표 계산.
+    - revenue_growth: 최근 2개 연간 매출 YoY 성장률 (%)
+    - profit_margin : 최근 연간 순이익률 (%)
+    - score         : growth + margin
+    """
+    try:
+        t    = yf.Ticker(ticker.upper())
+        info = t.info or {}
+        name = info.get("shortName") or info.get("longName") or ticker.upper()
+
+        fin: pd.DataFrame | None = None
+        for attr in ("income_stmt", "financials"):
+            try:
+                f = getattr(t, attr, None)
+                if f is not None and not f.empty:
+                    fin = f
+                    break
+            except Exception:
+                continue
+
+        if fin is None or fin.empty:
+            logger.warning("[Rule40/%s] 재무제표 없음", ticker)
+            return None
+
+        rev_row = _get_row(fin, _REVENUE_KEYS)
+        net_row = _get_row(fin, _NET_KEYS)
+
+        if rev_row is None or net_row is None:
+            logger.warning("[Rule40/%s] 매출/순이익 행 없음", ticker)
+            return None
+
+        # 최신 2개 연도 컬럼 (index 0=최신, 1=직전)
+        valid_cols = [c for c in fin.columns[:4]
+                      if not pd.isna(rev_row.get(c)) and not pd.isna(net_row.get(c))]
+        if len(valid_cols) < 2:
+            logger.warning("[Rule40/%s] 유효 연도 부족 (%d개)", ticker, len(valid_cols))
+            return None
+
+        rev1 = float(rev_row[valid_cols[0]])   # 최신 매출
+        rev0 = float(rev_row[valid_cols[1]])   # 직전 매출
+        net1 = float(net_row[valid_cols[0]])   # 최신 순이익
+
+        if rev0 == 0 or rev1 == 0:
+            return None
+
+        revenue_growth = (rev1 - rev0) / abs(rev0) * 100
+        profit_margin  = net1 / rev1 * 100
+
+        return {
+            "ticker":         ticker.upper(),
+            "name":           name,
+            "revenue_growth": round(revenue_growth, 1),
+            "profit_margin":  round(profit_margin, 1),
+            "score":          round(revenue_growth + profit_margin, 1),
+            "year_latest":    valid_cols[0].year,
+            "year_prev":      valid_cols[1].year,
+        }
+
+    except Exception as e:
+        logger.error("[Rule40/%s] 조회 실패: %s", ticker, e, exc_info=True)
+        return None
+
+
 def fetch_stock_quick(ticker: str) -> dict | None:
     """
     최신 1개 회계연도만 빠르게 조회.
@@ -304,6 +370,183 @@ def fetch_current_price(ticker: str) -> float | None:
     """현재가만 빠르게 조회 (fast_info 사용). 실패 시 None."""
     try:
         price = yf.Ticker(ticker.upper()).fast_info.last_price
+        return float(price) if price and price > 0 else None
+    except Exception:
+        return None
+
+
+def fetch_kr_full_stock(raw_ticker: str) -> dict | None:
+    """
+    국내 주식 전체 재무 데이터 조회 (KRW 기준).
+    years[].revenue/operating/net: KRW 백만원
+    years[].eps: KRW 원/주
+    forecasts[].net: KRW 백만원, .eps: KRW 원/주
+    """
+    raw = raw_ticker.strip()
+    candidates = [raw] if (raw.endswith(".KS") or raw.endswith(".KQ")) else [raw + ".KS", raw + ".KQ"]
+    for t_code in candidates:
+        result = _fetch_kr_full(t_code)
+        if result:
+            return result
+    return None
+
+
+def _fetch_kr_full(ticker: str) -> dict | None:
+    try:
+        t    = yf.Ticker(ticker)
+        info = t.info or {}
+        price = float(info.get("currentPrice") or info.get("regularMarketPrice") or 0)
+        if price <= 0:
+            return None
+
+        name     = fetch_kr_name(ticker) or info.get("shortName") or info.get("longName") or ticker
+        shares_m = float(info.get("sharesOutstanding") or 0) / 1e6
+
+        fin: pd.DataFrame | None = None
+        for attr in ("income_stmt", "financials"):
+            try:
+                f = getattr(t, attr, None)
+                if f is not None and not f.empty:
+                    fin = f
+                    break
+            except Exception:
+                continue
+
+        years = []
+        if fin is not None and not fin.empty:
+            valid_cols = [c for c in fin.columns if not fin[c].isnull().all()][:4]
+            rev_row = _get_row(fin, _REVENUE_KEYS)
+            op_row  = _get_row(fin, _OPERATING_KEYS)
+            net_row = _get_row(fin, _NET_KEYS)
+            dil_row = _get_row(fin, _DIL_SHARES_KEYS)
+            for col in valid_cols:
+                rev = rev_row[col] if rev_row is not None else float("nan")
+                op  = op_row[col]  if op_row  is not None else float("nan")
+                net = net_row[col] if net_row  is not None else float("nan")
+                dil = dil_row[col] if dil_row  is not None else float("nan")
+                if pd.isna(rev) or pd.isna(net):
+                    continue
+                yr       = col.year
+                shares_y = float(dil) / 1e6 if (not pd.isna(dil) and float(dil) > 0) else shares_m
+                eps_val  = round(float(net) / (shares_y * 1e6)) if shares_y > 0 else None
+                years.append({
+                    "year_key":  f"fy{yr}",
+                    "label":     f"FY{yr}",
+                    "end_date":  col.strftime("%Y-%m"),
+                    "revenue":   float(rev) / 1e6,
+                    "operating": float(op)  / 1e6 if not pd.isna(op) else 0,
+                    "net":       float(net) / 1e6,
+                    "shares":    round(shares_y, 3),
+                    "eps":       eps_val,
+                })
+
+        forecasts = []
+        try:
+            ee = getattr(t, "earnings_estimate", None)
+            re = getattr(t, "revenue_estimate",  None)
+            if ee is not None and not ee.empty:
+                latest_shares = years[-1]["shares"] if years else shares_m
+                for period, label in [("0y", "현재 FY"), ("+1y", "내년 FY")]:
+                    if period not in ee.index:
+                        continue
+                    eps_avg = ee.loc[period, "avg"] if "avg" in ee.columns else None
+                    if eps_avg is None or pd.isna(eps_avg):
+                        continue
+                    eps_val = round(float(eps_avg))
+                    net_est = float(eps_val) * latest_shares * 1e6 / 1e6
+                    rev_avg = None
+                    if re is not None and not re.empty and period in re.index:
+                        rv = re.loc[period, "avg"] if "avg" in re.columns else None
+                        if rv is not None and not pd.isna(rv):
+                            rev_avg = float(rv) / 1e6
+                    forecasts.append({"period": period, "label": label,
+                                      "revenue": rev_avg, "net": net_est, "eps": eps_val})
+        except Exception as e:
+            logger.debug("[KR full/%s] 예상 오류: %s", ticker, e)
+
+        return {"ticker": ticker, "name": name, "current_price": price,
+                "shares_m": shares_m, "years": years, "forecasts": forecasts}
+    except Exception as e:
+        logger.error("[KR full/%s] 실패: %s", ticker, e, exc_info=True)
+        return None
+
+
+def fetch_kr_name(ticker: str) -> str | None:
+    """
+    NAVER Finance에서 한글 종목명 조회.
+    ticker: "005930.KS" 또는 "005930" 형식
+    실패 시 None 반환.
+    """
+    code = ticker.replace(".KS", "").replace(".KQ", "").strip()
+    try:
+        url = f"https://m.stock.naver.com/api/stock/{code}/basic"
+        resp = requests.get(url, timeout=5, headers={"User-Agent": "Mozilla/5.0"})
+        if resp.status_code == 200:
+            data = resp.json()
+            name = data.get("stockName") or data.get("name")
+            if name:
+                return name
+    except Exception as e:
+        logger.debug("[KR name/%s] NAVER 조회 실패: %s", code, e)
+    return None
+
+
+def fetch_kr_rule_of_40(raw_ticker: str) -> dict | None:
+    """
+    국내 주식 Rule of 40 지표 계산.
+    raw_ticker: "035420" 또는 "035420.KS" / "035420.KQ"
+    반환값: {ticker, name, revenue_growth, profit_margin, score}
+    실패 시 None 반환.
+    """
+    raw = raw_ticker.strip()
+    if raw.endswith(".KS") or raw.endswith(".KQ"):
+        candidates = [raw]
+    else:
+        candidates = [raw + ".KS", raw + ".KQ"]
+
+    for t_code in candidates:
+        result = fetch_rule_of_40(t_code)
+        if result:
+            result["ticker"] = t_code
+            kr_name = fetch_kr_name(t_code)
+            if kr_name:
+                result["name"] = kr_name
+            return result
+
+    return None
+
+
+def fetch_kr_stock(raw_ticker: str) -> dict | None:
+    """
+    yfinance로 한국 주식 현재가 조회.
+    raw_ticker: "005930" 또는 "005930.KS" / "005930.KQ" 형식
+    반환값: {ticker, name, current_price (KRW)}
+    실패 시 None 반환.
+    """
+    raw = raw_ticker.strip().upper()
+    if raw.endswith(".KS") or raw.endswith(".KQ"):
+        candidates = [raw]
+    else:
+        candidates = [raw + ".KS", raw + ".KQ"]
+
+    for t_code in candidates:
+        try:
+            t = yf.Ticker(t_code)
+            info = t.info or {}
+            price = float(info.get("currentPrice") or info.get("regularMarketPrice") or 0)
+            if price > 0:
+                name = fetch_kr_name(t_code) or info.get("shortName") or info.get("longName") or t_code
+                return {"ticker": t_code, "name": name, "current_price": price}
+        except Exception as e:
+            logger.warning("[KR/%s] 조회 실패: %s", t_code, e)
+
+    return None
+
+
+def fetch_kr_current_price(ticker: str) -> float | None:
+    """국내 주식 현재가만 빠르게 조회. 실패 시 None."""
+    try:
+        price = yf.Ticker(ticker).fast_info.last_price
         return float(price) if price and price > 0 else None
     except Exception:
         return None

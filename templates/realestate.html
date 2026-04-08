@@ -6,9 +6,9 @@
 <!-- ── 전용 스타일 ── -->
 <style>
 :root {
-  --re-color:    #a16207;
-  --re-light:    #ca8a04;
-  --re-gradient: linear-gradient(135deg, #a16207 0%, #ca8a04 100%);
+  --re-color:    #ab9A91;
+  --re-light:    #ab9A91;
+  --re-gradient: linear-gradient(135deg, #ab9A91 0%, #ab9A91 100%);
   --glass: rgba(255,255,255,0.03);
   --glass-border: var(--border);
   --shadow-sm: 0 1px 3px rgba(0,0,0,0.08);
@@ -333,7 +333,7 @@
   border: none;
   border-radius: 14px;
   cursor: pointer;
-  box-shadow: 0 4px 20px rgba(161,98,7,0.35);
+  box-shadow: 0 4px 20px rgba(171,154,145,0.35);
   transition: opacity 0.2s, transform 0.2s;
 }
 .re-add-btn:hover { opacity: 0.9; transform: translateY(-1px); }
@@ -472,10 +472,23 @@
 <!-- ── 헤더 ── -->
 <div class="re-page-header">
   <h1>🏠 부동산</h1>
-  <p>부동산 히스토리 및 계약 상세</p>
+  <p>부동산 히스토리 및 청약 정보 관리</p>
 </div>
 
-<!-- ── 카드 목록 ── -->
+<!-- ── 탭 ── -->
+<div style="display:flex;gap:8px;margin-bottom:24px;background:var(--bg2);border-radius:12px;padding:6px;border:1px solid var(--glass-border);">
+  <button id="tabRealestate" onclick="switchTab('realestate')"
+    style="flex:1;padding:8px 0;border-radius:8px;font-size:14px;font-weight:700;border:none;cursor:pointer;transition:all 0.15s;">
+    🏠 부동산 목록
+  </button>
+  <button id="tabCheongyak" onclick="switchTab('cheongyak')"
+    style="flex:1;padding:8px 0;border-radius:8px;font-size:14px;font-weight:700;border:none;cursor:pointer;transition:all 0.15s;">
+    📋 청약 정보
+  </button>
+</div>
+
+<!-- ══════════════ 부동산 목록 탭 ══════════════ -->
+<div id="sectionRealestate">
 <div class="re-section-title">📋 부동산 히스토리</div>
 <div class="re-card-grid" id="cardGrid">
   <div class="re-empty">
@@ -487,6 +500,186 @@
 <!-- ── 추가 버튼 ── -->
 <div class="re-add-wrap">
   <button class="re-add-btn" onclick="openModal()">＋ 부동산 추가</button>
+</div>
+</div><!-- /sectionRealestate -->
+
+<!-- ══════════════ 청약 탭 ══════════════ -->
+<div id="sectionCheongyak" style="display:none;">
+
+  <!-- 청약 가점 카드 -->
+  <div style="background:var(--bg2);border:1px solid var(--glass-border);border-radius:16px;padding:20px;margin-bottom:20px;">
+    <div class="re-section-title" style="margin-bottom:16px;">🎯 나의 청약 가점</div>
+    <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px;margin-bottom:16px;">
+      <div>
+        <label style="font-size:11px;color:var(--text2);font-weight:600;display:block;margin-bottom:6px;">무주택 기간</label>
+        <select id="scoreHomeless" onchange="calcScore()" style="width:100%;background:var(--bg);border:1px solid var(--glass-border);border-radius:8px;padding:8px 10px;font-size:13px;color:var(--text);outline:none;">
+          <option value="2">1년 미만 (2점)</option>
+          <option value="4">1년↑ (4점)</option>
+          <option value="6">2년↑ (6점)</option>
+          <option value="8">3년↑ (8점)</option>
+          <option value="10">4년↑ (10점)</option>
+          <option value="12">5년↑ (12점)</option>
+          <option value="14">6년↑ (14점)</option>
+          <option value="16">7년↑ (16점)</option>
+          <option value="18">8년↑ (18점)</option>
+          <option value="20">9년↑ (20점)</option>
+          <option value="22">10년↑ (22점)</option>
+          <option value="24">11년↑ (24점)</option>
+          <option value="26">12년↑ (26점)</option>
+          <option value="28">13년↑ (28점)</option>
+          <option value="30">14년↑ (30점)</option>
+          <option value="32">15년↑ (32점)</option>
+        </select>
+      </div>
+      <div>
+        <label style="font-size:11px;color:var(--text2);font-weight:600;display:block;margin-bottom:6px;">부양가족 수</label>
+        <select id="scoreFamily" onchange="calcScore()" style="width:100%;background:var(--bg);border:1px solid var(--glass-border);border-radius:8px;padding:8px 10px;font-size:13px;color:var(--text);outline:none;">
+          <option value="5">0명 (5점)</option>
+          <option value="10">1명 (10점)</option>
+          <option value="15">2명 (15점)</option>
+          <option value="20">3명 (20점)</option>
+          <option value="25">4명 (25점)</option>
+          <option value="30">5명 (30점)</option>
+          <option value="35">6명↑ (35점)</option>
+        </select>
+      </div>
+      <div>
+        <label style="font-size:11px;color:var(--text2);font-weight:600;display:block;margin-bottom:6px;">청약통장 가입기간</label>
+        <select id="scoreAccount" onchange="calcScore()" style="width:100%;background:var(--bg);border:1px solid var(--glass-border);border-radius:8px;padding:8px 10px;font-size:13px;color:var(--text);outline:none;">
+          <option value="1">6개월 미만 (1점)</option>
+          <option value="2">6개월↑ (2점)</option>
+          <option value="3">1년↑ (3점)</option>
+          <option value="4">2년↑ (4점)</option>
+          <option value="5">3년↑ (5점)</option>
+          <option value="6">4년↑ (6점)</option>
+          <option value="7">5년↑ (7점)</option>
+          <option value="8">6년↑ (8점)</option>
+          <option value="9">7년↑ (9점)</option>
+          <option value="10">8년↑ (10점)</option>
+          <option value="11">9년↑ (11점)</option>
+          <option value="12">10년↑ (12점)</option>
+          <option value="13">11년↑ (13점)</option>
+          <option value="14">12년↑ (14점)</option>
+          <option value="15">13년↑ (15점)</option>
+          <option value="16">14년↑ (16점)</option>
+          <option value="17">15년↑ (17점)</option>
+        </select>
+      </div>
+    </div>
+    <div style="display:flex;align-items:center;gap:16px;background:var(--bg);border-radius:12px;padding:14px 16px;">
+      <div style="flex:1;display:flex;align-items:center;gap:6px;">
+        <span style="font-size:13px;color:var(--text2);">무주택</span><span id="scoreHomelessVal" style="font-size:15px;font-weight:700;color:var(--text);">2</span><span style="font-size:11px;color:var(--text2);">점</span>
+        <span style="color:var(--text2);margin:0 4px;">+</span>
+        <span style="font-size:13px;color:var(--text2);">부양가족</span><span id="scoreFamilyVal" style="font-size:15px;font-weight:700;color:var(--text);">5</span><span style="font-size:11px;color:var(--text2);">점</span>
+        <span style="color:var(--text2);margin:0 4px;">+</span>
+        <span style="font-size:13px;color:var(--text2);">통장</span><span id="scoreAccountVal" style="font-size:15px;font-weight:700;color:var(--text);">1</span><span style="font-size:11px;color:var(--text2);">점</span>
+      </div>
+      <div style="text-align:right;">
+        <div style="font-size:11px;color:var(--text2);margin-bottom:2px;">총 가점 (84점 만점)</div>
+        <div id="scoreTotalVal" style="font-size:28px;font-weight:800;color:#667eea;">8</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 관심 청약 단지 -->
+  <div class="re-section-title" style="margin-bottom:14px;">🏗 관심 청약 단지</div>
+  <div id="cheongyakGrid" style="display:flex;flex-direction:column;gap:12px;margin-bottom:24px;">
+    <div class="re-empty"><div class="re-empty-icon">📋</div><div class="re-empty-title">불러오는 중...</div></div>
+  </div>
+  <div class="re-add-wrap">
+    <button class="re-add-btn" onclick="openCqModal()">＋ 청약 단지 추가</button>
+  </div>
+</div><!-- /sectionCheongyak -->
+
+<!-- ── 청약 모달 ── -->
+<div class="re-modal-overlay" id="cqModalOverlay" onclick="closeCqModalOnBg(event)">
+  <div class="re-modal" style="max-width:580px;">
+    <div class="re-modal-header">
+      <div class="re-modal-title" id="cqModalTitle">청약 단지 추가</div>
+      <button class="re-modal-close" onclick="closeCqModal()">✕</button>
+    </div>
+    <div class="re-modal-body">
+      <input type="hidden" id="cqEditId">
+      <div class="re-field">
+        <label>단지명 *</label>
+        <input type="text" id="cqName" placeholder="예: 래미안 원베일리">
+      </div>
+      <div class="re-field-row">
+        <div class="re-field">
+          <label>지역</label>
+          <input type="text" id="cqRegion" placeholder="예: 서울 서초구">
+        </div>
+        <div class="re-field">
+          <label>분양 유형</label>
+          <select id="cqSupplyType">
+            <option value="일반공급">일반공급</option>
+            <option value="특별공급">특별공급</option>
+            <option value="민간분양">민간분양</option>
+            <option value="공공분양">공공분양</option>
+            <option value="임대">임대</option>
+          </select>
+        </div>
+      </div>
+      <div class="re-field-row">
+        <div class="re-field">
+          <label>분양가 (만원)</label>
+          <input type="number" id="cqPrice" placeholder="0" min="0" oninput="showKrw(this,'cqPriceKrw')">
+          <div id="cqPriceKrw" style="font-size:11px;color:var(--text2);margin-top:4px;min-height:16px;"></div>
+        </div>
+        <div class="re-field">
+          <label>면적 (m²)</label>
+          <input type="number" id="cqArea" placeholder="0" min="0" step="0.01">
+        </div>
+      </div>
+      <div class="re-field-row">
+        <div class="re-field">
+          <label>청약 시작일</label>
+          <input type="date" id="cqApplyStart">
+        </div>
+        <div class="re-field">
+          <label>청약 종료일</label>
+          <input type="date" id="cqApplyEnd">
+        </div>
+      </div>
+      <div class="re-field-row">
+        <div class="re-field">
+          <label>당첨자 발표일</label>
+          <input type="date" id="cqAnnounce">
+        </div>
+        <div class="re-field">
+          <label>입주 예정일</label>
+          <input type="date" id="cqMoveIn">
+        </div>
+      </div>
+      <div class="re-field-row">
+        <div class="re-field">
+          <label>경쟁률</label>
+          <input type="number" id="cqCompetition" placeholder="예: 12.5" min="0" step="0.1">
+        </div>
+        <div class="re-field">
+          <label>최저 당첨 가점</label>
+          <input type="number" id="cqMinScore" placeholder="0" min="0" max="84">
+        </div>
+      </div>
+      <div class="re-field">
+        <label>상태</label>
+        <select id="cqStatus">
+          <option value="관심">👀 관심</option>
+          <option value="접수">📝 접수</option>
+          <option value="당첨">🎉 당첨</option>
+          <option value="낙첨">❌ 낙첨</option>
+        </select>
+      </div>
+      <div class="re-field">
+        <label>메모</label>
+        <textarea id="cqMemo" placeholder="메모를 입력하세요"></textarea>
+      </div>
+    </div>
+    <div class="re-modal-footer">
+      <button class="re-btn-cancel" onclick="closeCqModal()">취소</button>
+      <button class="re-btn-save" onclick="saveCqItem()">저장</button>
+    </div>
+  </div>
 </div>
 
 <!-- ── 모달 ── -->
@@ -878,7 +1071,7 @@ function setContractType(type) {
   document.getElementById('rentFields').style.display = type === 'rent' ? '' : 'none';
   const tabSale = document.getElementById('tabSale');
   const tabRent = document.getElementById('tabRent');
-  const activeStyle = 'background:rgba(161,98,7,0.15);color:#a16207;border-color:rgba(161,98,7,0.3);';
+  const activeStyle = 'background:rgba(171,154,145,0.15);color:#ab9A91;border-color:rgba(171,154,145,0.3);';
   const inactiveStyle = 'background:transparent;color:var(--text2);border-color:var(--glass-border);';
   tabSale.style.cssText += type === 'sale' ? activeStyle : inactiveStyle;
   tabRent.style.cssText += type === 'rent' ? activeStyle : inactiveStyle;
@@ -996,6 +1189,179 @@ async function deleteItem(id) {
     console.error(e);
   }
 }
+
+/* ── 탭 전환 ── */
+function switchTab(tab) {
+  document.getElementById('sectionRealestate').style.display = tab === 'realestate' ? '' : 'none';
+  document.getElementById('sectionCheongyak').style.display  = tab === 'cheongyak'  ? '' : 'none';
+  const activeStyle   = 'background:var(--bg);color:var(--text);box-shadow:0 1px 4px rgba(0,0,0,0.1);';
+  const inactiveStyle = 'background:transparent;color:var(--text2);box-shadow:none;';
+  document.getElementById('tabRealestate').style.cssText += tab === 'realestate' ? activeStyle : inactiveStyle;
+  document.getElementById('tabCheongyak').style.cssText  += tab === 'cheongyak'  ? activeStyle : inactiveStyle;
+  if (tab === 'cheongyak') loadCqData();
+}
+
+/* ══════════════════════════════════════
+   청약 가점 계산
+   ══════════════════════════════════════ */
+function calcScore() {
+  const h = parseInt(document.getElementById('scoreHomeless').value) || 0;
+  const f = parseInt(document.getElementById('scoreFamily').value)   || 0;
+  const a = parseInt(document.getElementById('scoreAccount').value)  || 0;
+  document.getElementById('scoreHomelessVal').textContent = h;
+  document.getElementById('scoreFamilyVal').textContent   = f;
+  document.getElementById('scoreAccountVal').textContent  = a;
+  document.getElementById('scoreTotalVal').textContent    = h + f + a;
+  localStorage.setItem('cqScore', JSON.stringify({h, f, a}));
+}
+
+(function loadSavedScore() {
+  try {
+    const s = JSON.parse(localStorage.getItem('cqScore') || '{}');
+    if (s.h) document.getElementById('scoreHomeless').value = s.h;
+    if (s.f) document.getElementById('scoreFamily').value   = s.f;
+    if (s.a) document.getElementById('scoreAccount').value  = s.a;
+  } catch {}
+  calcScore();
+})();
+
+/* ══════════════════════════════════════
+   청약 단지 CRUD
+   ══════════════════════════════════════ */
+let cqItems = [];
+
+async function loadCqData() {
+  try {
+    const res = await fetch('/api/cheongyak');
+    cqItems = await res.json();
+    renderCq();
+  } catch(e) { console.error(e); }
+}
+
+const CQ_STATUS_STYLE = {
+  '관심': {bg:'rgba(102,126,234,0.1)', color:'#667eea', emoji:'👀'},
+  '접수': {bg:'rgba(245,158,11,0.1)',  color:'#f59e0b', emoji:'📝'},
+  '당첨': {bg:'rgba(16,185,129,0.1)',  color:'#10b981', emoji:'🎉'},
+  '낙첨': {bg:'rgba(239,68,68,0.1)',   color:'#ef4444', emoji:'❌'},
+};
+
+function renderCq() {
+  const grid = document.getElementById('cheongyakGrid');
+  if (!cqItems.length) {
+    grid.innerHTML = `<div class="re-empty">
+      <div class="re-empty-icon">📋</div>
+      <div class="re-empty-title">등록된 청약 단지가 없습니다</div>
+      <div class="re-empty-desc">아래 버튼을 눌러 관심 단지를 추가해보세요</div>
+    </div>`;
+    return;
+  }
+  const myScore = parseInt(document.getElementById('scoreTotalVal').textContent) || 0;
+  grid.innerHTML = cqItems.map(item => {
+    const st = CQ_STATUS_STYLE[item.status] || CQ_STATUS_STYLE['관심'];
+    const scoreOk = item.min_score > 0 ? (myScore >= item.min_score ? '✅' : '⚠️') : '';
+    const today = new Date().toISOString().slice(0,10);
+    let dateInfo = '';
+    if (item.apply_start && item.apply_start >= today) {
+      const d = Math.ceil((new Date(item.apply_start) - new Date(today)) / 86400000);
+      dateInfo = `<span style="font-size:11px;color:var(--text2);">청약 D-${d}</span>`;
+    } else if (item.apply_end && item.apply_end >= today) {
+      dateInfo = `<span style="font-size:11px;color:#f59e0b;font-weight:600;">청약 진행 중</span>`;
+    } else if (item.announce_date && item.announce_date >= today) {
+      const d = Math.ceil((new Date(item.announce_date) - new Date(today)) / 86400000);
+      dateInfo = `<span style="font-size:11px;color:var(--text2);">발표 D-${d}</span>`;
+    }
+    return `
+    <div style="background:var(--bg2);border:1px solid var(--glass-border);border-radius:14px;overflow:hidden;">
+      <div style="padding:14px 16px;display:flex;align-items:flex-start;justify-content:space-between;gap:8px;">
+        <div style="flex:1;min-width:0;">
+          <div style="display:flex;align-items:center;gap:8px;margin-bottom:6px;flex-wrap:wrap;">
+            <span style="font-size:12px;font-weight:700;padding:2px 8px;border-radius:20px;background:${st.bg};color:${st.color};">${st.emoji} ${item.status}</span>
+            <span style="font-size:11px;color:var(--text2);background:var(--bg);border-radius:6px;padding:2px 7px;">${escHtml(item.supply_type)}</span>
+            ${dateInfo}
+          </div>
+          <div style="font-size:16px;font-weight:800;color:var(--text);margin-bottom:4px;">${escHtml(item.name)}</div>
+          ${item.region ? `<div style="font-size:12px;color:var(--text2);">📍 ${escHtml(item.region)}</div>` : ''}
+        </div>
+        <div style="display:flex;gap:6px;flex-shrink:0;">
+          <button class="re-btn-icon" onclick="openCqModal(${item.id})" style="background:var(--bg);color:var(--text2);">✏️</button>
+          <button class="re-btn-icon" onclick="deleteCqItem(${item.id})" style="background:rgba(239,68,68,0.1);color:#ef4444;">🗑️</button>
+        </div>
+      </div>
+      <div style="padding:0 16px 14px;display:grid;grid-template-columns:repeat(auto-fit,minmax(110px,1fr));gap:8px;">
+        ${item.price > 0 ? `<div style="background:var(--bg);border-radius:8px;padding:8px 10px;"><div style="font-size:10px;color:var(--text2);margin-bottom:2px;">분양가</div><div style="font-size:13px;font-weight:700;color:var(--text);">${toKrwText(item.price)}</div></div>` : ''}
+        ${item.area_m2 > 0 ? `<div style="background:var(--bg);border-radius:8px;padding:8px 10px;"><div style="font-size:10px;color:var(--text2);margin-bottom:2px;">면적</div><div style="font-size:13px;font-weight:700;color:var(--text);">${item.area_m2}m²</div></div>` : ''}
+        ${item.apply_start ? `<div style="background:var(--bg);border-radius:8px;padding:8px 10px;"><div style="font-size:10px;color:var(--text2);margin-bottom:2px;">청약일</div><div style="font-size:12px;font-weight:600;color:var(--text);">${item.apply_start}${item.apply_end ? ' ~ ' + item.apply_end : ''}</div></div>` : ''}
+        ${item.announce_date ? `<div style="background:var(--bg);border-radius:8px;padding:8px 10px;"><div style="font-size:10px;color:var(--text2);margin-bottom:2px;">발표일</div><div style="font-size:12px;font-weight:600;color:var(--text);">${item.announce_date}</div></div>` : ''}
+        ${item.move_in_date ? `<div style="background:var(--bg);border-radius:8px;padding:8px 10px;"><div style="font-size:10px;color:var(--text2);margin-bottom:2px;">입주예정</div><div style="font-size:12px;font-weight:600;color:var(--text);">${item.move_in_date}</div></div>` : ''}
+        ${item.min_score > 0 ? `<div style="background:var(--bg);border-radius:8px;padding:8px 10px;"><div style="font-size:10px;color:var(--text2);margin-bottom:2px;">최저가점 ${scoreOk}</div><div style="font-size:13px;font-weight:700;color:var(--text);">${item.min_score}점</div></div>` : ''}
+        ${item.competition > 0 ? `<div style="background:var(--bg);border-radius:8px;padding:8px 10px;"><div style="font-size:10px;color:var(--text2);margin-bottom:2px;">경쟁률</div><div style="font-size:13px;font-weight:700;color:var(--text);">${item.competition}:1</div></div>` : ''}
+      </div>
+      ${item.memo ? `<div style="padding:0 16px 12px;font-size:12px;color:var(--text2);">💬 ${escHtml(item.memo)}</div>` : ''}
+    </div>`;
+  }).join('');
+}
+
+function openCqModal(id = null) {
+  const item = id ? cqItems.find(i => i.id === id) : null;
+  document.getElementById('cqEditId').value       = item ? item.id : '';
+  document.getElementById('cqName').value         = item ? item.name : '';
+  document.getElementById('cqRegion').value       = item ? item.region : '';
+  document.getElementById('cqSupplyType').value   = item ? item.supply_type : '일반공급';
+  document.getElementById('cqPrice').value        = item ? (item.price || '') : '';
+  document.getElementById('cqArea').value         = item ? (item.area_m2 || '') : '';
+  document.getElementById('cqApplyStart').value   = item ? item.apply_start : '';
+  document.getElementById('cqApplyEnd').value     = item ? item.apply_end : '';
+  document.getElementById('cqAnnounce').value     = item ? item.announce_date : '';
+  document.getElementById('cqMoveIn').value       = item ? item.move_in_date : '';
+  document.getElementById('cqCompetition').value  = item ? (item.competition || '') : '';
+  document.getElementById('cqMinScore').value     = item ? (item.min_score || '') : '';
+  document.getElementById('cqStatus').value       = item ? item.status : '관심';
+  document.getElementById('cqMemo').value         = item ? item.memo : '';
+  document.getElementById('cqPriceKrw').textContent = item && item.price ? '= ' + toKrwText(item.price) : '';
+  document.getElementById('cqModalTitle').textContent = item ? '청약 단지 수정' : '청약 단지 추가';
+  document.getElementById('cqModalOverlay').classList.add('open');
+}
+
+function closeCqModal() { document.getElementById('cqModalOverlay').classList.remove('open'); }
+function closeCqModalOnBg(e) { if (e.target === document.getElementById('cqModalOverlay')) closeCqModal(); }
+
+async function saveCqItem() {
+  const id   = document.getElementById('cqEditId').value;
+  const name = document.getElementById('cqName').value.trim();
+  if (!name) { alert('단지명을 입력해주세요.'); return; }
+  const body = {
+    name,
+    region:        document.getElementById('cqRegion').value.trim(),
+    supply_type:   document.getElementById('cqSupplyType').value,
+    price:         parseFloat(document.getElementById('cqPrice').value) || 0,
+    area_m2:       parseFloat(document.getElementById('cqArea').value) || 0,
+    apply_start:   document.getElementById('cqApplyStart').value,
+    apply_end:     document.getElementById('cqApplyEnd').value,
+    announce_date: document.getElementById('cqAnnounce').value,
+    move_in_date:  document.getElementById('cqMoveIn').value,
+    competition:   parseFloat(document.getElementById('cqCompetition').value) || 0,
+    min_score:     parseInt(document.getElementById('cqMinScore').value) || 0,
+    status:        document.getElementById('cqStatus').value,
+    memo:          document.getElementById('cqMemo').value.trim(),
+  };
+  const url    = id ? `/api/cheongyak/${id}` : '/api/cheongyak';
+  const method = id ? 'PUT' : 'POST';
+  try {
+    const res = await fetch(url, {method, headers:{'Content-Type':'application/json'}, body: JSON.stringify(body)});
+    if (!res.ok) { alert((await res.json()).detail || '저장 실패'); return; }
+    closeCqModal();
+    await loadCqData();
+  } catch(e) { alert('저장 중 오류가 발생했습니다.'); }
+}
+
+async function deleteCqItem(id) {
+  if (!confirm('이 청약 단지를 삭제하시겠습니까?')) return;
+  await fetch(`/api/cheongyak/${id}`, {method:'DELETE'});
+  await loadCqData();
+}
+
+/* ── 초기 탭 설정 ── */
+switchTab('realestate');
 
 /* ── 초기 로드 ── */
 loadData();

@@ -451,7 +451,7 @@
     <button class="btn-gradient" id="searchBtn" onclick="loadTicker()">조회</button>
   </div>
   <div class="calc-quick-row">
-    {% for sym in ['NVDA','AAPL','MSFT','GOOGL','AMZN','META','TSLA','TSM','ASML','AMD','COST'] %}
+    {% for sym in ['NVDA','AAPL','MSFT','GOOGL','AMZN','META','TSLA','TSM','ASML','AVGO','LLY'] %}
     <button class="calc-quick-btn {% if ticker == sym %}active{% endif %}"
             data-ticker="{{ sym }}" onclick="quickLoad(this,'{{ sym }}')">{{ sym }}</button>
     {% endfor %}
@@ -493,10 +493,16 @@
     <!-- 보유 주식 설정 -->
     <div class="calc-accent-card blue">
       <div class="calc-card-title" style="margin-bottom:14px;">보유 주식 설정</div>
-      <div style="display:flex;align-items:center;gap:10px;margin-bottom:14px;">
+      <div style="display:flex;align-items:center;gap:10px;margin-bottom:10px;">
         <input type="number" class="calc-shares-input" id="sharesInput"
                value="100" min="1" oninput="calculate()" />
         <span style="font-size:13px;color:var(--text2);white-space:nowrap;">주</span>
+      </div>
+      <div style="display:flex;gap:6px;margin-bottom:14px;flex-wrap:wrap;">
+        <button onclick="setSharesByKrw(1e8)"  style="flex:1;padding:5px 8px;font-size:11px;font-weight:700;border-radius:7px;border:1px solid rgba(102,126,234,0.3);background:rgba(102,126,234,0.08);color:#667eea;cursor:pointer;white-space:nowrap;">1억</button>
+        <button onclick="setSharesByKrw(5e8)"  style="flex:1;padding:5px 8px;font-size:11px;font-weight:700;border-radius:7px;border:1px solid rgba(102,126,234,0.3);background:rgba(102,126,234,0.08);color:#667eea;cursor:pointer;white-space:nowrap;">5억</button>
+        <button onclick="setSharesByKrw(1e9)"  style="flex:1;padding:5px 8px;font-size:11px;font-weight:700;border-radius:7px;border:1px solid rgba(102,126,234,0.3);background:rgba(102,126,234,0.08);color:#667eea;cursor:pointer;white-space:nowrap;">10억</button>
+        <button onclick="setSharesByKrw(1e10)" style="flex:1;padding:5px 8px;font-size:11px;font-weight:700;border-radius:7px;border:1px solid rgba(102,126,234,0.3);background:rgba(102,126,234,0.08);color:#667eea;cursor:pointer;white-space:nowrap;">100억</button>
       </div>
       <div style="height:1px;background:var(--glass-border);margin-bottom:12px;"></div>
       <div class="calc-settings-grid">
@@ -709,7 +715,9 @@ function setText(id, v) { document.getElementById(id).textContent = v; }
 /* ── 데이터 적용 ── */
 function applyData(data) {
   stockData   = data;
-  currentYear = data.yearKeys[data.yearKeys.length - 1];
+  currentYear = (data.forecastKeys && data.forecastKeys.length > 0)
+    ? data.forecastKeys[0]
+    : data.yearKeys[data.yearKeys.length - 1];
 
   document.getElementById('stockTitle').innerHTML =
     `<span style="color:var(--text);font-size:18px;font-weight:800;">${data.ticker}</span>` +
@@ -825,6 +833,17 @@ async function loadTicker(skipQuick = false) {
 function quickLoad(btn, ticker) {
   document.getElementById('tickerInput').value = ticker;
   loadTicker();
+}
+
+/* ── 금액 기준 주수 설정 ── */
+function setSharesByKrw(krw) {
+  if (!stockData) return;
+  const price = stockData.price;
+  if (!price || price <= 0) return;
+  const priceKrw = price * fxRate;
+  const shares = Math.max(1, Math.floor(krw / priceKrw));
+  document.getElementById('sharesInput').value = shares;
+  calculate();
 }
 
 /* ── 계산 ── */

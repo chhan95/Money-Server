@@ -207,7 +207,7 @@
   margin-bottom: 20px;
   transition: all 0.3s var(--ease-out);
   position: relative;
-  overflow: hidden;
+  overflow: visible;
 }
 .hm-pie-card:hover { box-shadow: var(--shadow-md); border-color: rgba(255,255,255,0.1); }
 /* Subtle gradient accent at top */
@@ -602,7 +602,7 @@
         <tr>
           <th style="text-align:left;">종목</th>
           <th>보유주</th>
-          <th>지분율</th>
+          <th>평가액</th>
           <th>현재 FY 예상</th>
           <th>내년 FY 예상</th>
         </tr>
@@ -799,6 +799,7 @@ function renderPie(totalValue) {
     options: {
       responsive: true, maintainAspectRatio: true,
       cutout: '68%',
+      layout: { padding: 10 },
       plugins: {
         legend: { display: false },
         tooltip: {
@@ -874,7 +875,7 @@ function renderTable(fcItems) {
         </div>
       </td>
       <td class="hm-mono">${item.shares_owned.toLocaleString()}</td>
-      <td class="hm-mono" style="font-size:10px;color:var(--text2);">${(pct*100).toExponential(3)}%</td>
+      <td class="hm-mono"><div>${fmtKRWraw(item.shares_owned*item.current_price*fxRate)}</div><div style="font-size:10px;color:var(--text2);">$${Math.round(item.shares_owned*item.current_price).toLocaleString()}</div></td>
       <td class="hm-income-val">${fmtKRWraw(mKrw)}</td>
       <td>${fcCell}</td>
     `;

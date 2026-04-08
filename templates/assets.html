@@ -641,7 +641,7 @@
       <div class="value" id="cardLiquid">—</div>
     </div>
     <div class="metric-card">
-      <div class="label"><span class="dot" style="background:#a16207;"></span>부동산</div>
+      <div class="label"><span class="dot" style="background:#ab9A91;"></span>부동산</div>
       <div class="value" id="cardRealestate">—</div>
     </div>
     <div class="metric-card loan-card">
@@ -665,15 +665,19 @@
 
       <!-- 우: 요약 + 목록 -->
       <div>
-        <!-- 순자산 / 부채비율 -->
-        <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:16px;">
-          <div style="background:var(--bg2);border-radius:10px;padding:12px 14px;border:1px solid var(--border);">
-            <div style="font-size:11px;color:var(--text2);margin-bottom:4px;">순자산</div>
-            <div style="font-size:16px;font-weight:700;color:var(--text);" id="doughnutSummaryNet">—</div>
+        <!-- 총자산 / 순자산 / 부채비율 -->
+        <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;margin-bottom:16px;">
+          <div style="background:var(--bg2);border-radius:10px;padding:10px 12px;border:1px solid var(--border);">
+            <div style="font-size:10px;color:var(--text2);margin-bottom:4px;">총자산</div>
+            <div style="font-size:14px;font-weight:700;color:var(--text);" id="doughnutSummaryGross">—</div>
           </div>
-          <div style="background:var(--bg2);border-radius:10px;padding:12px 14px;border:1px solid var(--border);">
-            <div style="font-size:11px;color:var(--text2);margin-bottom:4px;">부채비율</div>
-            <div style="font-size:16px;font-weight:700;color:#ef4444;" id="doughnutDebtRatio">—</div>
+          <div style="background:var(--bg2);border-radius:10px;padding:10px 12px;border:1px solid var(--border);">
+            <div style="font-size:10px;color:var(--text2);margin-bottom:4px;">순자산</div>
+            <div style="font-size:14px;font-weight:700;color:#667eea;" id="doughnutSummaryNet">—</div>
+          </div>
+          <div style="background:var(--bg2);border-radius:10px;padding:10px 12px;border:1px solid var(--border);">
+            <div style="font-size:10px;color:var(--text2);margin-bottom:4px;">부채비율</div>
+            <div style="font-size:14px;font-weight:700;color:#ef4444;" id="doughnutDebtRatio">—</div>
           </div>
         </div>
         <!-- 테이블 헤더 -->
@@ -707,7 +711,7 @@
         <span class="cat-legend-item"><span class="cat-legend-dot" style="background:#10b981;"></span>투자</span>
         <span class="cat-legend-item"><span class="cat-legend-dot" style="background:#f59e0b;"></span>저축</span>
         <span class="cat-legend-item"><span class="cat-legend-dot" style="background:#3b82f6;"></span>자유입출금</span>
-        <span class="cat-legend-item"><span class="cat-legend-dot" style="background:#a16207;"></span>부동산</span>
+        <span class="cat-legend-item"><span class="cat-legend-dot" style="background:#ab9A91;"></span>부동산</span>
       </div>
     </div>
     <div class="chart-container">
@@ -757,7 +761,7 @@
 
 
 <!-- ══════════════════════════════════════
-     TAB 2 — 통장별 현황
+     TAB 2 — 자산 관리
 ══════════════════════════════════════ -->
 <div id="pg2" style="display:none;">
 
@@ -766,9 +770,6 @@
     <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px;">
       <div class="section-title" style="margin-bottom:0;">자산 관리</div>
       <button class="btn-gradient" style="padding:8px 14px;font-size:12px;" onclick="openAddAccModal()">+ 자산 추가</button>
-    </div>
-    <div id="customAccList">
-      <p style="font-size:13px;color:var(--text2);">추가된 커스텀 계좌가 없습니다.</p>
     </div>
   </div>
 
@@ -838,7 +839,7 @@
       <div class="form-field" data-bikey="hanaLoan"><label>하나은행 대출 (양수 입력)</label><input id="fHanaLoan" type="number" placeholder="0"></div>
     </div>
 
-    <!-- 커스텀 계좌 -->
+    <!-- 추가 계좌 -->
     <div id="customAccSection" style="display:none;">
       <div class="form-section-title" style="justify-content:space-between;">
         <span style="display:flex;align-items:center;gap:6px;"><span class="dot" style="background:#667eea;"></span>추가 계좌</span>
@@ -848,7 +849,7 @@
     </div>
 
     <div id="noCustomAccBtn" style="margin-bottom:20px;">
-      <button class="btn-soft" style="width:100%;padding:12px;font-size:12px;" onclick="openAddAccModal()">+ 새 계좌 등록 (커스텀)</button>
+      <button class="btn-soft" style="width:100%;padding:12px;font-size:12px;" onclick="openAddAccModal()">+ 새 계좌 등록</button>
     </div>
 
     <!-- 메모 -->
@@ -931,13 +932,15 @@
 let allData = [];
 let customAccounts = [];
 let deactivatedBuiltins = new Set();
+let builtinRenames = {};  // key → 사용자 지정 이름
+let builtinOrder   = {};  // cat → [key, key, ...] 순서
 let chartTotal = null, chartCategory = null, accountDoughnutChart = null;
 let csvContent = null;
 let currentTab = 'recent';
 let currentPg  = 0;
 
 const CAT_LABEL = {pension:'연금', invest:'투자', savings:'저축', liquid:'자유입출금', realestate:'부동산', loan:'대출'};
-const CAT_COLOR = {pension:'#6366f1', invest:'#10b981', savings:'#f59e0b', liquid:'#3b82f6', realestate:'#a16207', loan:'#ef4444'};
+const CAT_COLOR = {pension:'#6366f1', invest:'#10b981', savings:'#f59e0b', liquid:'#3b82f6', realestate:'#ab9A91', loan:'#ef4444'};
 const CAT_ORDER = ['liquid','invest','pension','savings','realestate','loan'];
 
 const BUILT_IN = [
@@ -989,6 +992,8 @@ async function loadData() {
   customAccounts = await accRes.json();
   const sv = await settingRes.json();
   try { deactivatedBuiltins = new Set(JSON.parse(sv.value || '[]')); } catch { deactivatedBuiltins = new Set(); }
+  try { builtinRenames = JSON.parse(localStorage.getItem('builtinRenames') || '{}'); } catch { builtinRenames = {}; }
+  try { builtinOrder   = JSON.parse(localStorage.getItem('builtinOrder')   || '{}'); } catch { builtinOrder   = {}; }
   renderCards();
   renderCharts();
   renderTable();
@@ -1025,25 +1030,26 @@ function renderCards() {
 // ── 계좌 유형별 도넛 차트 ──
 function renderAccountDoughnut(last) {
   const grossAssets = (last.pensionTotal||0) + (last.investTotal||0) + (last.savingsTotal||0) + (last.liquidTotal||0) + (last.realestateTotal||0);
-  const loan        = grossAssets - last.totalCapital;  // 대출 = 총자산 - 순자산
+  const loan        = grossAssets - last.totalCapital;
   const netAsset    = last.totalCapital;
   const debtRatio   = grossAssets > 0 ? (loan / grossAssets * 100).toFixed(1) : '0.0';
 
-  document.getElementById('doughnutSummaryNet').textContent  = fmtKrw(netAsset);
-  document.getElementById('doughnutDebtRatio').textContent   = debtRatio + '%';
+  document.getElementById('doughnutSummaryGross').textContent = fmtKrw(grossAssets);
+  document.getElementById('doughnutSummaryNet').textContent   = fmtKrw(netAsset);
+  document.getElementById('doughnutDebtRatio').textContent    = debtRatio + '%';
 
   const cats = [
     {label:'투자',      color:'#10b981', val: last.investTotal||0},
     {label:'연금',      color:'#6366f1', val: last.pensionTotal||0},
     {label:'저축',      color:'#f59e0b', val: last.savingsTotal||0},
     {label:'자유입출금',color:'#3b82f6', val: last.liquidTotal||0},
-    {label:'부동산',    color:'#a16207', val: last.realestateTotal||0},
+    {label:'부동산',    color:'#ab9A91', val: last.realestateTotal||0},
     {label:'대출',      color:'#ef4444', val: loan},
   ];
 
   // 목록 렌더
   const total = grossAssets;
-  document.getElementById('accountTypeRows').innerHTML = cats.map(c => {
+  const rows = cats.map(c => {
     const pct = total > 0 ? (c.val / total * 100).toFixed(1) : '0.0';
     const isLoan = c.label === '대출';
     return `<div style="display:grid;grid-template-columns:2fr 1.5fr 0.7fr;align-items:center;padding:9px 4px;border-bottom:1px solid var(--border2);">
@@ -1055,6 +1061,8 @@ function renderAccountDoughnut(last) {
       <div style="text-align:right;font-size:13px;font-weight:700;color:${c.color};">${pct}%</div>
     </div>`;
   }).join('');
+
+  document.getElementById('accountTypeRows').innerHTML = rows;
 
   // 도넛 차트 중앙 텍스트 플러그인
   const isDark = document.documentElement.getAttribute('data-theme') === 'dark';
@@ -1070,10 +1078,10 @@ function renderAccountDoughnut(last) {
       c.textBaseline = 'middle';
       c.font = '11px -apple-system, sans-serif';
       c.fillStyle = centerSubColor;
-      c.fillText('순자산', cx, cy - 14);
+      c.fillText('총자산', cx, cy - 14);
       c.font = 'bold 17px -apple-system, sans-serif';
       c.fillStyle = centerTextColor;
-      c.fillText(fmtKrw(netAsset), cx, cy + 6);
+      c.fillText(fmtKrw(grossAssets), cx, cy + 6);
       c.restore();
     }
   };
@@ -1202,7 +1210,7 @@ function renderCharts() {
         {label:'투자',      data: recent.map(d=>d.investTotal),      backgroundColor:'rgba(16,185,129,0.75)',  borderRadius:0, stack:'s'},
         {label:'저축',      data: recent.map(d=>d.savingsTotal),     backgroundColor:'rgba(245,158,11,0.75)',  borderRadius:0, stack:'s'},
         {label:'자유입출금',data: recent.map(d=>d.liquidTotal),      backgroundColor:'rgba(59,130,246,0.75)',  borderRadius:0, stack:'s'},
-        {label:'부동산',    data: recent.map(d=>d.realestateTotal||0),backgroundColor:'rgba(161,98,7,0.75)',  borderRadius:{topLeft:6,topRight:6}, stack:'s'},
+        {label:'부동산',    data: recent.map(d=>d.realestateTotal||0),backgroundColor:'rgba(171,154,145,0.75)',  borderRadius:{topLeft:6,topRight:6}, stack:'s'},
       ]
     },
     options: {
@@ -1294,16 +1302,24 @@ function renderAccountBreakdown() {
     let catSum = bi.reduce((s,a) => s + (last[a.key]||0), 0);
     cu.forEach(a => { catSum += parseFloat((last.extra||{})[String(a.id)]||0); });
 
-    const activeRows = [
-      ...bi.map(a => ({name:a.name, val:last[a.key]||0, isCustom:false, key:a.key})),
-      ...cu.map(a => ({name:a.name, val:parseFloat((last.extra||{})[String(a.id)]||0), isCustom:true, cid:a.id})),
-    ].sort((a,b) => b.val-a.val);
+    const rawRows = [
+      ...bi.map(a => ({name: builtinRenames[a.key] || a.name, val:last[a.key]||0, isCustom:false, key:a.key, order: 0})),
+      ...cu.map(a => ({name:a.name, val:parseFloat((last.extra||{})[String(a.id)]||0), isCustom:true, cid:a.id, order: a.display_order||0})),
+    ];
+    const savedOrder = builtinOrder[cat];
+    const activeRows = savedOrder
+      ? rawRows.sort((a,b) => {
+          const ia = savedOrder.indexOf(a.key || ('c'+a.cid));
+          const ib = savedOrder.indexOf(b.key || ('c'+b.cid));
+          return (ia < 0 ? 999 : ia) - (ib < 0 ? 999 : ib);
+        })
+      : rawRows.sort((a,b) => b.val-a.val);
 
     // 부동산은 계좌가 없어도 항목 표시 (커스텀 계좌 추가 유도)
     // 항상 표시
 
     html += `
-    <div class="acc-category-card">
+    <div class="acc-category-card" data-cat="${cat}">
       <div class="acc-category-header">
         <div class="acc-category-name">
           <span class="bar" style="background:${CAT_COLOR[cat]};"></span>
@@ -1314,14 +1330,21 @@ function renderAccountBreakdown() {
       ${activeRows.map(row => {
         const pct = catSum ? (row.val/catSum*100).toFixed(1) : '0.0';
         const isZero = row.val === 0;
-        return `<div class="acc-row${isZero?' zero':''}">
-          <div class="name">
+        const rowId = row.isCustom ? ('c'+row.cid) : row.key;
+        return `<div class="acc-row${isZero?' zero':''}" draggable="true" data-rowid="${rowId}" data-cat="${cat}"
+            style="cursor:grab;"
+            ondragstart="onRowDragStart(event)"
+            ondragover="onRowDragOver(event)"
+            ondrop="onRowDrop(event)"
+            ondragend="onRowDragEnd(event)">
+          <div class="name" style="display:flex;align-items:center;gap:6px;">
+            <span style="font-size:14px;color:var(--text2);cursor:grab;flex-shrink:0;">⠿</span>
             ${row.name}
-            ${row.isCustom ? '<span class="badge">커스텀</span>' : ''}
           </div>
           <div class="right">
             <span class="amount">${isZero ? '—' : fmtKrw(row.val)}</span>
             ${!isZero ? `<span class="pct">${pct}%</span>` : '<span class="pct">—</span>'}
+            <button class="btn-icon" style="width:28px;height:28px;font-size:11px;" onclick="renameAccount(${row.isCustom ? `${row.cid},null,false` : `null,'${row.key}',true`},'${row.name.replace(/'/g,"\\'")}')" title="이름 수정">✏️</button>
             ${row.isCustom
               ? `<button class="btn-icon danger" style="width:28px;height:28px;font-size:12px;" onclick="deleteAccount(${row.cid},'${row.name}')" title="삭제">×</button>`
               : `<button class="btn-icon" style="width:28px;height:28px;font-size:10px;" onclick="deactivateBuiltin('${row.key}','${row.name}')" title="숨기기">👁‍🗨</button>`
@@ -1346,6 +1369,86 @@ function renderAccountBreakdown() {
   }
 
   document.getElementById('accountBreakdown').innerHTML = html || '<div class="empty-state-box"><div class="icon">🏦</div><div class="msg">잔액 있는 계좌가 없습니다.</div></div>';
+}
+
+// ── 계좌 행 드래그 앤 드롭 ──
+let _dragSrc = null;
+
+function onRowDragStart(e) {
+  _dragSrc = e.currentTarget;
+  e.dataTransfer.effectAllowed = 'move';
+  e.currentTarget.style.opacity = '0.4';
+}
+
+function onRowDragOver(e) {
+  e.preventDefault();
+  e.dataTransfer.dropEffect = 'move';
+  const target = e.currentTarget;
+  if (target === _dragSrc || target.dataset.cat !== _dragSrc.dataset.cat) return;
+  target.style.borderTop = '2px solid var(--blue)';
+}
+
+function onRowDrop(e) {
+  e.preventDefault();
+  const target = e.currentTarget;
+  target.style.borderTop = '';
+  if (!_dragSrc || target === _dragSrc || target.dataset.cat !== _dragSrc.dataset.cat) return;
+
+  const cat = target.dataset.cat;
+  const card = target.closest('.acc-category-card');
+  const rows = [...card.querySelectorAll('.acc-row[data-rowid]')];
+  const ids  = rows.map(r => r.dataset.rowid);
+
+  const srcIdx = ids.indexOf(_dragSrc.dataset.rowid);
+  const tgtIdx = ids.indexOf(target.dataset.rowid);
+  ids.splice(srcIdx, 1);
+  ids.splice(tgtIdx, 0, _dragSrc.dataset.rowid);
+
+  builtinOrder[cat] = ids;
+  localStorage.setItem('builtinOrder', JSON.stringify(builtinOrder));
+
+  // 커스텀 계좌 display_order 저장
+  ids.forEach((id, i) => {
+    if (id.startsWith('c')) {
+      const cid = parseInt(id.slice(1));
+      fetch(`/api/accounts/${cid}`, {
+        method: 'PUT',
+        headers: {'Content-Type': 'application/json'},
+        body: JSON.stringify({display_order: i}),
+      });
+      const acc = customAccounts.find(a => a.id === cid);
+      if (acc) acc.display_order = i;
+    }
+  });
+
+  renderAccountBreakdown();
+}
+
+function onRowDragEnd(e) {
+  e.currentTarget.style.opacity = '';
+  document.querySelectorAll('.acc-row').forEach(r => r.style.borderTop = '');
+  _dragSrc = null;
+}
+
+// ── 계좌 이름 수정 ──
+async function renameAccount(cid, key, isBuiltin, currentName) {
+  const newName = prompt('새 이름을 입력하세요', currentName);
+  if (!newName || !newName.trim() || newName.trim() === currentName) return;
+  const trimmed = newName.trim();
+  if (isBuiltin) {
+    builtinRenames[key] = trimmed;
+    localStorage.setItem('builtinRenames', JSON.stringify(builtinRenames));
+  } else {
+    await fetch(`/api/accounts/${cid}`, {
+      method: 'PUT',
+      headers: {'Content-Type': 'application/json'},
+      body: JSON.stringify({name: trimmed}),
+    });
+    const acc = customAccounts.find(a => a.id === cid);
+    if (acc) acc.name = trimmed;
+  }
+  renderAccountBreakdown();
+  renderCustomAccList();
 }
 
 // ── 기본 계좌 숨기기 / 복구 ──
@@ -1379,7 +1482,7 @@ function updateBuiltinFieldVisibility() {
 function renderCustomAccList() {
   const el = document.getElementById('customAccList');
   if (!customAccounts.length) {
-    el.innerHTML = '<p style="font-size:13px;color:var(--text2);">추가된 커스텀 계좌가 없습니다.</p>';
+    el.innerHTML = '<p style="font-size:13px;color:var(--text2);">추가된 계좌가 없습니다.</p>';
     return;
   }
   el.innerHTML = `<div style="display:flex;flex-wrap:wrap;gap:8px;">` +
@@ -1508,9 +1611,28 @@ function updatePreview() {
   document.getElementById('prevTotal').textContent   = fmtKrwFull(total);
 }
 
-document.querySelectorAll('#entryModal input[type="number"]').forEach(el =>
-  el.addEventListener('input', updatePreview)
-);
+function fmtKrwPreview(v) {
+  if (!v || isNaN(v) || v <= 0) return '';
+  const abs = Math.abs(v);
+  const s = v < 0 ? '-' : '';
+  if (abs >= 1e12) return s + (abs/1e12).toFixed(2) + '조원';
+  if (abs >= 1e8)  return s + (abs/1e8).toFixed(2) + '억원';
+  if (abs >= 1e4)  return s + Math.round(abs/1e4).toLocaleString() + '만원';
+  if (abs >= 1e3)  return s + Math.round(abs/1e3).toLocaleString() + '천원';
+  return s + Math.round(abs).toLocaleString() + '원';
+}
+
+document.querySelectorAll('#entryModal input[type="number"]').forEach(el => {
+  const div = document.createElement('div');
+  div.style.cssText = 'font-size:11px;color:var(--text2);min-height:14px;margin-top:3px;font-weight:500;';
+  el.parentNode.insertBefore(div, el.nextSibling);
+
+  el.addEventListener('input', () => {
+    updatePreview();
+    const val = parseFloat(el.value);
+    div.textContent = fmtKrwPreview(val);
+  });
+});
 
 async function submitEntry() {
   const btn = document.getElementById('submitBtn');
@@ -1587,7 +1709,7 @@ async function submitImport() {
 }
 
 // 모달 바깥 클릭 닫기
-['entryModal','importModal','addAccModal'].forEach(id => {
+['importModal','addAccModal'].forEach(id => {
   document.getElementById(id).addEventListener('click', function(e) {
     if (e.target===this) this.style.display='none';
   });

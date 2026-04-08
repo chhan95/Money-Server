@@ -108,9 +108,32 @@ def create_tables():
             conn.commit()
         except Exception:
             pass
+        # kr_stocks 신규 컬럼 마이그레이션
+        for col_def in ["fiscal_json TEXT DEFAULT '[]'", "forecasts_json TEXT DEFAULT '[]'"]:
+            try:
+                conn.execute(text(f"ALTER TABLE kr_stocks ADD COLUMN {col_def}"))
+                conn.commit()
+            except Exception:
+                pass
+        # fiscal 데이터 없는 kr_stocks → 재조회 강제
+        try:
+            conn.execute(text(
+                "UPDATE kr_stocks SET fetched_at = NULL "
+                "WHERE fiscal_json IS NULL OR fiscal_json = '[]'"
+            ))
+            conn.commit()
+        except Exception:
+            pass
+        # kr_portfolio, kr_stocks — create_all로 자동 생성됨 (별도 마이그레이션 불필요)
         # milestones category 컬럼 추가
         try:
             conn.execute(text("ALTER TABLE milestones ADD COLUMN category VARCHAR(50) DEFAULT ''"))
+            conn.commit()
+        except Exception:
+            pass
+        # rule40_tickers is_sample 컬럼 추가
+        try:
+            conn.execute(text("ALTER TABLE rule40_tickers ADD COLUMN is_sample BOOLEAN DEFAULT 0"))
             conn.commit()
         except Exception:
             pass

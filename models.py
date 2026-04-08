@@ -1,4 +1,4 @@
-from sqlalchemy import Column, Integer, String, Float, DateTime, Text, ForeignKey, UniqueConstraint, Date
+from sqlalchemy import Column, Integer, String, Float, DateTime, Text, ForeignKey, UniqueConstraint, Date, Boolean
 from sqlalchemy.orm import relationship
 from datetime import datetime
 from database import Base
@@ -127,6 +127,98 @@ class RealEstate(Base):
     memo           = Column(String(500), default='')
     display_order  = Column(Integer, default=0)
     created_at     = Column(DateTime, default=datetime.utcnow)
+
+
+class Cheongyak(Base):
+    """관심 청약 단지"""
+    __tablename__ = "cheongyak"
+
+    id            = Column(Integer, primary_key=True, autoincrement=True)
+    name          = Column(String(200), nullable=False)   # 단지명
+    region        = Column(String(100), default='')       # 지역
+    supply_type   = Column(String(50),  default='일반공급')  # 일반공급/특별공급/민간분양 등
+    price         = Column(Float, default=0)              # 분양가 (만원)
+    area_m2       = Column(Float, default=0)              # 면적 (m²)
+    apply_start   = Column(String(10),  default='')       # 청약 시작일
+    apply_end     = Column(String(10),  default='')       # 청약 종료일
+    announce_date = Column(String(10),  default='')       # 당첨자 발표일
+    move_in_date  = Column(String(10),  default='')       # 입주 예정일
+    competition   = Column(Float, default=0)              # 경쟁률
+    min_score     = Column(Integer, default=0)            # 필요 최저 가점
+    status        = Column(String(20),  default='관심')   # 관심/접수/당첨/낙첨
+    memo          = Column(String(500), default='')
+    created_at    = Column(DateTime, default=datetime.utcnow)
+
+
+class Rule40Ticker(Base):
+    """Rule of 40 관심 종목 목록 + 캐시된 지표"""
+    __tablename__ = "rule40_tickers"
+
+    ticker         = Column(String(20), primary_key=True)
+    name           = Column(String(200), default='')
+    revenue_growth = Column(Float)   # YoY 매출 성장률 (%)
+    profit_margin  = Column(Float)   # 순이익률 (%)
+    score          = Column(Float)   # growth + margin
+    color          = Column(String(10), default='#667eea')
+    is_sample      = Column(Boolean, default=False)  # 예시 기업 여부
+    fetched_at     = Column(DateTime)
+    display_order  = Column(Integer, default=0)
+
+
+class KrStock(Base):
+    """국내 주식 정보 캐시"""
+    __tablename__ = "kr_stocks"
+
+    ticker         = Column(String(20), primary_key=True)   # e.g. "005930.KS"
+    name           = Column(String(200))
+    current_price  = Column(Float, default=0)               # KRW
+    fiscal_json    = Column(Text, default='[]')             # [{year_key, label, end_date, revenue, net, operating, shares, eps}] (KRW 백만원)
+    forecasts_json = Column(Text, default='[]')             # [{period, label, net, eps}] (KRW 백만원 / 원)
+    fetched_at     = Column(DateTime)
+
+    kr_portfolio = relationship("KrPortfolio", back_populates="stock", uselist=False)
+
+
+class KrPortfolio(Base):
+    """국내 포트폴리오"""
+    __tablename__ = "kr_portfolio"
+
+    id            = Column(Integer, primary_key=True, autoincrement=True)
+    ticker        = Column(String(20), ForeignKey("kr_stocks.ticker"), unique=True, nullable=False)
+    shares_owned  = Column(Float, nullable=False, default=0)
+    avg_price     = Column(Float, default=0)    # KRW
+    memo          = Column(String(500), default="")
+    display_order = Column(Integer, default=0)
+    created_at    = Column(DateTime, default=datetime.utcnow)
+    updated_at    = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+
+    stock = relationship("KrStock", back_populates="kr_portfolio")
+
+
+class KrRule40Ticker(Base):
+    """국내 Rule of 40 관심 종목 목록 + 캐시된 지표"""
+    __tablename__ = "kr_rule40_tickers"
+
+    ticker         = Column(String(20), primary_key=True)   # e.g. "035420.KS"
+    name           = Column(String(200), default='')
+    revenue_growth = Column(Float)   # YoY 매출 성장률 (%)
+    profit_margin  = Column(Float)   # 순이익률 (%)
+    score          = Column(Float)   # growth + margin
+    color          = Column(String(10), default='#667eea')
+    is_sample      = Column(Boolean, default=False)
+    fetched_at     = Column(DateTime)
+    display_order  = Column(Integer, default=0)
+
+
+class KrDailySnapshot(Base):
+    """국내 포트폴리오 일별 스냅샷 — 히스토리 차트용"""
+    __tablename__ = "kr_daily_snapshots"
+
+    id                  = Column(Integer, primary_key=True, autoincrement=True)
+    snapshot_date       = Column(Date, unique=True, nullable=False)  # YYYY-MM-DD
+    total_value_krw     = Column(Float, default=0)   # 포트폴리오 평가액 (KRW)
+    monthly_net_krw     = Column(Float, default=0)   # 지분비례 월 순이익 (KRW)
+    unrealized_gain_krw = Column(Float, default=0)   # 평가이익 (KRW)
 
 
 class AppSetting(Base):
