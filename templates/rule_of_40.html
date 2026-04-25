@@ -489,11 +489,81 @@ svg.r40-chart { width: 100%; height: auto; display: block; overflow: visible; }
 <script>
 // ── 티커 색상 딕셔너리 (홈과 동일) ───────────────────────
 const TICKER_COLORS = {
-  "AAPL":"#000000","MSFT":"#0078D4","GOOGL":"#FBBC05","AMZN":"#FF9900",
-  "META":"#0866FF","NVDA":"#76B900","TSLA":"#E31937","NFLX":"#E50914",
-  "ADBE":"#FF0000","CRM":"#00A1E0","TSM":"#EB0029","KLAC":"#003A8F",
-  "LLY":"#D52B1E","APP":"#5AC8FA","ASML":"#F58220","INTC":"#0071C5",
-  "AVGO":"#FF6B81","PLTR":"#1a1a1a","CRM":"#00A1E0",
+  // ── Big Tech ──────────────────────────────
+  "AAPL":"#F5F5F7",   // Apple (theme-aware below)
+  "MSFT":"#0078D4",   // Microsoft Blue
+  "GOOGL":"#4285F4",  // Google Blue
+  "GOOG":"#4285F4",   // Google Blue
+  "AMZN":"#FF9900",   // Amazon Orange
+  "META":"#0866FF",   // Meta Blue
+  "NVDA":"#76B900",   // NVIDIA Green
+  "TSLA":"#E31937",   // Tesla Red
+  "NFLX":"#E50914",   // Netflix Red
+  "ORCL":"#F80000",   // Oracle Red
+
+  // ── Software / SaaS ───────────────────────
+  "CRM":"#00A1E0",    // Salesforce Blue
+  "ADBE":"#FF0000",   // Adobe Red
+  "NOW":"#00A1E0",    // ServiceNow (Salesforce-ish Blue)
+  "SNOW":"#29B5E8",   // Snowflake Blue
+  "TEAM":"#0052CC",   // Atlassian Blue
+  "MDB":"#00ED64",    // MongoDB Green
+  "DDOG":"#632CA6",   // Datadog Purple
+  "NET":"#F38020",    // Cloudflare Orange
+  "ZS":"#005DAA",     // Zscaler Blue
+  "CRWD":"#FC1D2D",   // CrowdStrike Red
+  "OKTA":"#007DC1",   // Okta Blue
+  "HUBS":"#FF7A59",   // HubSpot Orange
+  "WDAY":"#F5831F",   // Workday Orange
+  "VEEV":"#EA6B00",   // Veeva Orange
+  "PANW":"#00C0E8",   // Palo Alto Cyan
+  "ZM":"#2D8CFF",     // Zoom Blue
+  "SHOP":"#96BF48",   // Shopify Green
+  "TWLO":"#F22F46",   // Twilio Red
+  "S":"#7B2BF9",      // SentinelOne Purple
+  "TTD":"#0085CA",    // Trade Desk Blue
+  "APP":"#001026",    // AppLovin (theme-aware below)
+  "DUOL":"#58CC02",   // Duolingo Green
+  "IOT":"#1A56DB",    // Samsara Blue
+
+  // ── Semiconductors / Hardware ─────────────
+  "TSM":"#EB0029",    // TSMC Red
+  "AVGO":"#CC0000",   // Broadcom Red
+  "ASML":"#F58220",   // ASML Orange
+  "KLAC":"#007BC6",   // KLA Blue
+  "INTC":"#0071C5",   // Intel Blue
+  "AMD":"#ED1C24",    // AMD Red
+  "QCOM":"#3253DC",   // Qualcomm Blue
+  "AMAT":"#00A3E0",   // Applied Materials Blue
+  "MRVL":"#006FBA",   // Marvell Blue
+  "ARM":"#0091BD",    // Arm Blue
+  "MU":"#E1251B",     // Micron Red
+  "LRCX":"#005EB8",   // Lam Research Blue
+  "MPWR":"#E31837",   // Monolithic Power Red
+  "ON":"#005DAA",     // ON Semiconductor Blue
+  "TXN":"#C41230",    // Texas Instruments Red
+
+  // ── Finance / Fintech ─────────────────────
+  "V":"#1A1F71",      // Visa Navy Blue
+  "MA":"#CF4500",     // Mastercard Red
+  "PYPL":"#003087",   // PayPal Blue
+  "SQ":"#000000",     // Block (Square) Black
+  "COIN":"#0052FF",   // Coinbase Blue
+
+  // ── Healthcare / Pharma ───────────────────
+  "LLY":"#D52B1E",    // Eli Lilly Red
+  "NVO":"#004B87",    // Novo Nordisk Blue
+  "ISRG":"#005695",   // Intuitive Surgical Blue
+
+  // ── Other ─────────────────────────────────
+  "PLTR":"#1a1a1a",   // Palantir Black (theme-aware below)
+  "UBER":"#000000",   // Uber Black
+  "ABNB":"#FF5A5F",   // Airbnb Coral
+  "SPOT":"#1ED760",   // Spotify Green
+  "RBLX":"#E2231A",   // Roblox Red
+  "CELH":"#E31837",   // Celsius Red
+  "PINS":"#E60023",   // Pinterest Red
+  "DASH":"#FF3008",   // DoorDash Red
 };
 const PIE_FALLBACK = [
   '#667eea','#10b981','#f59e0b','#ec4899','#0ea5e9',
@@ -502,6 +572,8 @@ const PIE_FALLBACK = [
 let _fallbackIdx = 0;
 const _THEME_AWARE = {
   "PLTR": { light: "#1a1a1a", dark: "#ffffff" },
+  "APP":  { light: "#001026", dark: "#ffffff" },
+  "AAPL": { light: "#1d1d1f", dark: "#F5F5F7" },
 };
 function r40TickerColor(ticker, storedColor) {
   if (_THEME_AWARE[ticker]) {

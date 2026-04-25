@@ -243,6 +243,9 @@
 <div class="hm-page-header">
   <h1>국내 홈</h1>
   <p id="pageDate"></p>
+  <button id="manualRefreshBtn" onclick="doForceRefresh()" style="margin-top:12px;padding:6px 16px;font-size:12px;font-weight:600;background:rgba(102,126,234,0.1);border:1px solid rgba(102,126,234,0.25);border-radius:99px;color:var(--blue);cursor:pointer;transition:all 0.2s;" onmouseover="this.style.background='rgba(102,126,234,0.2)'" onmouseout="this.style.background='rgba(102,126,234,0.1)'">
+    🔄 현재가 업데이트
+  </button>
 </div>
 
 {% if not has_items %}
@@ -292,25 +295,25 @@
 
 <!-- INCOME SUMMARY -->
 <div class="hm-summary-grid" style="grid-template-columns:repeat(2,1fr);">
-  <div class="hm-stat-card income" style="--before-bg:var(--green);">
-    <div style="position:absolute;left:0;top:0;bottom:0;width:4px;border-radius:4px 0 0 4px;background:var(--green);"></div>
+  <div class="hm-stat-card" style="position:relative;">
+    <div style="position:absolute;left:0;top:0;bottom:0;width:4px;border-radius:4px 0 0 4px;background:var(--blue);"></div>
     <div class="hm-stat-label">
-      <span class="dot" style="background:var(--green);"></span>
-      통합 월 소득
-      <span style="font-size:10px;padding:1px 8px;border-radius:99px;background:rgba(16,185,129,0.1);color:var(--green);border:1px solid rgba(16,185,129,0.15);font-weight:600;">NET</span>
+      <span class="dot" style="background:var(--blue);"></span>
+      지분비례 연 매출
+      <span style="font-size:10px;padding:1px 8px;border-radius:99px;background:rgba(102,126,234,0.1);color:var(--blue);border:1px solid rgba(102,126,234,0.2);font-weight:600;">FY예상</span>
     </div>
-    <div class="hm-stat-value" id="s-income" style="color:var(--green);">—</div>
-    <div class="hm-stat-sub">최근 FY 순이익 기준</div>
+    <div class="hm-stat-value" id="s-fc-rev" style="color:var(--blue);">—</div>
+    <div class="hm-stat-sub" id="s-fc-label">현재 FY 애널리스트 예상</div>
   </div>
   <div class="hm-stat-card" style="position:relative;">
     <div style="position:absolute;left:0;top:0;bottom:0;width:4px;border-radius:4px 0 0 4px;background:var(--amber);"></div>
     <div class="hm-stat-label">
       <span class="dot" style="background:var(--amber);"></span>
-      예상 월 소득
-      <span style="font-size:10px;padding:1px 8px;border-radius:99px;background:rgba(245,158,11,0.1);color:var(--amber);border:1px solid rgba(245,158,11,0.15);font-weight:600;">ANALYST</span>
+      지분비례 연 순이익
+      <span style="font-size:10px;padding:1px 8px;border-radius:99px;background:rgba(245,158,11,0.1);color:var(--amber);border:1px solid rgba(245,158,11,0.15);font-weight:600;">FY예상</span>
     </div>
-    <div class="hm-stat-value" id="s-forecast" style="color:var(--amber);">—</div>
-    <div class="hm-stat-sub" id="s-forecast-label">현재 FY 예상</div>
+    <div class="hm-stat-value" id="s-fc-net" style="color:var(--amber);">—</div>
+    <div class="hm-stat-sub">현재 FY 애널리스트 예상</div>
   </div>
 </div>
 
@@ -407,24 +410,13 @@ ITEMS.forEach(it => {
     totalCur  += it.shares_owned * it.current_price;
   }
 
-  // 월 소득 계산: net(백만KRW) * 1e6 * (shares_owned / shares_M*1e6) / 12
+  // 현재 FY 예상 연 매출·순이익 (백만KRW * 1e6 * 지분비례)
   const fy = it.latest_fy;
-  if (fy && fy.net && fy.shares > 0) {
-    const pct     = it.shares_owned / (fy.shares * 1e6);
-    const monthly = fy.net * 1e6 * pct / 12;
-    totalIncome  += monthly;
-  }
   const fc = it.forecast_cur;
-  if (fc && fc.net && (fy && fy.shares > 0)) {
-    const pct = it.shares_owned / (it.latest_fy.shares * 1e6);
-    totalForecastCur += fc.net * 1e6 * pct / 12;
-    hasForecastCur = true;
-  }
-  const fn = it.forecast_nxt;
-  if (fn && fn.net && (fy && fy.shares > 0)) {
-    const pct = it.shares_owned / (it.latest_fy.shares * 1e6);
-    totalForecastNxt += fn.net * 1e6 * pct / 12;
-    hasForecastNxt = true;
+  if (fc && fy && fy.shares > 0) {
+    const pct = it.shares_owned / (fy.shares * 1e6);
+    if (fc.revenue != null) { totalForecastCur += fc.revenue * 1e6 * pct; hasForecastCur = true; }
+    if (fc.net     != null) { totalForecastNxt += fc.net     * 1e6 * pct; hasForecastNxt = true; }
   }
 });
 
@@ -456,14 +448,11 @@ if (gainPct !== null) {
 }
 if (totalCost > 0) document.getElementById('s-cost').textContent = fmtKRW(totalCost);
 
-// 월 소득
-if (totalIncome > 0) document.getElementById('s-income').textContent = fmtKRW(totalIncome);
-if (hasForecastCur && totalForecastCur > 0) {
-  document.getElementById('s-forecast').textContent = fmtKRW(totalForecastCur);
-}
-if (hasForecastNxt && totalForecastNxt > 0) {
-  document.getElementById('s-forecast-label').textContent = '내년 FY: ' + fmtKRW(totalForecastNxt);
-}
+// 연 매출·순이익 (현재 FY 예상)
+document.getElementById('s-fc-rev').textContent = hasForecastCur && totalForecastCur > 0 ? fmtKRW(totalForecastCur) : '—';
+document.getElementById('s-fc-net').textContent = hasForecastNxt && totalForecastNxt > 0 ? fmtKRW(totalForecastNxt) : '—';
+const fcItemCount = ITEMS.filter(it => it.forecast_cur && it.forecast_cur.net != null).length;
+if (fcItemCount > 0) document.getElementById('s-fc-label').textContent = `현재 FY 예상 (${fcItemCount}개 종목)`;
 
 // ── 파이 차트 ────────────────────────────────────
 const activeItems = ITEMS.filter(it => it.current_price > 0 && it.shares_owned > 0);
@@ -575,6 +564,17 @@ if (ITEMS.length > 1) {
     <td class="hm-total-val" style="color:var(--green);">${totalFCur > 0 ? fmtKRW(totalFCur) : (totalMonthly > 0 ? fmtKRW(totalMonthly) : '—')}</td>
     <td class="hm-total-val" style="color:var(--amber);">${totalFNxt > 0 ? fmtKRW(totalFNxt) : '—'}</td>`;
   tbody.appendChild(tr);
+}
+
+function doForceRefresh() {
+  const btn = document.getElementById('manualRefreshBtn');
+  btn.disabled = true;
+  btn.textContent = '⏳ 갱신 중…';
+  const overlay = document.getElementById('priceLoadingOverlay');
+  overlay.style.display = 'flex';
+  fetch('/api/kr-force-refresh-prices')
+    .then(() => location.reload())
+    .catch(() => { overlay.style.display = 'none'; btn.disabled = false; btn.textContent = '🔄 현재가 업데이트'; });
 }
 
 // Refresh

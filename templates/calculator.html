@@ -859,7 +859,7 @@ function calculate() {
   if (divRate > 0) {
     divCard.style.display = '';
     const divYieldRaw = stockData.dividendYield || 0;
-    setText('divYield',      divYieldRaw > 0 ? (divYieldRaw * 100).toFixed(2) + '%' : '—');
+    setText('divYield',      divYieldRaw > 0 ? divYieldRaw.toFixed(2) + '%' : '—');
     setText('divRate',       '$' + divRate.toFixed(4) + ' / 주');
     const monthlyDiv = divRate * shares / 12;
     setText('divMonthlyUsd', '$' + monthlyDiv.toFixed(4) + '/월');

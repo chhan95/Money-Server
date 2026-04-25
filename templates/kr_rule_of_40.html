@@ -446,9 +446,54 @@ function r40Y(m) { return 430 - (Math.max(-20, Math.min(70, m)) + 20) / 90 * 400
 
 const NS = "http://www.w3.org/2000/svg";
 const PIE_COLORS = ['#667eea','#10b981','#f59e0b','#ec4899','#0ea5e9','#8b5cf6','#f97316','#6366f1','#14b8a6','#ef4444'];
+
+// 국내 기업 대표 브랜드 색상 (종목코드 기준, .KS/.KQ 제거)
+const KR_BRAND_COLORS = {
+  '005930': '#1428A0',  // 삼성전자 (Samsung Blue)
+  '000660': '#CD1621',  // SK하이닉스 (SK Red)
+  '035420': '#03C75A',  // NAVER (Naver Green)
+  '035720': '#FFB900',  // 카카오 (Kakao Yellow — 차트 가시성 위해 약간 어둡게)
+  '003230': '#FF5A00',  // 삼양식품 (Evolving Orange)
+  '000880': '#F37321',  // 한화 (지주)
+  '012450': '#F37321',  // 한화에어로스페이스
+  '009830': '#F37321',  // 한화솔루션
+  '088350': '#F37321',  // 한화생명
+  '272210': '#F37321',  // 한화시스템
+  '064426': '#F37321',  // 한화투자증권
+  '014680': '#F37321',  // 한화비전
+  '064350': '#003087',  // 현대로템 (Hyundai Blue)
+  '000270': '#E63312',  // 기아 (Kia Red)
+  '005380': '#002C5F',  // 현대자동차 (Hyundai Dark Blue)
+  '051910': '#A50034',  // LG화학 (LG Red)
+  '373220': '#E60012',  // LG에너지솔루션 (LG Red)
+  '066570': '#A50034',  // LG전자 (LG Red)
+  '207940': '#005BAC',  // 삼성바이오로직스
+  '068270': '#006AC3',  // 셀트리온 (Celltrion Blue)
+  '028260': '#1B3765',  // 삼성물산
+  '015760': '#003DA5',  // 한국전력 (KEPCO Blue)
+  '017670': '#E4002B',  // SK텔레콤 (SK Red)
+  '096770': '#FF6B00',  // SK이노베이션 (SK Orange)
+  '032830': '#002366',  // 삼성생명 (Samsung Navy)
+  '105560': '#FF6600',  // KB금융 (KB Orange)
+  '055550': '#0066CC',  // 신한지주 (Shinhan Blue)
+  '086790': '#0033A0',  // 하나금융지주 (Hana Blue)
+  '316140': '#FF6600',  // 우리금융지주 (Woori Orange)
+  '003550': '#A50034',  // LG (LG Red)
+  '034730': '#E4002B',  // SK (SK Red)
+  '267250': '#001F5B',  // HD현대 (HD Hyundai Blue)
+  '009150': '#1C3F7E',  // 삼성전기 (Samsung Blue)
+  '006400': '#1428A0',  // 삼성SDI (same Samsung Blue)
+  '011200': '#E10600',  // HMM (HMM Red)
+  '000720': '#003087',  // 현대건설 (Hyundai Blue)
+  '010130': '#004B97',  // 고려아연 (Blue)
+  '042700': '#E4002B',  // 한미반도체 (Red)
+  '247540': '#008AC7',  // 에코프로비엠 (Blue)
+};
+
 let _colorIdx = 0;
 function getColor(item) {
-  return item.color || PIE_COLORS[_colorIdx++ % PIE_COLORS.length];
+  const code = displayTicker(item.ticker);
+  return KR_BRAND_COLORS[code] || item.color || PIE_COLORS[_colorIdx++ % PIE_COLORS.length];
 }
 
 // Tooltip

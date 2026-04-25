@@ -268,6 +268,52 @@ def api_refresh_prices(db: Session = Depends(get_db)):
     return {"updated": updated}
 
 
+@app.get("/api/force-refresh-prices")
+def api_force_refresh_prices(db: Session = Depends(get_db)):
+    """포트폴리오 종목 현재가 강제 갱신 (캐시 무시, 수동 버튼용)."""
+    portfolio = db.query(models.Portfolio).all()
+    updated = []
+    for p in portfolio:
+        stock = db.query(models.Stock).filter(models.Stock.ticker == p.ticker).first()
+        if not stock:
+            continue
+        price = fetcher.fetch_current_price(p.ticker)
+        if price:
+            stock.current_price = price
+            stock.fetched_at = _now()
+            db.commit()
+            updated.append(p.ticker)
+            logger.info("[%s] 현재가 강제 갱신: %.2f", p.ticker, price)
+    try:
+        save_daily_snapshot(db)
+    except Exception as e:
+        logger.warning("스냅샷 저장 실패: %s", e)
+    return {"updated": updated}
+
+
+@app.get("/api/kr-force-refresh-prices")
+def api_kr_force_refresh_prices(db: Session = Depends(get_db)):
+    """국내 포트폴리오 종목 현재가 강제 갱신 (캐시 무시, 수동 버튼용)."""
+    portfolio = db.query(models.KrPortfolio).all()
+    updated = []
+    for p in portfolio:
+        stock = db.query(models.KrStock).filter(models.KrStock.ticker == p.ticker).first()
+        if not stock:
+            continue
+        price = fetcher.fetch_kr_current_price(p.ticker)
+        if price:
+            stock.current_price = price
+            stock.fetched_at = _now()
+            db.commit()
+            updated.append(p.ticker)
+            logger.info("[%s] 현재가 강제 갱신: %.0f", p.ticker, price)
+    try:
+        save_kr_daily_snapshot(db)
+    except Exception as e:
+        logger.warning("국내 스냅샷 저장 실패: %s", e)
+    return {"updated": updated}
+
+
 @app.get("/", response_class=HTMLResponse)
 def page_home(request: Request, db: Session = Depends(get_db)):
     portfolio = (
