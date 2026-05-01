@@ -435,6 +435,7 @@
   gap: 10px;
   margin-bottom: 20px;
 }
+.form-grid:empty { margin-bottom: 0; display: none; }
 .form-field label {
   display: block;
   font-size: 11px;
@@ -641,7 +642,7 @@
       <div class="value" id="cardLiquid">—</div>
     </div>
     <div class="metric-card">
-      <div class="label"><span class="dot" style="background:#ab9A91;"></span>부동산</div>
+      <div class="label"><span class="dot" style="background:#a78bfa;"></span>부동산</div>
       <div class="value" id="cardRealestate">—</div>
     </div>
     <div class="metric-card loan-card">
@@ -710,8 +711,8 @@
         <span class="cat-legend-item"><span class="cat-legend-dot" style="background:#6366f1;"></span>연금</span>
         <span class="cat-legend-item"><span class="cat-legend-dot" style="background:#10b981;"></span>투자</span>
         <span class="cat-legend-item"><span class="cat-legend-dot" style="background:#f59e0b;"></span>저축</span>
+        <span class="cat-legend-item"><span class="cat-legend-dot" style="background:#a78bfa;"></span>부동산</span>
         <span class="cat-legend-item"><span class="cat-legend-dot" style="background:#3b82f6;"></span>자유입출금</span>
-        <span class="cat-legend-item"><span class="cat-legend-dot" style="background:#ab9A91;"></span>부동산</span>
       </div>
     </div>
     <div class="chart-container">
@@ -797,7 +798,10 @@
     </div>
 
     <!-- 연금 -->
-    <div class="form-section-title"><span class="dot" style="background:#6366f1;"></span>연금</div>
+    <div class="form-section-title" data-cat-title="pension" style="justify-content:space-between;">
+      <span style="display:flex;align-items:center;gap:6px;"><span class="dot" style="background:#6366f1;"></span>연금</span>
+      <button class="btn-soft" style="padding:4px 10px;font-size:11px;" onclick="openAddAccModal('pension')">+ 등록</button>
+    </div>
     <div class="form-grid">
       <div class="form-field" data-bikey="dc"><label>DC (퇴직연금)</label><input id="fDc" type="number" placeholder="0"></div>
       <div class="form-field" data-bikey="irpMiraeasset"><label>IRP 미래에셋</label><input id="fIrpMiraeasset" type="number" placeholder="0"></div>
@@ -805,52 +809,63 @@
       <div class="form-field" data-bikey="personalPension"><label>개인연금 미래에셋</label><input id="fPersonalPension" type="number" placeholder="0"></div>
       <div class="form-field" data-bikey="pensionCma"><label>연금 CMA 삼성</label><input id="fPensionCma" type="number" placeholder="0"></div>
     </div>
+    <div id="customInputs_pension" class="form-grid"></div>
 
     <!-- 투자 -->
-    <div class="form-section-title"><span class="dot" style="background:#10b981;"></span>투자</div>
+    <div class="form-section-title" data-cat-title="invest" style="justify-content:space-between;">
+      <span style="display:flex;align-items:center;gap:6px;"><span class="dot" style="background:#10b981;"></span>투자</span>
+      <button class="btn-soft" style="padding:4px 10px;font-size:11px;" onclick="openAddAccModal('invest')">+ 등록</button>
+    </div>
     <div class="form-grid">
       <div class="form-field" data-bikey="isa"><label>ISA</label><input id="fIsa" type="number" placeholder="0"></div>
       <div class="form-field" data-bikey="miraeasset"><label>미래에셋증권</label><input id="fMiraeasset" type="number" placeholder="0"></div>
       <div class="form-field" data-bikey="samsungTrading"><label>삼성증권</label><input id="fSamsungTrading" type="number" placeholder="0"></div>
       <div class="form-field" data-bikey="tossSecurities"><label>토스증권</label><input id="fTossSecurities" type="number" placeholder="0"></div>
     </div>
+    <div id="customInputs_invest" class="form-grid"></div>
 
     <!-- 저축 -->
-    <div class="form-section-title"><span class="dot" style="background:#f59e0b;"></span>저축</div>
+    <div class="form-section-title" data-cat-title="savings" style="justify-content:space-between;">
+      <span style="display:flex;align-items:center;gap:6px;"><span class="dot" style="background:#f59e0b;"></span>저축</span>
+      <button class="btn-soft" style="padding:4px 10px;font-size:11px;" onclick="openAddAccModal('savings')">+ 등록</button>
+    </div>
     <div class="form-grid">
       <div class="form-field" data-bikey="housingSubscription">
         <label>주택청약종합저축 <span style="color:#667eea;font-size:10px;">★ 집계포함</span></label>
         <input id="fHousingSubscription" type="number" placeholder="0">
       </div>
     </div>
+    <div id="customInputs_savings" class="form-grid"></div>
 
     <!-- 자유입출금 -->
-    <div class="form-section-title"><span class="dot" style="background:#3b82f6;"></span>자유입출금</div>
+    <div class="form-section-title" data-cat-title="liquid" style="justify-content:space-between;">
+      <span style="display:flex;align-items:center;gap:6px;"><span class="dot" style="background:#3b82f6;"></span>자유입출금</span>
+      <button class="btn-soft" style="padding:4px 10px;font-size:11px;" onclick="openAddAccModal('liquid')">+ 등록</button>
+    </div>
     <div class="form-grid">
       <div class="form-field" data-bikey="youngHana"><label>Young 하나통장</label><input id="fYoungHana" type="number" placeholder="0"></div>
       <div class="form-field" data-bikey="naverpayHana"><label>네이버페이 하나통장</label><input id="fNaverpayHana" type="number" placeholder="0"></div>
       <div class="form-field" data-bikey="shinhan"><label>신한 주거래통장</label><input id="fShinhan" type="number" placeholder="0"></div>
       <div class="form-field" data-bikey="tossSavings"><label>토스 자유입출금</label><input id="fTossSavings" type="number" placeholder="0"></div>
     </div>
+    <div id="customInputs_liquid" class="form-grid"></div>
+
+    <!-- 부동산 -->
+    <div class="form-section-title" data-cat-title="realestate" style="justify-content:space-between;">
+      <span style="display:flex;align-items:center;gap:6px;"><span class="dot" style="background:#a78bfa;"></span>부동산</span>
+      <button class="btn-soft" style="padding:4px 10px;font-size:11px;" onclick="openAddAccModal('realestate')">+ 등록</button>
+    </div>
+    <div id="customInputs_realestate" class="form-grid"></div>
 
     <!-- 대출 -->
-    <div class="form-section-title"><span class="dot" style="background:#ef4444;"></span>대출</div>
+    <div class="form-section-title" data-cat-title="loan" style="justify-content:space-between;">
+      <span style="display:flex;align-items:center;gap:6px;"><span class="dot" style="background:#ef4444;"></span>대출</span>
+      <button class="btn-soft" style="padding:4px 10px;font-size:11px;" onclick="openAddAccModal('loan')">+ 등록</button>
+    </div>
     <div class="form-grid">
       <div class="form-field" data-bikey="hanaLoan"><label>하나은행 대출 (양수 입력)</label><input id="fHanaLoan" type="number" placeholder="0"></div>
     </div>
-
-    <!-- 추가 계좌 -->
-    <div id="customAccSection" style="display:none;">
-      <div class="form-section-title" style="justify-content:space-between;">
-        <span style="display:flex;align-items:center;gap:6px;"><span class="dot" style="background:#667eea;"></span>추가 계좌</span>
-        <button class="btn-soft" style="padding:4px 10px;font-size:11px;" onclick="openAddAccModal()">+ 등록</button>
-      </div>
-      <div id="customAccInputs" class="form-grid"></div>
-    </div>
-
-    <div id="noCustomAccBtn" style="margin-bottom:20px;">
-      <button class="btn-soft" style="width:100%;padding:12px;font-size:12px;" onclick="openAddAccModal()">+ 새 계좌 등록</button>
-    </div>
+    <div id="customInputs_loan" class="form-grid"></div>
 
     <!-- 메모 -->
     <div class="form-grid" style="grid-template-columns:1fr;margin-bottom:20px;">
@@ -866,6 +881,7 @@
       <div class="preview-row"><span class="lbl">투자합</span><span id="prevInvest">0</span></div>
       <div class="preview-row"><span class="lbl">저축합</span><span id="prevSavings">0</span></div>
       <div class="preview-row"><span class="lbl">자유입출금합</span><span id="prevLiquid">0</span></div>
+      <div class="preview-row"><span class="lbl">부동산합</span><span id="prevRealestate">0</span></div>
       <div class="preview-row"><span class="lbl">대출</span><span id="prevLoan" style="color:#ef4444;">0</span></div>
       <div class="preview-divider"></div>
       <div class="preview-row total"><span>총 자본</span><span id="prevTotal" style="color:#667eea;">0</span></div>
@@ -940,7 +956,7 @@ let currentTab = 'recent';
 let currentPg  = 0;
 
 const CAT_LABEL = {pension:'연금', invest:'투자', savings:'저축', liquid:'자유입출금', realestate:'부동산', loan:'대출'};
-const CAT_COLOR = {pension:'#6366f1', invest:'#10b981', savings:'#f59e0b', liquid:'#3b82f6', realestate:'#ab9A91', loan:'#ef4444'};
+const CAT_COLOR = {pension:'#6366f1', invest:'#10b981', savings:'#f59e0b', liquid:'#3b82f6', realestate:'#a78bfa', loan:'#ef4444'};
 const CAT_ORDER = ['liquid','invest','pension','savings','realestate','loan'];
 
 const BUILT_IN = [
@@ -997,7 +1013,6 @@ async function loadData() {
   renderCards();
   renderCharts();
   renderTable();
-  renderCustomAccList();
   renderCustomAccInputs();
   updateBuiltinFieldVisibility();
 }
@@ -1022,7 +1037,7 @@ function renderCards() {
   document.getElementById('cardInvest').textContent      = fmtKrw(last.investTotal);
   document.getElementById('cardSavings').textContent     = fmtKrw(last.savingsTotal);
   document.getElementById('cardLiquid').textContent      = fmtKrw(last.liquidTotal);
-  document.getElementById('cardRealestate').textContent  = last.realestateTotal > 0 ? fmtKrw(last.realestateTotal) : '0원';
+  document.getElementById('cardRealestate').textContent  = fmtKrw(last.realestateTotal);
   document.getElementById('cardLoan').textContent        = last.hanaLoan > 0 ? '-' + fmtKrw(last.hanaLoan) : '없음';
   renderAccountDoughnut(last);
 }
@@ -1043,7 +1058,7 @@ function renderAccountDoughnut(last) {
     {label:'연금',      color:'#6366f1', val: last.pensionTotal||0},
     {label:'저축',      color:'#f59e0b', val: last.savingsTotal||0},
     {label:'자유입출금',color:'#3b82f6', val: last.liquidTotal||0},
-    {label:'부동산',    color:'#ab9A91', val: last.realestateTotal||0},
+    {label:'부동산',    color:'#a78bfa', val: last.realestateTotal||0},
     {label:'대출',      color:'#ef4444', val: loan},
   ];
 
@@ -1209,8 +1224,8 @@ function renderCharts() {
         {label:'연금',      data: recent.map(d=>d.pensionTotal),     backgroundColor:'rgba(99,102,241,0.75)',  borderRadius:{topLeft:0,topRight:0}, stack:'s'},
         {label:'투자',      data: recent.map(d=>d.investTotal),      backgroundColor:'rgba(16,185,129,0.75)',  borderRadius:0, stack:'s'},
         {label:'저축',      data: recent.map(d=>d.savingsTotal),     backgroundColor:'rgba(245,158,11,0.75)',  borderRadius:0, stack:'s'},
-        {label:'자유입출금',data: recent.map(d=>d.liquidTotal),      backgroundColor:'rgba(59,130,246,0.75)',  borderRadius:0, stack:'s'},
-        {label:'부동산',    data: recent.map(d=>d.realestateTotal||0),backgroundColor:'rgba(171,154,145,0.75)',  borderRadius:{topLeft:6,topRight:6}, stack:'s'},
+        {label:'부동산',    data: recent.map(d=>d.realestateTotal),  backgroundColor:'rgba(167,139,250,0.75)', borderRadius:0, stack:'s'},
+        {label:'자유입출금',data: recent.map(d=>d.liquidTotal),      backgroundColor:'rgba(59,130,246,0.75)',  borderRadius:{topLeft:6,topRight:6}, stack:'s'},
       ]
     },
     options: {
@@ -1246,7 +1261,7 @@ function renderTable() {
   const tbody = document.getElementById('assetTableBody');
   if (!allData.length) {
     document.getElementById('rowCount').textContent = '0건';
-    tbody.innerHTML = '<tr><td colspan="8"><div class="empty-state-box"><div class="icon">📊</div><div class="msg">데이터가 없습니다. "+ 항목 추가" 또는 "CSV 가져오기"로 시작하세요.</div></div></td></tr>';
+    tbody.innerHTML = '<tr><td colspan="9"><div class="empty-state-box"><div class="icon">📊</div><div class="msg">데이터가 없습니다. "+ 항목 추가" 또는 "CSV 가져오기"로 시작하세요.</div></div></td></tr>';
     return;
   }
   const sorted = [...allData].sort((a,b) => b.date.localeCompare(a.date));
@@ -1272,7 +1287,9 @@ function renderTable() {
       <td class="num-cell">${fmtKrw(d.investTotal)}</td>
       <td class="num-cell">${fmtKrw(d.savingsTotal)}</td>
       <td class="num-cell">${fmtKrw(d.liquidTotal)}</td>
-      <td class="num-cell">${fmtKrw(d.realestateTotal||0)}</td>
+      <td class="num-cell" style="${d.realestateTotal>0?'color:#a78bfa;':'color:var(--text2);'}">
+        ${d.realestateTotal>0 ? fmtKrw(d.realestateTotal) : '—'}
+      </td>
       <td class="num-cell" style="${d.hanaLoan>0?'color:#ef4444;':'color:var(--text2);'}">
         ${d.hanaLoan>0 ? '-'+fmtKrw(d.hanaLoan) : '—'}
       </td>
@@ -1306,6 +1323,7 @@ function renderAccountBreakdown() {
       ...bi.map(a => ({name: builtinRenames[a.key] || a.name, val:last[a.key]||0, isCustom:false, key:a.key, order: 0})),
       ...cu.map(a => ({name:a.name, val:parseFloat((last.extra||{})[String(a.id)]||0), isCustom:true, cid:a.id, order: a.display_order||0})),
     ];
+
     const savedOrder = builtinOrder[cat];
     const activeRows = savedOrder
       ? rawRows.sort((a,b) => {
@@ -1314,9 +1332,6 @@ function renderAccountBreakdown() {
           return (ia < 0 ? 999 : ia) - (ib < 0 ? 999 : ib);
         })
       : rawRows.sort((a,b) => b.val-a.val);
-
-    // 부동산은 계좌가 없어도 항목 표시 (커스텀 계좌 추가 유도)
-    // 항상 표시
 
     html += `
     <div class="acc-category-card" data-cat="${cat}">
@@ -1357,14 +1372,20 @@ function renderAccountBreakdown() {
 
   if (deactivatedRows.length) {
     html += `
-    <div class="deactivated-panel">
-      <div class="title">숨기기된 계좌</div>
-      ${deactivatedRows.map(r => `
-        <span class="deactivated-chip">
-          <span>${r.name}</span>
-          <span style="font-size:10px;color:var(--text2);">${CAT_LABEL[r.cat]}</span>
-          <button class="restore-btn" onclick="reactivateBuiltin('${r.key}')">복구</button>
-        </span>`).join('')}
+    <div style="margin-top:12px;">
+      <button onclick="this.nextElementSibling.style.display=this.nextElementSibling.style.display==='none'?'block':'none'"
+        style="background:none;border:none;font-size:12px;color:var(--text2);cursor:pointer;padding:4px 0;opacity:0.6;">
+        🙈 숨긴 계좌 ${deactivatedRows.length}개 보기 / 복구
+      </button>
+      <div style="display:none;" class="deactivated-panel">
+        <div class="title">숨긴 계좌</div>
+        ${deactivatedRows.map(r => `
+          <span class="deactivated-chip">
+            <span>${r.name}</span>
+            <span style="font-size:10px;color:var(--text2);">${CAT_LABEL[r.cat]}</span>
+            <button class="restore-btn" onclick="reactivateBuiltin('${r.key}')">복구</button>
+          </span>`).join('')}
+      </div>
     </div>`;
   }
 
@@ -1448,7 +1469,6 @@ async function renameAccount(cid, key, isBuiltin, currentName) {
     if (acc) acc.name = trimmed;
   }
   renderAccountBreakdown();
-  renderCustomAccList();
 }
 
 // ── 기본 계좌 숨기기 / 복구 ──
@@ -1476,48 +1496,59 @@ function updateBuiltinFieldVisibility() {
   document.querySelectorAll('[data-bikey]').forEach(el => {
     el.style.display = deactivatedBuiltins.has(el.dataset.bikey) ? 'none' : '';
   });
-}
-
-// ── 커스텀 계좌 관리 목록 ──
-function renderCustomAccList() {
-  const el = document.getElementById('customAccList');
-  if (!customAccounts.length) {
-    el.innerHTML = '<p style="font-size:13px;color:var(--text2);">추가된 계좌가 없습니다.</p>';
-    return;
-  }
-  el.innerHTML = `<div style="display:flex;flex-wrap:wrap;gap:8px;">` +
-    customAccounts.map(a => `
-      <div style="display:inline-flex;align-items:center;gap:8px;background:var(--bg2);border:1px solid var(--glass-border);border-radius:10px;padding:8px 14px;font-size:13px;">
-        <span style="width:8px;height:8px;border-radius:50%;background:${CAT_COLOR[a.category]};display:inline-block;"></span>
-        <span style="font-weight:500;">${a.name}</span>
-        <span style="font-size:11px;color:var(--text2);">${CAT_LABEL[a.category]}</span>
-        <button onclick="deleteAccount(${a.id},'${a.name}')" style="background:none;border:none;color:var(--text2);cursor:pointer;font-size:16px;line-height:1;padding:0 0 0 4px;opacity:0.5;transition:opacity 0.15s;" onmouseover="this.style.opacity='1'" onmouseout="this.style.opacity='.5'">×</button>
-      </div>`).join('') + `</div>`;
+  // 섹션의 모든 builtin 필드가 숨김이면 빌트인 그리드/제목 숨기기
+  // 단, 같은 카테고리에 커스텀 input이 있으면 제목은 유지
+  document.querySelectorAll('.form-grid').forEach(grid => {
+    const builtins = [...grid.querySelectorAll('[data-bikey]')];
+    if (!builtins.length) return;
+    const allHidden = builtins.every(f => deactivatedBuiltins.has(f.dataset.bikey));
+    grid.style.display = allHidden ? 'none' : '';
+    const title = grid.previousElementSibling;
+    if (title && title.classList.contains('form-section-title')) {
+      const cat = title.dataset.catTitle;
+      const customGrid = cat ? document.getElementById('customInputs_' + cat) : null;
+      const hasCustom = customGrid && customGrid.children.length > 0;
+      title.style.display = (allHidden && !hasCustom) ? 'none' : '';
+    }
+  });
 }
 
 // ── 모달 커스텀 계좌 입력란 ──
+function _bindCustomInputListeners(wrap) {
+  wrap.querySelectorAll('input[type="number"]').forEach(el => {
+    const div = document.createElement('div');
+    div.style.cssText = 'font-size:11px;color:var(--text2);min-height:14px;margin-top:3px;font-weight:500;';
+    el.parentNode.insertBefore(div, el.nextSibling);
+    el.addEventListener('input', () => {
+      updatePreview();
+      const val = parseFloat(el.value);
+      div.textContent = fmtKrwPreview(val);
+    });
+  });
+}
+
 function renderCustomAccInputs() {
-  const section = document.getElementById('customAccSection');
-  const noBtn   = document.getElementById('noCustomAccBtn');
-  const wrap    = document.getElementById('customAccInputs');
-  if (!customAccounts.length) {
-    section.style.display = 'none';
-    noBtn.style.display   = '';
-    return;
-  }
-  section.style.display = '';
-  noBtn.style.display   = 'none';
-  wrap.innerHTML = customAccounts.map(a => `
-    <div class="form-field">
-      <label>${a.name} <span style="color:${CAT_COLOR[a.category]}">(${CAT_LABEL[a.category]})</span></label>
-      <input id="cAcc_${a.id}" type="number" placeholder="0">
-    </div>`).join('');
-  document.querySelectorAll('[id^="cAcc_"]').forEach(el => el.addEventListener('input', updatePreview));
+  ['pension','invest','savings','liquid','realestate','loan'].forEach(cat => {
+    const wrap = document.getElementById('customInputs_' + cat);
+    if (!wrap) return;
+    const accs = customAccounts.filter(a => a.category === cat);
+    if (!accs.length) {
+      wrap.innerHTML = '';
+      return;
+    }
+    wrap.innerHTML = accs.map(a => `
+      <div class="form-field">
+        <label>${a.name}</label>
+        <input id="cAcc_${a.id}" type="number" placeholder="0">
+      </div>`).join('');
+    _bindCustomInputListeners(wrap);
+  });
 }
 
 // ── 계좌 추가/삭제 ──
-function openAddAccModal() {
+function openAddAccModal(defaultCat) {
   document.getElementById('newAccName').value = '';
+  if (defaultCat) document.getElementById('newAccCat').value = defaultCat;
   document.getElementById('addAccModal').style.display = 'block';
 }
 function closeAddAccModal() {
@@ -1538,7 +1569,6 @@ async function saveNewAccount() {
     const acc = await res.json();
     customAccounts.push(acc);
     closeAddAccModal();
-    renderCustomAccList();
     renderCustomAccInputs();
     if (currentPg === 2) renderAccountBreakdown();
   } finally { btn.disabled = false; }
@@ -1547,7 +1577,6 @@ async function deleteAccount(id, name) {
   if (!confirm(`'${name}' 계좌를 삭제하시겠습니까?\n(기존 스냅샷의 금액 기록은 유지됩니다)`)) return;
   await fetch(`/api/accounts/${id}`, {method:'DELETE'});
   customAccounts = customAccounts.filter(a => a.id !== id);
-  renderCustomAccList();
   renderCustomAccInputs();
   renderAccountBreakdown();
 }
@@ -1579,6 +1608,7 @@ function openEntryModal(id) {
     if (el) el.value = d ? (parseFloat((d.extra||{})[String(acc.id)])||0) : 0;
   });
   updatePreview();
+  updateBuiltinFieldVisibility();
   document.getElementById('entryModal').style.display = 'block';
 }
 function closeEntryModal() {
@@ -1590,25 +1620,27 @@ function n(id) { return parseFloat(document.getElementById(id)?.value) || 0; }
 function updatePreview() {
   const pension = n('fDc')+n('fIrpMiraeasset')+n('fIrpSamsung')+n('fPersonalPension')+n('fPensionCma');
   const invest  = n('fIsa')+n('fMiraeasset')+n('fSamsungTrading')+n('fTossSecurities');
-  let savings = n('fHousingSubscription');
-  let liquid  = n('fYoungHana')+n('fNaverpayHana')+n('fShinhan')+n('fTossSavings');
-  let loan    = n('fHanaLoan');
-  let extraPension=0, extraInvest=0, extraSavings=0, extraLiquid=0, extraLoan=0;
+  let savings    = n('fHousingSubscription');
+  let liquid     = n('fYoungHana')+n('fNaverpayHana')+n('fShinhan')+n('fTossSavings');
+  let loan       = n('fHanaLoan');
+  let extraPension=0, extraInvest=0, extraSavings=0, extraLiquid=0, extraRealestate=0, extraLoan=0;
   customAccounts.forEach(acc => {
     const v = parseFloat(document.getElementById('cAcc_'+acc.id)?.value)||0;
-    if (acc.category==='pension')  extraPension  += v;
-    else if (acc.category==='invest')  extraInvest  += v;
-    else if (acc.category==='savings') extraSavings += v;
-    else if (acc.category==='liquid')  extraLiquid  += v;
-    else if (acc.category==='loan')    extraLoan    += v;
+    if      (acc.category==='pension')    extraPension    += v;
+    else if (acc.category==='invest')     extraInvest     += v;
+    else if (acc.category==='savings')    extraSavings    += v;
+    else if (acc.category==='liquid')     extraLiquid     += v;
+    else if (acc.category==='realestate') extraRealestate += v;
+    else if (acc.category==='loan')       extraLoan       += v;
   });
-  const total = (pension+extraPension)+(invest+extraInvest)+(savings+extraSavings)+(liquid+extraLiquid)-(loan+extraLoan);
-  document.getElementById('prevPension').textContent = fmtKrwFull(pension+extraPension);
-  document.getElementById('prevInvest').textContent  = fmtKrwFull(invest+extraInvest);
-  document.getElementById('prevSavings').textContent = fmtKrwFull(savings+extraSavings);
-  document.getElementById('prevLiquid').textContent  = fmtKrwFull(liquid+extraLiquid);
-  document.getElementById('prevLoan').textContent    = fmtKrwFull(loan+extraLoan);
-  document.getElementById('prevTotal').textContent   = fmtKrwFull(total);
+  const total = (pension+extraPension)+(invest+extraInvest)+(savings+extraSavings)+(liquid+extraLiquid)+extraRealestate-(loan+extraLoan);
+  document.getElementById('prevPension').textContent     = fmtKrwFull(pension+extraPension);
+  document.getElementById('prevInvest').textContent      = fmtKrwFull(invest+extraInvest);
+  document.getElementById('prevSavings').textContent     = fmtKrwFull(savings+extraSavings);
+  document.getElementById('prevLiquid').textContent      = fmtKrwFull(liquid+extraLiquid);
+  document.getElementById('prevRealestate').textContent  = fmtKrwFull(extraRealestate);
+  document.getElementById('prevLoan').textContent        = fmtKrwFull(loan+extraLoan);
+  document.getElementById('prevTotal').textContent       = fmtKrwFull(total);
 }
 
 function fmtKrwPreview(v) {
