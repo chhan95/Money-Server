@@ -562,3 +562,50 @@ def fetch_krw_rate() -> float:
         except Exception:
             continue
     return 1380.0
+
+
+def fetch_us10y_yield() -> dict | None:
+    """미국 10년물 국채 금리 조회. 반환: {rate, market_state} 또는 None."""
+    try:
+        info = yf.Ticker("^TNX").info
+        rate = info.get("regularMarketPrice")
+        if not rate or rate <= 0:
+            return None
+        return {
+            "rate":         round(float(rate), 3),
+            "market_state": info.get("marketState", ""),
+        }
+    except Exception:
+        return None
+
+
+def fetch_yield_history(period: str = "5y") -> dict | None:
+    """
+    10년물(^TNX)·단기금리(^IRX) 월별 평균 히스토리.
+    반환: {labels, yield10y, irx, fetched_at}  NaN → None 변환 포함.
+    """
+    try:
+        def _monthly(ticker: str) -> pd.Series:
+            df = yf.Ticker(ticker).history(period=period)
+            if df.empty:
+                return pd.Series(dtype=float)
+            return df["Close"].resample("ME").last().round(3)
+
+        s10 = _monthly("^TNX")
+        sIRX = _monthly("^IRX")
+        idx = s10.index.union(sIRX.index).sort_values()
+        s10  = s10.reindex(idx)
+        sIRX = sIRX.reindex(idx)
+
+        def _to_list(s: pd.Series) -> list:
+            return [None if pd.isna(v) else float(v) for v in s]
+
+        return {
+            "labels":    [d.strftime("%y.%m") for d in idx],
+            "yield10y":  _to_list(s10),
+            "irx":       _to_list(sIRX),
+            "fetched_at": pd.Timestamp.utcnow().isoformat(),
+        }
+    except Exception as e:
+        logger.warning("fetch_yield_history 실패: %s", e)
+        return None

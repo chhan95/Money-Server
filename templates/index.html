@@ -364,8 +364,8 @@
 }
 .hm-legend-dot.actual { background: rgba(16,185,129,0.7); }
 .hm-legend-dot.forecast {
-  background: rgba(102,126,234,0.35);
-  border: 1.5px dashed rgba(102,126,234,0.7);
+  background: rgba(245,158,11,0.35);
+  border: 1.5px dashed rgba(245,158,11,0.7);
 }
 
 /* ── FX / Refresh Badge ── */
@@ -502,7 +502,13 @@
 <div class="hm-hero">
   <div class="hm-hero-top">
     <span class="hm-hero-label">TOTAL VALUE</span>
-    <span class="hm-hero-count" id="s-count">—</span>
+    <div style="display:flex;align-items:center;gap:10px;">
+      <span class="hm-hero-count" id="s-count">—</span>
+      <button id="forceRefreshBtn" onclick="forceRefreshPrices()" title="현재가 강제 갱신" style="display:flex;align-items:center;gap:5px;padding:4px 10px;font-size:11px;font-weight:600;background:rgba(255,255,255,0.12);border:1px solid rgba(255,255,255,0.2);border-radius:8px;color:rgba(255,255,255,0.85);cursor:pointer;transition:background 0.2s;">
+        <svg id="forceRefreshIcon" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="23 4 23 10 17 10"/><path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"/></svg>
+        현재가 갱신
+      </button>
+    </div>
   </div>
   <div class="hm-hero-value" id="s-value">—</div>
   <div class="hm-hero-sub" id="s-value-krw">—</div>
@@ -721,8 +727,8 @@ function renderPortfolioChart() {
       labels,
       datasets: [{
         label: '월 소득 합계', data,
-        backgroundColor: isFc.map(f => f ? 'rgba(102,126,234,0.18)' : 'rgba(16,185,129,0.28)'),
-        borderColor:     isFc.map(f => f ? 'rgba(102,126,234,0.55)'  : 'rgba(16,185,129,0.6)'),
+        backgroundColor: isFc.map(f => f ? 'rgba(245,158,11,0.22)' : 'rgba(16,185,129,0.28)'),
+        borderColor:     isFc.map(f => f ? 'rgba(245,158,11,0.65)'  : 'rgba(16,185,129,0.6)'),
         borderWidth: 1.5, borderRadius: 6, borderSkipped: false,
       }],
     },
@@ -899,6 +905,24 @@ function doRefresh() {
   document.getElementById('refreshText').textContent = '데이터 갱신 중… 완료 후 자동으로 새로고침됩니다';
   Promise.all(STALE.map(t => fetch(`/api/stock/${t}`).catch(() => null)))
     .then(() => location.reload());
+}
+
+function forceRefreshPrices() {
+  const btn  = document.getElementById('forceRefreshBtn');
+  const icon = document.getElementById('forceRefreshIcon');
+  btn.disabled = true;
+  btn.style.opacity = '0.6';
+  icon.style.animation = 'spin 0.8s linear infinite';
+  const overlay = document.getElementById('priceLoadingOverlay');
+  overlay.style.display = 'flex';
+  fetch('/api/force-refresh-prices')
+    .then(() => location.reload())
+    .catch(() => {
+      overlay.style.display = 'none';
+      btn.disabled = false;
+      btn.style.opacity = '';
+      icon.style.animation = '';
+    });
 }
 
 document.addEventListener('DOMContentLoaded', () => {

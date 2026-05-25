@@ -6,6 +6,7 @@ from sqlalchemy.orm import Session
 from datetime import datetime, timedelta, timezone, date
 from typing import Optional
 import json, logging
+from pathlib import Path
 
 import models, database, fetcher
 from database import get_db
@@ -219,9 +220,20 @@ def save_daily_snapshot(db: Session) -> None:
         shares_m = latest.shares or 1
         pct = shares / (shares_m * 1e6)
 
-        monthly_revenue_usd += (latest.revenue  or 0) * pct / 12
+        # 홈 화면 getMonthlyNet 동일 로직:
+        # 현재 FY 예상(forecasts[0])이 있으면 우선 사용, 없으면 최신 확정 FY
+        forecasts = json.loads(stock.forecasts_json or "[]")
+        if forecasts:
+            fc0 = forecasts[0]
+            net_val = fc0.get("net") or 0
+            rev_val = fc0.get("revenue") or 0
+        else:
+            net_val = latest.net or 0
+            rev_val = latest.revenue or 0
+
+        monthly_revenue_usd += rev_val * pct / 12
         monthly_op_usd      += (latest.operating or 0) * pct / 12
-        monthly_net_usd     += (latest.net       or 0) * pct / 12
+        monthly_net_usd     += net_val * pct / 12
 
     snap = db.query(models.DailySnapshot).filter(
         models.DailySnapshot.snapshot_date == today
@@ -908,7 +920,9 @@ def api_kr_r40_refresh(ticker: str, db: Session = Depends(get_db)):
 
 @app.get("/api/history")
 def api_history(db: Session = Depends(get_db)):
-    """월별 스냅샷 데이터 반환 (각 월의 마지막 스냅샷 기준)."""
+    """월별 스냅샷 데이터 반환 (각 월의 마지막 스냅샷 기준).
+    손익 지표(revenue/op/net)는 저장 당시 환율 → 현재 환율로 재환산해 반환.
+    """
     snapshots = (
         db.query(models.DailySnapshot)
         .order_by(models.DailySnapshot.snapshot_date)
@@ -921,8 +935,12 @@ def api_history(db: Session = Depends(get_db)):
         monthly[month_key] = s
 
     result = []
+    latest_fx = 0.0
     for month_key in sorted(monthly.keys()):
         s = monthly[month_key]
+        fx = s.fx_rate or 0
+        if fx > 0:
+            latest_fx = fx
         result.append({
             "month":              month_key,
             "totalValueKrw":     s.total_value_krw     or 0,
@@ -931,8 +949,9 @@ def api_history(db: Session = Depends(get_db)):
             "monthlyNetKrw":     s.monthly_net_krw     or 0,
             "unrealizedGainKrw": s.unrealized_gain_krw or 0,
             "unrealizedGainUsd": s.unrealized_gain_usd or 0,
+            "fxRate":            fx,
         })
-    return result
+    return {"latestFxRate": latest_fx, "items": result}
 
 
 @app.get("/api/stock/{ticker}/quick")
@@ -1368,9 +1387,49 @@ def _asset_to_dict(s: models.AssetSnapshot, custom_accounts: list = None) -> dic
     }
 
 
+_YIELD_CACHE = Path("yield_history.json")
+
+def _get_yield_history() -> dict | None:
+    """하루 1회 갱신되는 금리 히스토리 캐시."""
+    if _YIELD_CACHE.exists():
+        try:
+            data = json.loads(_YIELD_CACHE.read_text(encoding="utf-8"))
+            fetched = datetime.fromisoformat(data["fetched_at"])
+            if _now() - fetched < timedelta(hours=24):
+                return data
+        except Exception:
+            pass
+    data = fetcher.fetch_yield_history(period="5y")
+    if data:
+        _YIELD_CACHE.write_text(json.dumps(data, ensure_ascii=False), encoding="utf-8")
+        logger.info("yield_history 캐시 갱신 완료 (%d개월)", len(data["labels"]))
+    return data
+
+
+@app.get("/forward-per", response_class=HTMLResponse)
+def page_forward_per(request: Request):
+    try:
+        us10y = fetcher.fetch_us10y_yield()
+    except Exception:
+        us10y = None
+    history = _get_yield_history()
+    return templates.TemplateResponse("forward_per.html", {
+        "request":        request,
+        "active":         "forward_per",
+        "us10y_rate":     us10y["rate"]         if us10y else None,
+        "us10y_open":     us10y["market_state"] == "REGULAR" if us10y else False,
+        "yield_history":  json.dumps(history, ensure_ascii=False) if history else "null",
+    })
+
+
 @app.get("/assets", response_class=HTMLResponse)
 def page_assets(request: Request):
     return templates.TemplateResponse("assets.html", {"request": request, "active": "assets"})
+
+
+@app.get("/goals", response_class=HTMLResponse)
+def page_goals(request: Request):
+    return templates.TemplateResponse("goals.html", {"request": request, "active": "goals"})
 
 
 # ──────────────────────────────────────────────

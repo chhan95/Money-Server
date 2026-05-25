@@ -749,7 +749,7 @@
           <th style="text-align:right;">저축합</th>
           <th style="text-align:right;">자유입출금</th>
           <th style="text-align:right;">부동산</th>
-          <th style="text-align:right;">대출</th>
+          <th style="text-align:right;color:#ef4444;">대출</th>
           <th style="text-align:right;width:90px;">작업</th>
         </tr>
       </thead>
@@ -1287,7 +1287,7 @@ function renderTable() {
       <td class="num-cell">${fmtKrw(d.investTotal)}</td>
       <td class="num-cell">${fmtKrw(d.savingsTotal)}</td>
       <td class="num-cell">${fmtKrw(d.liquidTotal)}</td>
-      <td class="num-cell" style="${d.realestateTotal>0?'color:#a78bfa;':'color:var(--text2);'}">
+      <td class="num-cell" style="${d.realestateTotal>0?'':'color:var(--text2);'}">
         ${d.realestateTotal>0 ? fmtKrw(d.realestateTotal) : '—'}
       </td>
       <td class="num-cell" style="${d.hanaLoan>0?'color:#ef4444;':'color:var(--text2);'}">

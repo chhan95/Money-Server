@@ -1,0 +1,440 @@
+{% extends "base.html" %}
+{% block title %}Money — Forward PER 비교{% endblock %}
+{% block content %}
+
+<style>
+:root {
+  --ms-gradient: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  --r-xl: 16px;
+  --r-2xl: 20px;
+  --ease-out: cubic-bezier(0.16, 1, 0.3, 1);
+  --shadow-sm: 0 1px 3px rgba(0,0,0,0.08);
+  --shadow-md: 0 4px 16px rgba(0,0,0,0.12);
+}
+
+.fper-header {
+  text-align: center; padding: 32px 0 28px;
+}
+.fper-header h1 {
+  font-size: 28px; font-weight: 800; letter-spacing: -0.5px;
+  background: var(--ms-gradient);
+  -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text;
+  margin-bottom: 6px;
+}
+.fper-header p { font-size: 14px; color: var(--text2); }
+
+.fper-section-label {
+  font-size: 13px; color: var(--text2); margin-bottom: 16px;
+}
+
+/* ── PER 카드 그리드 ── */
+.fper-cards {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 14px; margin-bottom: 32px;
+}
+@media (max-width: 900px) { .fper-cards { grid-template-columns: repeat(2, 1fr); } }
+@media (max-width: 500px) { .fper-cards { grid-template-columns: 1fr; } }
+
+.fper-card {
+  background: var(--bg); border: 1px solid var(--border);
+  border-radius: var(--r-xl); padding: 20px;
+  transition: all 0.3s var(--ease-out);
+}
+.fper-card:hover { transform: translateY(-2px); box-shadow: var(--shadow-md); }
+.fper-card.highlight { border-color: #D85A30; }
+
+.fper-badge {
+  display: inline-block; font-size: 11px; font-weight: 600;
+  padding: 3px 10px; border-radius: 99px; margin-bottom: 12px;
+}
+.fper-per  { font-size: 36px; font-weight: 700; line-height: 1; margin-bottom: 8px; }
+.fper-desc { font-size: 12px; color: var(--text2); line-height: 1.6; margin-bottom: 14px; }
+.fper-divider { border: none; border-top: 1px solid var(--border); margin: 12px 0; }
+.fper-stat-row {
+  display: flex; justify-content: space-between; align-items: baseline;
+  font-size: 12px; margin-bottom: 5px;
+}
+.fper-stat-label { color: var(--text2); }
+.fper-stat-val   { font-weight: 600; font-size: 13px; color: var(--text); }
+.fper-tags { margin-top: 10px; }
+.fper-tag {
+  display: inline-block; font-size: 11px; padding: 2px 8px;
+  border-radius: 99px; margin-right: 4px; margin-top: 4px;
+}
+
+/* ── 금리 섹션 (인플레이션 차트 스타일) ── */
+.fper-yield-section {
+  background: var(--bg); border: 1px solid var(--border);
+  border-radius: var(--r-xl); padding: 24px;
+  margin-bottom: 24px;
+}
+.fper-yield-section-title {
+  font-size: 15px; font-weight: 700; color: var(--text); margin-bottom: 4px;
+}
+.fper-yield-section-sub {
+  font-size: 12px; color: var(--text2); margin-bottom: 20px;
+}
+
+.fper-stat-cards {
+  display: flex; flex-wrap: wrap; gap: 12px; margin-bottom: 20px;
+}
+.fper-stat-mini {
+  background: rgba(128,128,128,0.06); border-radius: 10px;
+  padding: 12px 18px; flex: 1; min-width: 130px;
+}
+.fper-stat-mini-label { font-size: 12px; color: var(--text2); margin-bottom: 4px; }
+.fper-stat-mini-val   { font-size: 24px; font-weight: 600; line-height: 1.1; }
+.fper-stat-mini-sub   { font-size: 11px; color: var(--text2); margin-top: 4px; }
+
+.fper-chart-legend {
+  display: flex; flex-wrap: wrap; gap: 14px;
+  font-size: 12px; color: var(--text2); margin-bottom: 10px;
+}
+.fper-chart-legend span { display: flex; align-items: center; gap: 5px; }
+.fper-legend-dot { width: 10px; height: 10px; border-radius: 2px; flex-shrink: 0; }
+
+.fper-chart-wrap { position: relative; width: 100%; height: 300px; }
+
+.fper-source {
+  font-size: 11px; color: var(--text2); margin-top: 8px; text-align: right;
+}
+
+/* ── 스프레드 테이블 ── */
+.fper-spread-section {
+  background: var(--bg); border: 1px solid var(--border);
+  border-radius: var(--r-xl); padding: 24px;
+  margin-bottom: 24px;
+}
+.fper-spread-title { font-size: 15px; font-weight: 700; margin-bottom: 4px; }
+.fper-spread-sub   { font-size: 12px; color: var(--text2); margin-bottom: 16px; }
+.fper-spread-row {
+  display: flex; align-items: center; gap: 12px;
+  padding: 10px 0; border-bottom: 1px solid var(--border);
+  font-size: 13px;
+}
+.fper-spread-row:last-child { border-bottom: none; }
+.fper-spread-dot  { width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0; }
+.fper-spread-per  { width: 50px; font-weight: 600; color: var(--text); }
+.fper-spread-ep   { flex: 1; color: var(--text2); }
+.fper-spread-chip {
+  font-size: 11px; font-weight: 600;
+  padding: 3px 10px; border-radius: 99px;
+}
+
+/* ── EPS 성장률 바 ── */
+.fper-bar-section {
+  background: var(--bg); border: 1px solid var(--border);
+  border-radius: var(--r-xl); padding: 24px; margin-bottom: 24px;
+}
+.fper-bar-title { font-size: 13px; color: var(--text2); margin-bottom: 20px; }
+.fper-bar-row   { margin-bottom: 14px; }
+.fper-bar-meta  {
+  display: flex; justify-content: space-between;
+  font-size: 12px; color: var(--text2); margin-bottom: 6px;
+}
+.fper-bar-track {
+  height: 28px; border-radius: 8px; overflow: hidden;
+  background: rgba(128,128,128,0.1);
+}
+.fper-bar-fill {
+  height: 100%; border-radius: 8px;
+  display: flex; align-items: center; justify-content: flex-end;
+  padding-right: 12px; font-size: 12px; font-weight: 600; color: #fff;
+}
+
+/* ── 주석 ── */
+.fper-note {
+  font-size: 12px; color: var(--text2); line-height: 1.7;
+  border-top: 1px solid var(--border); padding-top: 16px;
+}
+</style>
+
+
+<div class="fper-header">
+  <h1>Forward PER 비교</h1>
+  <p>PER 수준별 투자자 기대치와 밸류에이션 리스크</p>
+</div>
+
+<p class="fper-section-label">📌 포워드 PER별 투자자 기대 수준 비교</p>
+
+<div class="fper-cards">
+  <!-- PER 20 -->
+  <div class="fper-card" style="border-color:#3B6D11;">
+    <span class="fper-badge" style="background:rgba(59,109,17,0.12);color:#3B6D11;">합리적 가치</span>
+    <div class="fper-per" style="color:#3B6D11;">20×</div>
+    <div class="fper-desc">안정적 성장주 또는 가치주 수준. 시장 기대가 크지 않음.</div>
+    <hr class="fper-divider">
+    <div class="fper-stat-row"><span class="fper-stat-label">투자 회수 기간</span><span class="fper-stat-val" style="color:#3B6D11;">20년</span></div>
+    <div class="fper-stat-row"><span class="fper-stat-label">이익수익률(E/P)</span><span class="fper-stat-val">5.0%</span></div>
+    <div class="fper-stat-row"><span class="fper-stat-label">성장 기대치</span><span class="fper-stat-val">낮음~보통</span></div>
+    <div class="fper-stat-row"><span class="fper-stat-label">밸류에이션 리스크</span><span class="fper-stat-val">낮음</span></div>
+    <hr class="fper-divider">
+    <div style="font-size:11px;color:var(--text2);">대표 섹터</div>
+    <div class="fper-tags">
+      <span class="fper-tag" style="background:rgba(59,109,17,0.12);color:#3B6D11;">금융</span>
+      <span class="fper-tag" style="background:rgba(59,109,17,0.12);color:#3B6D11;">에너지</span>
+      <span class="fper-tag" style="background:rgba(59,109,17,0.12);color:#3B6D11;">산업재</span>
+    </div>
+  </div>
+  <!-- PER 30 -->
+  <div class="fper-card" style="border-color:#185FA5;">
+    <span class="fper-badge" style="background:rgba(24,95,165,0.12);color:#185FA5;">성장 프리미엄</span>
+    <div class="fper-per" style="color:#185FA5;">30×</div>
+    <div class="fper-desc">성장주 수준. 이익 증가에 대한 기대가 반영된 상태.</div>
+    <hr class="fper-divider">
+    <div class="fper-stat-row"><span class="fper-stat-label">투자 회수 기간</span><span class="fper-stat-val" style="color:#185FA5;">30년</span></div>
+    <div class="fper-stat-row"><span class="fper-stat-label">이익수익률(E/P)</span><span class="fper-stat-val">3.3%</span></div>
+    <div class="fper-stat-row"><span class="fper-stat-label">성장 기대치</span><span class="fper-stat-val">보통~높음</span></div>
+    <div class="fper-stat-row"><span class="fper-stat-label">밸류에이션 리스크</span><span class="fper-stat-val">보통</span></div>
+    <hr class="fper-divider">
+    <div style="font-size:11px;color:var(--text2);">대표 섹터</div>
+    <div class="fper-tags">
+      <span class="fper-tag" style="background:rgba(24,95,165,0.12);color:#185FA5;">헬스케어</span>
+      <span class="fper-tag" style="background:rgba(24,95,165,0.12);color:#185FA5;">소비재</span>
+      <span class="fper-tag" style="background:rgba(24,95,165,0.12);color:#185FA5;">IT 대형주</span>
+    </div>
+  </div>
+  <!-- PER 40 -->
+  <div class="fper-card" style="border-color:#BA7517;">
+    <span class="fper-badge" style="background:rgba(186,117,23,0.12);color:#854F0B;">고성장 기대</span>
+    <div class="fper-per" style="color:#BA7517;">40×</div>
+    <div class="fper-desc">상당한 미래 이익 성장을 선반영. 실적 미달 시 조정 위험 큼.</div>
+    <hr class="fper-divider">
+    <div class="fper-stat-row"><span class="fper-stat-label">투자 회수 기간</span><span class="fper-stat-val" style="color:#BA7517;">40년</span></div>
+    <div class="fper-stat-row"><span class="fper-stat-label">이익수익률(E/P)</span><span class="fper-stat-val">2.5%</span></div>
+    <div class="fper-stat-row"><span class="fper-stat-label">성장 기대치</span><span class="fper-stat-val">높음</span></div>
+    <div class="fper-stat-row"><span class="fper-stat-label">밸류에이션 리스크</span><span class="fper-stat-val">높음</span></div>
+    <hr class="fper-divider">
+    <div style="font-size:11px;color:var(--text2);">대표 섹터</div>
+    <div class="fper-tags">
+      <span class="fper-tag" style="background:rgba(186,117,23,0.12);color:#854F0B;">빅테크</span>
+      <span class="fper-tag" style="background:rgba(186,117,23,0.12);color:#854F0B;">반도체</span>
+      <span class="fper-tag" style="background:rgba(186,117,23,0.12);color:#854F0B;">플랫폼</span>
+    </div>
+  </div>
+  <!-- PER 50 -->
+  <div class="fper-card highlight">
+    <span class="fper-badge" style="background:rgba(153,60,29,0.12);color:#993C1D;">투기적 프리미엄</span>
+    <div class="fper-per" style="color:#D85A30;">50×</div>
+    <div class="fper-desc">매우 공격적인 성장 가정. 이익보다 스토리에 투자하는 수준.</div>
+    <hr class="fper-divider">
+    <div class="fper-stat-row"><span class="fper-stat-label">투자 회수 기간</span><span class="fper-stat-val" style="color:#D85A30;">50년</span></div>
+    <div class="fper-stat-row"><span class="fper-stat-label">이익수익률(E/P)</span><span class="fper-stat-val">2.0%</span></div>
+    <div class="fper-stat-row"><span class="fper-stat-label">성장 기대치</span><span class="fper-stat-val">매우 높음</span></div>
+    <div class="fper-stat-row"><span class="fper-stat-label">밸류에이션 리스크</span><span class="fper-stat-val">매우 높음</span></div>
+    <hr class="fper-divider">
+    <div style="font-size:11px;color:var(--text2);">대표 섹터</div>
+    <div class="fper-tags">
+      <span class="fper-tag" style="background:rgba(153,60,29,0.12);color:#993C1D;">AI 신흥주</span>
+      <span class="fper-tag" style="background:rgba(153,60,29,0.12);color:#993C1D;">바이오</span>
+      <span class="fper-tag" style="background:rgba(153,60,29,0.12);color:#993C1D;">고성장 SaaS</span>
+    </div>
+  </div>
+</div>
+
+
+<!-- ══════════════════════════════════════
+     미국 10년물 금리 히스토리
+══════════════════════════════════════ -->
+<div class="fper-yield-section">
+  <div class="fper-yield-section-title">🇺🇸 미국 10년물 국채 금리 추이</div>
+  <div class="fper-yield-section-sub" id="yieldRangeSub">(^TNX 기준)</div>
+
+  <!-- 요약 카드 -->
+  <div class="fper-stat-cards">
+    <div class="fper-stat-mini">
+      <div class="fper-stat-mini-label">현재 금리</div>
+      <div class="fper-stat-mini-val" style="color:{% if us10y_rate is not none %}{% if us10y_rate >= 4.5 %}#ef4444{% elif us10y_rate >= 3.5 %}#f59e0b{% else %}#10b981{% endif %}{% else %}var(--text2){% endif %};">
+        {% if us10y_rate is not none %}{{ "%.2f"|format(us10y_rate) }}%{% else %}—{% endif %}
+      </div>
+      <div class="fper-stat-mini-sub">{% if us10y_rate is not none %}{% if us10y_open %}실시간{% else %}최종 마감가{% endif %}{% endif %}</div>
+    </div>
+    <div class="fper-stat-mini">
+      <div class="fper-stat-mini-label">구간 저점</div>
+      <div class="fper-stat-mini-val" id="yieldMin" style="color:#10b981;">—</div>
+      <div class="fper-stat-mini-sub" id="yieldMinLabel">—</div>
+    </div>
+    <div class="fper-stat-mini">
+      <div class="fper-stat-mini-label">구간 고점</div>
+      <div class="fper-stat-mini-val" id="yieldMax" style="color:#ef4444;">—</div>
+      <div class="fper-stat-mini-sub" id="yieldMaxLabel">—</div>
+    </div>
+    <div class="fper-stat-mini">
+      <div class="fper-stat-mini-label">E/P 손익분기 PER</div>
+      <div class="fper-stat-mini-val" style="color:#185FA5;">
+        {% if us10y_rate is not none %}{{ "%.0f"|format(100 / us10y_rate) }}×{% else %}—{% endif %}
+      </div>
+      <div class="fper-stat-mini-sub">금리 = E/P 인 PER</div>
+    </div>
+  </div>
+
+  <!-- 범례 -->
+  <div class="fper-chart-legend">
+    <span><span class="fper-legend-dot" style="background:#185FA5;"></span>10년물 금리</span>
+    <span><span class="fper-legend-dot" style="background:#D85A30;opacity:0.7;border-top:2px dashed #D85A30;height:3px;border-radius:0;"></span>단기금리 ^IRX (3개월 T-Bill)</span>
+    <span><span class="fper-legend-dot" style="background:#888;border-top:2px dashed #888;height:3px;border-radius:0;"></span>중립금리 추정 (2.5%)</span>
+  </div>
+
+  <!-- 차트 -->
+  <div class="fper-chart-wrap">
+    <canvas id="yieldChart" role="img" aria-label="미국 10년물 국채 금리 추이 2022-2026"></canvas>
+  </div>
+  <p class="fper-source">출처: Yahoo Finance (^TNX) · Federal Reserve</p>
+</div>
+
+
+<!-- ══════════════════════════════════════
+     스프레드 비교
+══════════════════════════════════════ -->
+{% if us10y_rate is not none %}
+<div class="fper-spread-section">
+  <div class="fper-spread-title">📐 현재 금리 기준 E/P 스프레드</div>
+  <div class="fper-spread-sub">이익수익률(E/P)이 국채 금리보다 높을수록 주식이 상대적으로 유리</div>
+  {% for per, ep, color in [("PER 20×", 5.0, "#3B6D11"), ("PER 30×", 3.3, "#185FA5"), ("PER 40×", 2.5, "#BA7517"), ("PER 50×", 2.0, "#D85A30")] %}
+  {% set spread = ep - us10y_rate %}
+  <div class="fper-spread-row">
+    <span class="fper-spread-dot" style="background:{{ color }};"></span>
+    <span class="fper-spread-per">{{ per }}</span>
+    <span class="fper-spread-ep">E/P {{ "%.1f"|format(ep) }}% vs 금리 {{ "%.2f"|format(us10y_rate) }}%</span>
+    <span class="fper-spread-chip" style="{% if spread > 0 %}background:rgba(16,185,129,0.1);color:#10b981;{% else %}background:rgba(239,68,68,0.1);color:#ef4444;{% endif %}">
+      {{ "+" if spread > 0 else "" }}{{ "%.2f"|format(spread) }}%p
+    </span>
+  </div>
+  {% endfor %}
+</div>
+{% endif %}
+
+
+<!-- ══════════════════════════════════════
+     EPS 성장률 바 차트
+══════════════════════════════════════ -->
+<div class="fper-bar-section">
+  <p class="fper-bar-title">📊 현재 주가를 정당화하기 위한 연 EPS 성장률 (10년 기준, 할인율 8%)</p>
+  <div class="fper-bar-row">
+    <div class="fper-bar-meta"><span>PER 20×</span><span style="font-weight:600;color:#3B6D11;">~8% / 년</span></div>
+    <div class="fper-bar-track"><div class="fper-bar-fill" style="width:32%;background:rgba(99,153,34,0.75);">8%</div></div>
+  </div>
+  <div class="fper-bar-row">
+    <div class="fper-bar-meta"><span>PER 30×</span><span style="font-weight:600;color:#185FA5;">~15% / 년</span></div>
+    <div class="fper-bar-track"><div class="fper-bar-fill" style="width:50%;background:#378ADD;">15%</div></div>
+  </div>
+  <div class="fper-bar-row">
+    <div class="fper-bar-meta"><span>PER 40×</span><span style="font-weight:600;color:#BA7517;">~22% / 년</span></div>
+    <div class="fper-bar-track"><div class="fper-bar-fill" style="width:66%;background:#EF9F27;">22%</div></div>
+  </div>
+  <div class="fper-bar-row">
+    <div class="fper-bar-meta"><span>PER 50×</span><span style="font-weight:600;color:#D85A30;">~28% / 년</span></div>
+    <div class="fper-bar-track"><div class="fper-bar-fill" style="width:84%;background:#D85A30;">28%</div></div>
+  </div>
+</div>
+
+<p class="fper-note">
+  ※ 이익수익률(E/P) = 1 ÷ PER. 이 값이 낮을수록 주식에서 받는 '수익'이 적다는 의미.<br>
+  ※ 포워드 PER은 애널리스트 추정치 기준이므로, 실적이 예상보다 낮으면 실제 PER은 더 높아짐.<br>
+  ※ 필요 EPS 성장률은 개념적 추정치이며, 실제 적정 가치는 금리·리스크 프리미엄 등에 따라 달라짐.
+</p>
+
+
+<script>
+// ── 금리 히스토리 (서버 캐시, 1일 1회 갱신)
+const _hist    = {{ yield_history | safe }};
+const yLabels  = _hist ? _hist.labels   : [];
+const yieldData = _hist ? _hist.yield10y : [];
+const fedData   = _hist ? _hist.irx      : [];
+
+// ── 동적 요약 카드 채우기
+if (_hist) {
+  const vals = _hist.yield10y.filter(v => v !== null);
+  const lbls = _hist.labels;
+
+  // 날짜 범위
+  document.getElementById('yieldRangeSub').textContent =
+    `${lbls[0]} ~ ${lbls[lbls.length - 1]} (^TNX 기준)`;
+
+  // 저점
+  const minVal = Math.min(...vals);
+  const minIdx = _hist.yield10y.indexOf(minVal);
+  document.getElementById('yieldMin').textContent      = minVal.toFixed(2) + '%';
+  document.getElementById('yieldMinLabel').textContent = lbls[minIdx] || '—';
+
+  // 고점
+  const maxVal = Math.max(...vals);
+  const maxIdx = _hist.yield10y.indexOf(maxVal);
+  document.getElementById('yieldMax').textContent      = maxVal.toFixed(2) + '%';
+  document.getElementById('yieldMaxLabel').textContent = lbls[maxIdx] || '—';
+}
+
+if (!_hist) { document.getElementById('yieldChart').parentElement.innerHTML = '<p style="color:var(--text2);font-size:13px;text-align:center;padding:40px 0;">금리 데이터를 불러오지 못했습니다.</p>'; }
+
+const isDark = document.documentElement.getAttribute('data-theme') === 'dark';
+const gridColor  = isDark ? 'rgba(255,255,255,0.06)' : 'rgba(0,0,0,0.05)';
+const tickColor  = isDark ? '#888' : '#888780';
+const tooltipBg  = isDark ? '#1e2330' : '#ffffff';
+const tooltipBorder = isDark ? '#333' : '#D3D1C7';
+const tooltipTitle  = isDark ? '#fff' : '#2C2C2A';
+const tooltipBody   = isDark ? '#aaa' : '#5F5E5A';
+
+if (_hist) new Chart(document.getElementById('yieldChart'), {
+  type: 'line',
+  data: {
+    labels: yLabels,
+    datasets: [
+      {
+        label: '10년물 금리',
+        data: yieldData,
+        borderColor: '#185FA5',
+        backgroundColor: 'rgba(24,95,165,0.08)',
+        fill: true, tension: 0.3,
+        pointRadius: 0, pointHoverRadius: 5,
+        borderWidth: 2.5,
+      },
+      {
+        label: '단기금리 ^IRX',
+        data: fedData,
+        borderColor: '#D85A30',
+        backgroundColor: 'transparent',
+        fill: false, tension: 0,
+        pointRadius: 0, pointHoverRadius: 4,
+        borderWidth: 2, borderDash: [5, 4],
+      },
+      {
+        label: '중립금리 추정 (2.5%)',
+        data: yLabels.map(() => 2.5),
+        borderColor: '#B4B2A9',
+        backgroundColor: 'transparent',
+        fill: false, tension: 0,
+        pointRadius: 0,
+        borderWidth: 1.5, borderDash: [6, 4],
+      },
+    ],
+  },
+  options: {
+    responsive: true, maintainAspectRatio: false,
+    interaction: { mode: 'index', intersect: false },
+    plugins: {
+      legend: { display: false },
+      tooltip: {
+        backgroundColor: tooltipBg,
+        borderColor: tooltipBorder, borderWidth: 1,
+        titleColor: tooltipTitle, bodyColor: tooltipBody,
+        padding: 10, cornerRadius: 8,
+        callbacks: { label: ctx => ctx.raw == null ? null : `${ctx.dataset.label}: ${ctx.raw.toFixed(2)}%` },
+      },
+    },
+    scales: {
+      x: {
+        grid: { color: gridColor },
+        ticks: { color: tickColor, font: { size: 11 }, maxRotation: 45, autoSkip: true, maxTicksLimit: 14 },
+      },
+      y: {
+        min: 0, max: 6.5,
+        grid: { color: gridColor },
+        ticks: { color: tickColor, font: { size: 11 }, callback: v => v.toFixed(1) + '%' },
+      },
+    },
+  },
+});
+</script>
+
+{% endblock %}

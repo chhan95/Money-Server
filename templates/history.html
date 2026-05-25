@@ -1,5 +1,5 @@
 {% extends "base.html" %}
-{% block title %}💰 Money — 히스토리{% endblock %}
+{% block title %}Money — 히스토리{% endblock %}
 {% block content %}
 
 <!-- ── 로딩 오버레이 ── -->
@@ -270,10 +270,12 @@
   <div class="hist-chart-card">
     <div class="hist-chart-header">
       <span class="hist-chart-title">지분비례 월 손익</span>
-      <div class="hist-legend">
-        <span class="hist-legend-item"><span class="hist-legend-dot" style="background:rgba(102,126,234,0.7);"></span>매출</span>
-        <span class="hist-legend-item"><span class="hist-legend-dot" style="background:rgba(16,185,129,0.7);"></span>영업이익</span>
-        <span class="hist-legend-item"><span class="hist-legend-dot" style="background:rgba(245,158,11,0.7);"></span>순이익</span>
+      <div style="display:flex;align-items:center;gap:12px;flex-wrap:wrap;">
+        <span id="fx-rate-badge" style="font-size:11px;color:var(--text2);padding:3px 8px;background:var(--bg2);border-radius:6px;border:1px solid var(--border);">환율 —</span>
+        <div class="hist-legend">
+          <span class="hist-legend-item"><span class="hist-legend-dot" style="background:rgba(102,126,234,0.7);"></span>매출</span>
+          <span class="hist-legend-item"><span class="hist-legend-dot" style="background:rgba(245,158,11,0.7);"></span>순이익</span>
+        </div>
       </div>
     </div>
     <div class="hist-chart-wrap">
@@ -365,17 +367,24 @@ const NEEDS_REFRESH = {{ needs_refresh | safe }};
 function loadHistory() {
   fetch('/api/history')
   .then(r => r.json())
-  .then(data => {
+  .then(resp => {
+    const data      = resp.items ?? resp;            // 구형 배열 fallback
+    const latestFx  = resp.latestFxRate ?? null;
+
     if (!data || data.length === 0) {
       document.getElementById('noDataMsg').style.display = '';
       return;
     }
     document.getElementById('chartsWrap').style.display = '';
 
+    if (latestFx) {
+      document.getElementById('fx-rate-badge').textContent =
+        '최근 저장 환율 ₩' + Math.round(latestFx).toLocaleString();
+    }
+
     const months  = data.map(d => d.month);
     const total   = data.map(d => d.totalValueKrw);
     const revenue = data.map(d => d.monthlyRevenueKrw);
-    const op      = data.map(d => d.monthlyOpKrw);
     const net     = data.map(d => d.monthlyNetKrw);
     const gain    = data.map(d => d.unrealizedGainUsd);
     const last    = data[data.length - 1];
@@ -418,14 +427,21 @@ function loadHistory() {
     });
 
     /* Chart 3: 통합 손익 */
+    const fxRates = data.map(d => d.fxRate || 0);
+    const incomeOpts = baseOptions();
+    const _origLabel = incomeOpts.plugins.tooltip.callbacks.label;
+    incomeOpts.plugins.tooltip.callbacks.afterBody = (items) => {
+      const idx = items[0]?.dataIndex;
+      const fx  = fxRates[idx];
+      return fx > 0 ? [`환율 ₩${Math.round(fx).toLocaleString()}`] : [];
+    };
     new Chart(ctx('chart-income'), {
       type: 'line',
       data: { labels: months, datasets: [
         makeDataset(revenue, '#667eea', false),
-        makeDataset(op,      '#10B981', false),
         makeDataset(net,     '#F59E0B', false),
       ]},
-      options: baseOptions(),
+      options: incomeOpts,
     });
   })
   .catch(() => {
