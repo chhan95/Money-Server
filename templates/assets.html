@@ -2,609 +2,375 @@
 {% block title %}자산관리 — Holding Company{% endblock %}
 
 {% block content %}
-
-<!-- ── 전용 스타일 ── -->
 <style>
-/* ── Design Tokens ── */
 :root {
+  --ms-gradient: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
   --asset-gradient: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-  --glass: rgba(255,255,255,0.03);
-  --glass-border: rgba(255,255,255,0.06);
-  --shadow-sm: 0 1px 3px rgba(0,0,0,0.08);
-  --shadow-md: 0 4px 16px rgba(0,0,0,0.12);
-  --shadow-lg: 0 8px 32px rgba(0,0,0,0.18);
-  --shadow-glow: 0 0 40px rgba(102,126,234,0.15);
+  --glass-border: var(--border);
   --ease-out: cubic-bezier(0.16, 1, 0.3, 1);
+  --shadow-sm: 0 1px 3px rgba(0,0,0,0.07);
+  --shadow-md: 0 4px 16px rgba(0,0,0,0.11);
+  --shadow-lg: 0 8px 32px rgba(0,0,0,0.18);
   --r-xl: 16px;
   --r-2xl: 20px;
+  --green: #10b981; --amber: #f59e0b; --blue: #667eea; --red: #ef4444;
 }
 
-/* ── Page Header ── */
-.asset-page-header {
-  text-align: center;
-  padding: 32px 0 24px;
+/* ── Header ── */
+.at-header {
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 28px 0 0; gap: 12px; flex-wrap: wrap;
 }
-.asset-page-header h1 {
-  font-size: 28px;
-  font-weight: 800;
-  letter-spacing: -0.5px;
-  background: var(--asset-gradient);
-  -webkit-background-clip: text;
-  -webkit-text-fill-color: transparent;
-  background-clip: text;
-  margin-bottom: 6px;
+.at-header-left h1 {
+  font-size: 22px; font-weight: 800; letter-spacing: -0.4px;
+  background: var(--ms-gradient);
+  -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text;
+  margin-bottom: 2px;
 }
-.asset-page-header p {
-  font-size: 14px;
-  color: var(--text2);
-  font-weight: 400;
-}
+.at-header-left p { font-size: 12px; color: var(--text2); }
 
 /* ── Tabs ── */
-.asset-tabs {
-  display: flex;
-  gap: 4px;
-  margin-bottom: 28px;
-  background: var(--bg2);
-  border-radius: 12px;
-  padding: 4px;
-  max-width: 400px;
-  margin-left: auto;
-  margin-right: auto;
+.at-tabs-row {
+  display: flex; align-items: center; justify-content: space-between;
+  gap: 12px; margin: 16px 0 20px; flex-wrap: wrap;
+}
+.at-tabs {
+  display: flex; gap: 3px;
+  background: var(--bg2); border-radius: 10px; padding: 3px;
 }
 .asset-tab {
-  flex: 1;
-  padding: 10px 16px;
-  font-size: 13px;
-  font-weight: 600;
-  color: var(--text2);
-  background: none;
-  border: none;
-  border-radius: 8px;
-  cursor: pointer;
-  transition: all 0.25s var(--ease-out);
-  text-align: center;
+  padding: 8px 18px; border-radius: 8px;
+  font-size: 13px; font-weight: 600;
+  color: var(--text2); background: none; border: none;
+  cursor: pointer; transition: all 0.2s var(--ease-out); white-space: nowrap;
 }
-.asset-tab:hover { color: var(--text); background: rgba(255,255,255,0.03); }
+.asset-tab:hover { color: var(--text); }
 .asset-tab.active {
-  color: white;
-  background: var(--asset-gradient);
-  box-shadow: 0 2px 12px rgba(102,126,234,0.35);
-}
-
-/* ── Hero Card ── */
-.hero-card {
-  background: var(--asset-gradient);
-  border-radius: var(--r-2xl);
-  padding: 32px;
-  color: white;
-  position: relative;
-  overflow: hidden;
-  box-shadow: var(--shadow-glow), var(--shadow-lg);
-  margin-bottom: 16px;
-}
-.hero-card::before {
-  content: '';
-  position: absolute;
-  top: -50%;
-  right: -20%;
-  width: 300px;
-  height: 300px;
-  background: radial-gradient(circle, rgba(255,255,255,0.1) 0%, transparent 70%);
-  pointer-events: none;
-}
-.hero-card::after {
-  content: '';
-  position: absolute;
-  bottom: -30%;
-  left: -10%;
-  width: 200px;
-  height: 200px;
-  background: radial-gradient(circle, rgba(255,255,255,0.06) 0%, transparent 70%);
-  pointer-events: none;
-}
-.hero-label {
-  font-size: 13px;
-  font-weight: 500;
-  opacity: 0.7;
-  text-transform: uppercase;
-  letter-spacing: 1.5px;
-  margin-bottom: 8px;
-}
-.hero-value {
-  font-size: 36px;
-  font-weight: 800;
-  letter-spacing: -1px;
-  margin-bottom: 8px;
-  position: relative;
-  z-index: 1;
-}
-.hero-sub {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-  font-size: 13px;
-  opacity: 0.8;
-  position: relative;
-  z-index: 1;
-}
-.hero-badge {
-  display: inline-flex;
-  align-items: center;
-  gap: 4px;
-  padding: 4px 12px;
-  border-radius: 20px;
-  font-weight: 700;
-  font-size: 13px;
-}
-.hero-badge.up { background: rgba(16,185,129,0.25); color: #6ee7b7; }
-.hero-badge.down { background: rgba(239,68,68,0.25); color: #fca5a5; }
-
-/* ── Metric Cards ── */
-.metric-grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
-  gap: 12px;
-  margin-bottom: 28px;
-}
-.metric-card {
-  background: var(--bg);
-  border: 1px solid var(--border);
-  border-radius: var(--r-xl);
-  padding: 20px;
-  transition: all 0.3s var(--ease-out);
-  position: relative;
-  overflow: hidden;
-}
-.metric-card:hover {
-  transform: translateY(-2px);
-  box-shadow: var(--shadow-md);
-  border-color: rgba(255,255,255,0.1);
-}
-.metric-card .dot {
-  width: 8px;
-  height: 8px;
-  border-radius: 50%;
-  display: inline-block;
-  margin-right: 6px;
-}
-.metric-card .label {
-  font-size: 12px;
-  font-weight: 500;
-  color: var(--text2);
-  margin-bottom: 10px;
-  display: flex;
-  align-items: center;
-}
-.metric-card .value {
-  font-size: 20px;
-  font-weight: 700;
-  letter-spacing: -0.5px;
-}
-.metric-card.loan-card .value { color: #ef4444; }
-
-/* ── Section Card ── */
-.section-card {
-  background: var(--bg);
-  border: 1px solid var(--border);
-  border-radius: var(--r-xl);
-  padding: 24px;
-  margin-bottom: 20px;
-  transition: all 0.3s var(--ease-out);
-}
-.section-card:hover {
-  box-shadow: var(--shadow-sm);
-}
-.section-title {
-  font-size: 15px;
-  font-weight: 700;
-  margin-bottom: 4px;
-  color: var(--text);
-}
-.section-subtitle {
-  font-size: 12px;
-  color: var(--text2);
-  margin-bottom: 16px;
-}
-
-/* ── Chart ── */
-.chart-container {
-  height: 240px;
-  position: relative;
-}
-
-/* ── Legend ── */
-.cat-legend {
-  display: flex;
-  gap: 16px;
-  flex-wrap: wrap;
-}
-.cat-legend-item {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  font-size: 12px;
-  font-weight: 500;
-  color: var(--text2);
-}
-.cat-legend-dot {
-  width: 10px;
-  height: 10px;
-  border-radius: 3px;
-}
-
-/* ── Table ── */
-.asset-table {
-  width: 100%;
-  border-collapse: separate;
-  border-spacing: 0;
-  font-size: 13px;
-}
-.asset-table thead th {
-  padding: 12px 16px;
-  text-align: left;
-  font-weight: 600;
-  font-size: 11px;
-  text-transform: uppercase;
-  letter-spacing: 0.5px;
-  color: var(--text2);
-  border-bottom: 1px solid var(--border);
-  position: sticky;
-  top: 0;
-  background: var(--bg);
-  z-index: 1;
-}
-.asset-table tbody tr {
-  transition: background 0.15s;
-}
-.asset-table tbody tr:hover {
-  background: var(--bg2);
-}
-.asset-table tbody td {
-  padding: 14px 16px;
-  border-bottom: 1px solid var(--border2);
-}
-.asset-table .date-cell {
-  font-weight: 600;
-  white-space: nowrap;
-}
-.asset-table .num-cell {
-  text-align: right;
-  font-variant-numeric: tabular-nums;
-}
-.asset-table .actions-cell {
-  text-align: right;
-  white-space: nowrap;
+  color: white; background: var(--ms-gradient);
+  box-shadow: 0 2px 10px rgba(102,126,234,0.35);
 }
 
 /* ── Buttons ── */
 .btn-gradient {
-  background: var(--asset-gradient);
-  color: white;
-  border: none;
-  padding: 10px 20px;
-  border-radius: 10px;
-  font-size: 13px;
-  font-weight: 600;
-  cursor: pointer;
+  background: var(--ms-gradient); color: white; border: none;
+  padding: 9px 18px; border-radius: 10px;
+  font-size: 13px; font-weight: 600; cursor: pointer;
   transition: all 0.2s var(--ease-out);
-  box-shadow: 0 2px 12px rgba(102,126,234,0.3);
+  box-shadow: 0 2px 10px rgba(102,126,234,0.3);
+  display: inline-flex; align-items: center; gap: 5px; white-space: nowrap;
 }
-.btn-gradient:hover {
-  transform: translateY(-1px);
-  box-shadow: 0 4px 20px rgba(102,126,234,0.45);
-}
+.btn-gradient:hover { transform: translateY(-1px); box-shadow: 0 4px 18px rgba(102,126,234,0.45); }
 .btn-soft {
-  background: var(--bg2);
-  color: var(--text);
+  background: var(--bg2); color: var(--text);
   border: 1px solid var(--glass-border);
-  padding: 10px 20px;
-  border-radius: 10px;
-  font-size: 13px;
-  font-weight: 500;
-  cursor: pointer;
+  padding: 9px 16px; border-radius: 10px;
+  font-size: 13px; font-weight: 500; cursor: pointer;
   transition: all 0.2s var(--ease-out);
+  display: inline-flex; align-items: center; gap: 5px; white-space: nowrap;
 }
-.btn-soft:hover {
-  background: rgba(255,255,255,0.06);
-  border-color: rgba(255,255,255,0.12);
-}
+.btn-soft:hover { background: rgba(128,128,128,0.1); }
 .btn-icon {
-  background: none;
-  border: 1px solid transparent;
-  width: 32px;
-  height: 32px;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  border-radius: 8px;
-  cursor: pointer;
-  font-size: 14px;
-  color: var(--text2);
-  transition: all 0.15s;
+  background: none; border: 1px solid transparent;
+  width: 30px; height: 30px; border-radius: 7px;
+  display: inline-flex; align-items: center; justify-content: center;
+  font-size: 13px; color: var(--text2); cursor: pointer; transition: all 0.15s;
 }
-.btn-icon:hover {
-  background: var(--bg2);
-  border-color: var(--glass-border);
-  color: var(--text);
-}
-.btn-icon.danger:hover {
-  background: rgba(239,68,68,0.1);
-  border-color: rgba(239,68,68,0.2);
-  color: #ef4444;
-}
+.btn-icon:hover { background: var(--bg2); border-color: var(--glass-border); color: var(--text); }
+.btn-icon.danger:hover { background: rgba(239,68,68,0.08); border-color: rgba(239,68,68,0.2); color: var(--red); }
 
-/* ── Tab Pills (Table) ── */
+/* ── Hero Card ── */
+.hero-card {
+  background: var(--ms-gradient); border-radius: var(--r-2xl);
+  padding: 26px 28px; color: white;
+  position: relative; overflow: hidden;
+  box-shadow: 0 4px 24px rgba(102,126,234,0.3);
+  margin-bottom: 14px;
+}
+.hero-card::before {
+  content: ''; position: absolute; top: -50%; right: -10%;
+  width: 240px; height: 240px;
+  background: radial-gradient(circle, rgba(255,255,255,0.1) 0%, transparent 70%);
+  pointer-events: none;
+}
+.hero-label { font-size: 10px; font-weight: 700; opacity: 0.65; text-transform: uppercase; letter-spacing: 1.5px; margin-bottom: 10px; }
+.hero-value { font-size: 32px; font-weight: 800; letter-spacing: -1px; margin-bottom: 4px; position: relative; z-index: 1; }
+.hero-sub { display: flex; align-items: center; gap: 10px; font-size: 13px; opacity: 0.75; position: relative; z-index: 1; }
+.hero-badge { display: inline-flex; align-items: center; gap: 4px; padding: 3px 10px; border-radius: 20px; font-weight: 700; font-size: 12px; }
+.hero-badge.up   { background: rgba(16,185,129,0.25); color: #6ee7b7; }
+.hero-badge.down { background: rgba(239,68,68,0.25);  color: #fca5a5; }
+
+/* ── Metric Cards ── */
+.metric-grid {
+  display: grid; grid-template-columns: repeat(3, 1fr);
+  gap: 10px; margin-bottom: 16px;
+}
+@media (max-width: 680px) { .metric-grid { grid-template-columns: repeat(2, 1fr); } }
+@media (max-width: 420px) { .metric-grid { grid-template-columns: 1fr; } }
+
+.metric-card {
+  background: var(--bg); border: 1px solid var(--glass-border);
+  border-radius: var(--r-xl); padding: 16px 18px;
+  position: relative; overflow: hidden;
+  transition: box-shadow 0.2s var(--ease-out);
+}
+.metric-card:hover { box-shadow: var(--shadow-md); }
+.metric-card::before {
+  content: ''; position: absolute; left: 0; top: 0; bottom: 0;
+  width: 3px; border-radius: 3px 0 0 3px;
+}
+.metric-card[data-cat="pension"]::before    { background: #6366f1; }
+.metric-card[data-cat="invest"]::before     { background: var(--green); }
+.metric-card[data-cat="savings"]::before    { background: var(--amber); }
+.metric-card[data-cat="liquid"]::before     { background: #3b82f6; }
+.metric-card[data-cat="realestate"]::before { background: #a78bfa; }
+.metric-card[data-cat="loan"]::before       { background: var(--red); }
+.metric-card .dot {
+  width: 7px; height: 7px; border-radius: 50%;
+  display: inline-block; margin-right: 6px;
+}
+.metric-card .label {
+  font-size: 10px; font-weight: 700; color: var(--text2);
+  text-transform: uppercase; letter-spacing: 0.5px;
+  margin-bottom: 8px; display: flex; align-items: center;
+}
+.metric-card .value { font-size: 18px; font-weight: 800; letter-spacing: -0.4px; }
+.metric-card.loan-card .value { color: var(--red); }
+
+/* ── Section Card ── */
+.section-card {
+  background: var(--bg); border: 1px solid var(--glass-border);
+  border-radius: var(--r-xl); padding: 20px 22px;
+  margin-bottom: 14px; transition: box-shadow 0.2s var(--ease-out);
+}
+.section-card:hover { box-shadow: var(--shadow-sm); }
+.section-title { font-size: 14px; font-weight: 700; color: var(--text); margin-bottom: 3px; }
+.section-subtitle { font-size: 11px; color: var(--text2); margin-bottom: 14px; }
+
+/* ── Doughnut + summary row ── */
+.at-donut-row {
+  display: grid; grid-template-columns: 200px 1fr;
+  gap: 24px; align-items: start;
+}
+@media (max-width: 640px) { .at-donut-row { grid-template-columns: 1fr; } }
+.chart-container { height: 200px; position: relative; }
+
+/* 3 mini stat boxes */
+.at-donut-stats {
+  display: grid; grid-template-columns: repeat(3, 1fr);
+  gap: 8px; margin-bottom: 14px;
+}
+.at-donut-stat {
+  background: var(--bg2); border-radius: 10px; padding: 10px 12px;
+  border: 1px solid var(--glass-border);
+}
+.at-donut-stat .lbl { font-size: 10px; color: var(--text2); margin-bottom: 3px; }
+.at-donut-stat .val { font-size: 13px; font-weight: 700; }
+
+/* Type list */
+.at-type-head {
+  display: grid; grid-template-columns: 2fr 1.5fr 0.7fr;
+  font-size: 10px; font-weight: 700; color: var(--text2);
+  text-transform: uppercase; letter-spacing: .05em;
+  padding: 0 4px 8px; border-bottom: 1px solid var(--glass-border);
+}
+.at-type-head > *:not(:first-child) { text-align: right; }
+#accountTypeRows .type-row {
+  display: grid; grid-template-columns: 2fr 1.5fr 0.7fr;
+  align-items: center; padding: 9px 4px;
+  border-bottom: 1px solid rgba(128,128,128,0.05);
+}
+#accountTypeRows .type-row > *:not(:first-child) { text-align: right; }
+
+/* ── Total chart ── */
+.at-chart-section {
+  background: var(--bg); border: 1px solid var(--glass-border);
+  border-radius: var(--r-xl); padding: 20px 22px; margin-bottom: 14px;
+}
+.at-chart-header {
+  display: flex; justify-content: space-between; align-items: flex-start;
+  margin-bottom: 14px; flex-wrap: wrap; gap: 8px;
+}
+.at-chart-title    { font-size: 14px; font-weight: 700; color: var(--text); margin-bottom: 2px; }
+.at-chart-subtitle { font-size: 11px; color: var(--text2); }
+
+/* Legend */
+.cat-legend { display: flex; gap: 12px; flex-wrap: wrap; }
+.cat-legend-item { display: flex; align-items: center; gap: 5px; font-size: 11px; color: var(--text2); }
+.cat-legend-dot  { width: 10px; height: 10px; border-radius: 3px; }
+
+/* ── Tab 1: Table ── */
+.at-table-toolbar {
+  display: flex; justify-content: space-between; align-items: center;
+  gap: 10px; flex-wrap: wrap; margin-bottom: 12px;
+}
 .pill-group {
-  display: inline-flex;
-  background: var(--bg2);
-  border-radius: 8px;
-  padding: 3px;
-  gap: 2px;
+  display: inline-flex; background: var(--bg2); border-radius: 8px; padding: 3px; gap: 2px;
 }
 .pill-btn {
-  padding: 6px 14px;
-  font-size: 12px;
-  font-weight: 500;
-  border: none;
-  background: none;
-  border-radius: 6px;
-  cursor: pointer;
-  color: var(--text2);
-  transition: all 0.2s;
+  padding: 6px 14px; font-size: 12px; font-weight: 500;
+  border: none; background: none; border-radius: 6px;
+  cursor: pointer; color: var(--text2); transition: all 0.2s;
 }
-.pill-btn.active {
-  background: var(--bg);
-  color: var(--text);
-  box-shadow: var(--shadow-sm);
-}
+.pill-btn.active { background: var(--bg); color: var(--text); box-shadow: var(--shadow-sm); }
 
-/* ── Modal ── */
-.modal-overlay {
-  display: none;
-  position: fixed;
-  inset: 0;
-  background: rgba(0,0,0,0.6);
-  backdrop-filter: blur(4px);
-  z-index: 200;
-  overflow-y: auto;
-  animation: fadeIn 0.2s var(--ease-out);
-}
-.modal-box {
-  max-width: 640px;
-  margin: 40px auto;
-  background: var(--bg);
-  border: 1px solid var(--border);
-  border-radius: var(--r-2xl);
-  padding: 32px;
-  position: relative;
-  animation: slideUp 0.35s var(--ease-out);
-  box-shadow: var(--shadow-lg);
-}
-.modal-box.sm { max-width: 400px; margin-top: 120px; }
-.modal-close {
-  position: absolute;
-  top: 20px;
-  right: 20px;
-  background: var(--bg2);
-  border: none;
-  width: 32px;
-  height: 32px;
-  border-radius: 8px;
-  cursor: pointer;
-  color: var(--text2);
-  font-size: 14px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  transition: all 0.15s;
-}
-.modal-close:hover { background: rgba(255,255,255,0.08); color: var(--text); }
-.modal-title {
-  font-size: 18px;
-  font-weight: 700;
-  margin-bottom: 24px;
-  letter-spacing: -0.3px;
-}
-
-@keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
-@keyframes slideUp { from { opacity: 0; transform: translateY(20px); } to { opacity: 1; transform: translateY(0); } }
-
-/* ── Form inside modal ── */
-.form-section-title {
-  font-size: 12px;
-  font-weight: 700;
-  text-transform: uppercase;
-  letter-spacing: 1px;
-  color: var(--text2);
-  margin-bottom: 12px;
-  padding-bottom: 8px;
+.asset-table { width: 100%; border-collapse: collapse; font-size: 13px; }
+.asset-table thead th {
+  padding: 10px 14px; text-align: left;
+  font-size: 10px; font-weight: 700; text-transform: uppercase;
+  letter-spacing: 0.5px; color: var(--text2);
   border-bottom: 1px solid var(--glass-border);
-  display: flex;
-  align-items: center;
-  gap: 6px;
+  background: rgba(128,128,128,0.03); white-space: nowrap;
 }
-.form-section-title .dot {
-  width: 8px;
-  height: 8px;
-  border-radius: 2px;
+.asset-table tbody tr { transition: background 0.15s; }
+.asset-table tbody tr:hover { background: rgba(128,128,128,0.03); }
+.asset-table tbody td {
+  padding: 12px 14px;
+  border-bottom: 1px solid rgba(128,128,128,0.05);
 }
-.form-grid {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 10px;
-  margin-bottom: 20px;
-}
-.form-grid:empty { margin-bottom: 0; display: none; }
-.form-field label {
-  display: block;
-  font-size: 11px;
-  font-weight: 500;
-  color: var(--text2);
-  margin-bottom: 5px;
-}
-.form-field input,
-.form-field select {
-  width: 100%;
-  padding: 10px 12px;
-  background: var(--bg2);
-  border: 1px solid var(--glass-border);
-  border-radius: 8px;
-  color: var(--text);
-  font-size: 13px;
-  transition: border-color 0.2s;
-  outline: none;
-}
-.form-field input:focus,
-.form-field select:focus {
-  border-color: #667eea;
-  box-shadow: 0 0 0 3px rgba(102,126,234,0.15);
-}
-.form-field input::placeholder { color: var(--text2); opacity: 0.5; }
+.asset-table tbody tr:last-child td { border-bottom: none; }
+.date-cell { font-weight: 600; white-space: nowrap; }
+.num-cell { text-align: right !important; font-variant-numeric: tabular-nums; }
+.actions-cell { text-align: right !important; white-space: nowrap; }
 
-.preview-panel {
-  background: var(--bg2);
-  border-radius: 12px;
-  padding: 16px 20px;
-  margin-bottom: 24px;
-  border: 1px solid var(--glass-border);
-}
-.preview-row {
-  display: flex;
-  justify-content: space-between;
-  padding: 6px 0;
-  font-size: 13px;
-}
-.preview-row .lbl { color: var(--text2); }
-.preview-divider {
-  height: 1px;
-  background: var(--glass-border);
-  margin: 8px 0;
-}
-.preview-row.total {
-  font-weight: 700;
-  font-size: 15px;
-  padding-top: 10px;
-}
-
-/* ── Account Card (Tab 2) ── */
+/* ── Tab 2: Account cards ── */
 .acc-category-card {
-  background: var(--bg);
-  border: 1px solid var(--border);
-  border-radius: var(--r-xl);
-  padding: 20px 24px;
-  margin-bottom: 12px;
-  transition: all 0.3s var(--ease-out);
+  background: var(--bg); border: 1px solid var(--glass-border);
+  border-radius: var(--r-xl); padding: 18px 20px; margin-bottom: 10px;
+  transition: box-shadow 0.2s var(--ease-out);
 }
 .acc-category-card:hover { box-shadow: var(--shadow-sm); }
 .acc-category-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  margin-bottom: 16px;
+  display: flex; justify-content: space-between; align-items: center;
+  margin-bottom: 14px;
 }
 .acc-category-name {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  font-weight: 700;
-  font-size: 15px;
+  display: flex; align-items: center; gap: 10px;
+  font-weight: 700; font-size: 14px;
 }
-.acc-category-name .bar {
-  width: 4px;
-  height: 20px;
-  border-radius: 2px;
-}
+.acc-category-name .bar { width: 4px; height: 18px; border-radius: 2px; }
 .acc-row {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  padding: 10px 0;
-  border-bottom: 1px solid var(--border2);
+  display: flex; justify-content: space-between; align-items: center;
+  padding: 9px 0; border-bottom: 1px solid rgba(128,128,128,0.05);
   font-size: 13px;
 }
 .acc-row:last-child { border-bottom: none; }
 .acc-row .name { display: flex; align-items: center; gap: 8px; }
 .acc-row .name .badge {
-  font-size: 9px;
-  padding: 2px 6px;
-  border-radius: 4px;
-  font-weight: 600;
-  background: rgba(102,126,234,0.15);
-  color: #a5b4fc;
+  font-size: 9px; padding: 2px 6px; border-radius: 4px; font-weight: 600;
+  background: rgba(102,126,234,0.12); color: #a5b4fc;
 }
-.acc-row .right { display: flex; align-items: center; gap: 12px; }
+.acc-row .right { display: flex; align-items: center; gap: 10px; }
 .acc-row .amount { font-weight: 600; font-variant-numeric: tabular-nums; }
-.acc-row .pct { font-size: 11px; color: var(--text2); min-width: 44px; text-align: right; }
+.acc-row .pct { font-size: 11px; color: var(--text2); min-width: 40px; text-align: right; }
 .acc-row.zero { opacity: 0.35; }
 
-.deactivated-panel {
-  background: var(--bg2);
-  border-radius: var(--r-xl);
-  padding: 16px 20px;
-  margin-top: 8px;
-}
-.deactivated-panel .title {
-  font-size: 12px;
-  font-weight: 600;
-  color: var(--text2);
-  margin-bottom: 12px;
-}
+.deactivated-panel { background: var(--bg2); border-radius: var(--r-xl); padding: 14px 18px; margin-top: 8px; }
+.deactivated-panel .title { font-size: 12px; font-weight: 600; color: var(--text2); margin-bottom: 10px; }
 .deactivated-chip {
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-  background: var(--bg);
-  border: 1px solid var(--glass-border);
-  border-radius: 8px;
-  padding: 6px 12px;
-  font-size: 12px;
-  margin: 0 6px 6px 0;
+  display: inline-flex; align-items: center; gap: 6px;
+  background: var(--bg); border: 1px solid var(--glass-border);
+  border-radius: 8px; padding: 5px 10px; font-size: 12px; margin: 0 5px 5px 0;
 }
 .deactivated-chip .restore-btn {
-  background: none;
-  border: none;
-  color: #667eea;
-  font-weight: 600;
-  cursor: pointer;
-  font-size: 11px;
-  padding: 0;
+  background: none; border: none; color: var(--blue);
+  font-weight: 600; cursor: pointer; font-size: 11px; padding: 0;
 }
 .deactivated-chip .restore-btn:hover { text-decoration: underline; }
 
-/* ── Empty state ── */
-.empty-state-box {
-  text-align: center;
-  padding: 48px 24px;
-  color: var(--text2);
-}
-.empty-state-box .icon { font-size: 40px; margin-bottom: 12px; opacity: 0.4; }
-.empty-state-box .msg { font-size: 14px; }
+/* ── Empty ── */
+.empty-state-box { text-align: center; padding: 40px 24px; color: var(--text2); }
+.empty-state-box .icon { font-size: 36px; margin-bottom: 10px; opacity: 0.3; }
+.empty-state-box .msg  { font-size: 13px; }
 
-/* ── Responsive ── */
+/* ── Modal ── */
+.modal-overlay {
+  display: none; position: fixed; inset: 0;
+  background: rgba(0,0,0,0.6); backdrop-filter: blur(4px);
+  z-index: 200; overflow-y: auto; animation: fadeIn 0.2s var(--ease-out);
+}
+.modal-box {
+  max-width: 640px; margin: 40px auto;
+  background: var(--bg); border: 1px solid var(--glass-border);
+  border-radius: var(--r-2xl); padding: 28px 32px;
+  position: relative; animation: slideUp 0.3s var(--ease-out);
+  box-shadow: var(--shadow-lg);
+}
+.modal-box.sm { max-width: 400px; margin-top: 100px; }
+.modal-close {
+  position: absolute; top: 18px; right: 18px;
+  background: var(--bg2); border: none; width: 30px; height: 30px;
+  border-radius: 8px; cursor: pointer; color: var(--text2); font-size: 13px;
+  display: flex; align-items: center; justify-content: center; transition: all 0.15s;
+}
+.modal-close:hover { background: rgba(128,128,128,0.15); color: var(--text); }
+.modal-title { font-size: 17px; font-weight: 700; margin-bottom: 22px; letter-spacing: -0.3px; }
+
+@keyframes fadeIn  { from { opacity:0; } to { opacity:1; } }
+@keyframes slideUp { from { opacity:0; transform:translateY(18px); } to { opacity:1; transform:translateY(0); } }
+
+/* Form inside modal */
+.form-section-title {
+  font-size: 11px; font-weight: 700; text-transform: uppercase;
+  letter-spacing: 1px; color: var(--text2);
+  margin-bottom: 10px; padding-bottom: 7px;
+  border-bottom: 1px solid var(--glass-border);
+  display: flex; align-items: center; gap: 6px;
+}
+.form-section-title .dot { width: 7px; height: 7px; border-radius: 2px; }
+.form-grid {
+  display: grid; grid-template-columns: 1fr 1fr;
+  gap: 10px; margin-bottom: 18px;
+}
+.form-grid:empty { margin-bottom: 0; display: none; }
+.form-field label { display: block; font-size: 11px; font-weight: 500; color: var(--text2); margin-bottom: 5px; }
+.form-field input,
+.form-field select {
+  width: 100%; padding: 9px 12px;
+  background: var(--bg2); border: 1px solid var(--glass-border);
+  border-radius: 8px; color: var(--text); font-size: 13px;
+  transition: border-color 0.2s; outline: none; box-sizing: border-box;
+}
+.form-field input:focus,
+.form-field select:focus { border-color: var(--blue); box-shadow: 0 0 0 3px rgba(102,126,234,0.13); }
+.form-field input::placeholder { color: var(--text2); opacity: 0.5; }
+
+.preview-panel {
+  background: var(--bg2); border-radius: 12px; padding: 14px 18px;
+  margin-bottom: 22px; border: 1px solid var(--glass-border);
+}
+.preview-row { display: flex; justify-content: space-between; padding: 5px 0; font-size: 13px; }
+.preview-row .lbl { color: var(--text2); }
+.preview-divider { height: 1px; background: var(--glass-border); margin: 7px 0; }
+.preview-row.total { font-weight: 700; font-size: 15px; padding-top: 9px; }
+
 @media (max-width: 600px) {
-  .hero-value { font-size: 28px; }
-  .metric-grid { grid-template-columns: repeat(2, 1fr); }
+  .metric-grid { grid-template-columns: repeat(2,1fr); }
   .form-grid { grid-template-columns: 1fr; }
-  .modal-box { margin: 16px; padding: 24px; }
-  .asset-tabs { max-width: 100%; }
+  .modal-box { margin: 12px; padding: 20px; }
+  .at-donut-row { grid-template-columns: 1fr; }
 }
 </style>
 
 
 <!-- ══════════════════════════════════════
-     PAGE HEADER
+     HEADER
 ══════════════════════════════════════ -->
-<div class="asset-page-header">
-  <h1>자산관리</h1>
-  <p>월별 자산 현황을 한눈에 추적</p>
+<div class="at-header">
+  <div class="at-header-left">
+    <h1>자산 현황</h1>
+    <p>월별 자산을 기록하고 추이를 확인합니다</p>
+  </div>
 </div>
 
-<!-- ── 페이지 탭 ── -->
-<div class="asset-tabs">
-  <button id="pgBtn0" class="asset-tab active" onclick="showPg(0)">자산 현황</button>
-  <button id="pgBtn1" class="asset-tab"        onclick="showPg(1)">항목 관리</button>
-  <button id="pgBtn2" class="asset-tab"        onclick="showPg(2)">자산관리</button>
+<!-- ── Tab 네비게이션 ── -->
+<div class="at-tabs-row">
+  <div class="at-tabs">
+    <button id="pgBtn0" class="asset-tab active" onclick="showPg(0)">자산 현황</button>
+    <button id="pgBtn1" class="asset-tab"        onclick="showPg(1)">항목 관리</button>
+    <button id="pgBtn2" class="asset-tab"        onclick="showPg(2)">자산 관리</button>
+  </div>
+  <!-- 탭별 액션 버튼: JS로 토글 -->
+  <div id="tabActions" style="display:flex;gap:8px;align-items:center;"></div>
 </div>
 
 
@@ -613,7 +379,7 @@
 ══════════════════════════════════════ -->
 <div id="pg0">
 
-  <!-- Hero Card -->
+  <!-- Hero -->
   <div class="hero-card">
     <div class="hero-label">TOTAL ASSETS</div>
     <div class="hero-value" id="cardTotal">—</div>
@@ -623,67 +389,65 @@
     </div>
   </div>
 
-  <!-- Metric Cards -->
+  <!-- Metric Cards: 3열 -->
   <div class="metric-grid">
-    <div class="metric-card">
+    <div class="metric-card" data-cat="pension">
       <div class="label"><span class="dot" style="background:#6366f1;"></span>연금</div>
       <div class="value" id="cardPension">—</div>
     </div>
-    <div class="metric-card">
+    <div class="metric-card" data-cat="invest">
       <div class="label"><span class="dot" style="background:#10b981;"></span>투자</div>
       <div class="value" id="cardInvest">—</div>
     </div>
-    <div class="metric-card">
+    <div class="metric-card" data-cat="savings">
       <div class="label"><span class="dot" style="background:#f59e0b;"></span>저축(청약)</div>
       <div class="value" id="cardSavings">—</div>
     </div>
-    <div class="metric-card">
+    <div class="metric-card" data-cat="liquid">
       <div class="label"><span class="dot" style="background:#3b82f6;"></span>자유입출금</div>
       <div class="value" id="cardLiquid">—</div>
     </div>
-    <div class="metric-card">
+    <div class="metric-card" data-cat="realestate">
       <div class="label"><span class="dot" style="background:#a78bfa;"></span>부동산</div>
       <div class="value" id="cardRealestate">—</div>
     </div>
-    <div class="metric-card loan-card">
+    <div class="metric-card loan-card" data-cat="loan">
       <div class="label"><span class="dot" style="background:#ef4444;"></span>대출</div>
       <div class="value" id="cardLoan">—</div>
     </div>
   </div>
 
-  <!-- 계좌 유형별 자산 구성 -->
-  <div class="section-card" style="margin-bottom:20px;">
-    <div style="display:grid;grid-template-columns:1fr 1fr;gap:28px;align-items:start;">
+  <!-- 계좌 유형별 구성 -->
+  <div class="section-card">
+    <div class="at-donut-row">
 
-      <!-- 좌: 도넛 차트 -->
+      <!-- 도넛 차트 -->
       <div>
         <div class="section-title">계좌 유형별 구성</div>
-        <div class="section-subtitle">총 자산 대비 계좌 유형 비중</div>
-        <div style="position:relative;height:220px;">
+        <div class="section-subtitle">총자산 기준 비중</div>
+        <div style="position:relative;height:200px;">
           <canvas id="accountDoughnutChart"></canvas>
         </div>
       </div>
 
-      <!-- 우: 요약 + 목록 -->
+      <!-- 우측: 미니 스탯 + 유형 목록 -->
       <div>
-        <!-- 총자산 / 순자산 / 부채비율 -->
-        <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;margin-bottom:16px;">
-          <div style="background:var(--bg2);border-radius:10px;padding:10px 12px;border:1px solid var(--border);">
-            <div style="font-size:10px;color:var(--text2);margin-bottom:4px;">총자산</div>
-            <div style="font-size:14px;font-weight:700;color:var(--text);" id="doughnutSummaryGross">—</div>
+        <div class="at-donut-stats">
+          <div class="at-donut-stat">
+            <div class="lbl">총자산</div>
+            <div class="val" id="doughnutSummaryGross">—</div>
           </div>
-          <div style="background:var(--bg2);border-radius:10px;padding:10px 12px;border:1px solid var(--border);">
-            <div style="font-size:10px;color:var(--text2);margin-bottom:4px;">순자산</div>
-            <div style="font-size:14px;font-weight:700;color:#667eea;" id="doughnutSummaryNet">—</div>
+          <div class="at-donut-stat">
+            <div class="lbl">순자산</div>
+            <div class="val" style="color:var(--blue);" id="doughnutSummaryNet">—</div>
           </div>
-          <div style="background:var(--bg2);border-radius:10px;padding:10px 12px;border:1px solid var(--border);">
-            <div style="font-size:10px;color:var(--text2);margin-bottom:4px;">부채비율</div>
-            <div style="font-size:14px;font-weight:700;color:#ef4444;" id="doughnutDebtRatio">—</div>
+          <div class="at-donut-stat">
+            <div class="lbl">부채비율</div>
+            <div class="val" style="color:var(--red);" id="doughnutDebtRatio">—</div>
           </div>
         </div>
-        <!-- 테이블 헤더 -->
-        <div style="display:grid;grid-template-columns:2fr 1.5fr 0.7fr;font-size:11px;font-weight:600;color:var(--text2);text-transform:uppercase;letter-spacing:.05em;padding:0 4px 8px;border-bottom:1px solid var(--border);">
-          <div>유형</div><div style="text-align:right;">금액</div><div style="text-align:right;">비중</div>
+        <div class="at-type-head">
+          <div>유형</div><div>금액</div><div>비중</div>
         </div>
         <div id="accountTypeRows"></div>
       </div>
@@ -691,21 +455,25 @@
     </div>
   </div>
 
-  <!-- 순 자산 추이 -->
-  <div class="section-card">
-    <div class="section-title">순 자산 차트</div>
-    <div class="section-subtitle">전체 기간 월별 순자산 변화</div>
-    <div class="chart-container">
+  <!-- 순자산 차트 -->
+  <div class="at-chart-section">
+    <div class="at-chart-header">
+      <div>
+        <div class="at-chart-title">순자산 추이</div>
+        <div class="at-chart-subtitle">전체 기간 월별 변화</div>
+      </div>
+    </div>
+    <div style="height:220px;position:relative;">
       <canvas id="chartTotal"></canvas>
     </div>
   </div>
 
   <!-- 카테고리 차트 -->
-  <div class="section-card">
-    <div style="display:flex;justify-content:space-between;align-items:flex-start;flex-wrap:wrap;gap:12px;margin-bottom:16px;">
+  <div class="at-chart-section">
+    <div class="at-chart-header">
       <div>
-        <div class="section-title" style="margin-bottom:2px;">카테고리 차트</div>
-        <div class="section-subtitle" style="margin-bottom:0;">최근 12개월</div>
+        <div class="at-chart-title">카테고리 차트</div>
+        <div class="at-chart-subtitle">최근 12개월</div>
       </div>
       <div class="cat-legend">
         <span class="cat-legend-item"><span class="cat-legend-dot" style="background:#6366f1;"></span>연금</span>
@@ -715,7 +483,7 @@
         <span class="cat-legend-item"><span class="cat-legend-dot" style="background:#3b82f6;"></span>자유입출금</span>
       </div>
     </div>
-    <div class="chart-container">
+    <div style="height:220px;position:relative;">
       <canvas id="chartCategory"></canvas>
     </div>
   </div>
@@ -727,15 +495,17 @@
      TAB 1 — 항목 관리
 ══════════════════════════════════════ -->
 <div id="pg1" style="display:none;">
-  <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:20px;">
-    <div class="pill-group">
-      <button id="tabRecent" class="pill-btn active" onclick="setTab('recent')">최근 1년</button>
-      <button id="tabAll"    class="pill-btn"        onclick="setTab('all')">전체 내역</button>
-    </div>
-    <div style="display:flex;gap:8px;align-items:center;">
+  <div class="at-table-toolbar">
+    <div style="display:flex;align-items:center;gap:10px;">
+      <div class="pill-group">
+        <button id="tabRecent" class="pill-btn active" onclick="setTab('recent')">최근 1년</button>
+        <button id="tabAll"    class="pill-btn"        onclick="setTab('all')">전체 내역</button>
+      </div>
       <span style="font-size:12px;color:var(--text2);" id="rowCount"></span>
-      <button class="btn-soft" style="padding:8px 14px;" onclick="openImportModal()">CSV 가져오기</button>
-      <button class="btn-gradient" style="padding:8px 16px;" onclick="openEntryModal(null)">+ 항목 추가</button>
+    </div>
+    <div style="display:flex;gap:8px;">
+      <button class="btn-soft"     onclick="openImportModal()">CSV 가져오기</button>
+      <button class="btn-gradient" onclick="openEntryModal(null)">+ 항목 추가</button>
     </div>
   </div>
   <div class="section-card" style="overflow-x:auto;padding:0;">
@@ -749,8 +519,8 @@
           <th style="text-align:right;">저축합</th>
           <th style="text-align:right;">자유입출금</th>
           <th style="text-align:right;">부동산</th>
-          <th style="text-align:right;color:#ef4444;">대출</th>
-          <th style="text-align:right;width:90px;">작업</th>
+          <th style="text-align:right;color:var(--red);">대출</th>
+          <th style="text-align:right;width:80px;"></th>
         </tr>
       </thead>
       <tbody id="assetTableBody">
@@ -765,20 +535,16 @@
      TAB 2 — 자산 관리
 ══════════════════════════════════════ -->
 <div id="pg2" style="display:none;">
-
-  <!-- 계좌 관리 -->
-  <div class="section-card" style="margin-bottom:20px;">
-    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px;">
-      <div class="section-title" style="margin-bottom:0;">자산 관리</div>
-      <button class="btn-gradient" style="padding:8px 14px;font-size:12px;" onclick="openAddAccModal()">+ 자산 추가</button>
+  <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:14px;">
+    <div>
+      <div style="font-size:14px;font-weight:700;">자산 관리</div>
+      <div style="font-size:11px;color:var(--text2);">드래그로 순서 변경</div>
     </div>
+    <button class="btn-gradient" onclick="openAddAccModal()">+ 자산 추가</button>
   </div>
-
-  <!-- 통장별 잔액 -->
   <div id="accountBreakdown">
     <div class="empty-state-box"><div class="icon">🏦</div><div class="msg">데이터 로딩 중...</div></div>
   </div>
-
 </div><!-- /pg2 -->
 
 
@@ -790,17 +556,17 @@
     <button onclick="closeEntryModal()" class="modal-close">✕</button>
     <h2 class="modal-title" id="modalTitle">항목 추가</h2>
 
-    <div class="form-grid" style="grid-template-columns:1fr;margin-bottom:20px;">
+    <div class="form-grid" style="grid-template-columns:1fr;margin-bottom:18px;">
       <div class="form-field">
         <label>날짜 (YYYY/MM/DD)</label>
-        <input id="fDate" type="text" placeholder="2026/03/31">
+        <input id="fDate" type="text" placeholder="2026/06/30">
       </div>
     </div>
 
     <!-- 연금 -->
     <div class="form-section-title" data-cat-title="pension" style="justify-content:space-between;">
       <span style="display:flex;align-items:center;gap:6px;"><span class="dot" style="background:#6366f1;"></span>연금</span>
-      <button class="btn-soft" style="padding:4px 10px;font-size:11px;" onclick="openAddAccModal('pension')">+ 등록</button>
+      <button class="btn-soft" style="padding:3px 9px;font-size:11px;" onclick="openAddAccModal('pension')">+ 등록</button>
     </div>
     <div class="form-grid">
       <div class="form-field" data-bikey="dc"><label>DC (퇴직연금)</label><input id="fDc" type="number" placeholder="0"></div>
@@ -814,7 +580,7 @@
     <!-- 투자 -->
     <div class="form-section-title" data-cat-title="invest" style="justify-content:space-between;">
       <span style="display:flex;align-items:center;gap:6px;"><span class="dot" style="background:#10b981;"></span>투자</span>
-      <button class="btn-soft" style="padding:4px 10px;font-size:11px;" onclick="openAddAccModal('invest')">+ 등록</button>
+      <button class="btn-soft" style="padding:3px 9px;font-size:11px;" onclick="openAddAccModal('invest')">+ 등록</button>
     </div>
     <div class="form-grid">
       <div class="form-field" data-bikey="isa"><label>ISA</label><input id="fIsa" type="number" placeholder="0"></div>
@@ -827,11 +593,11 @@
     <!-- 저축 -->
     <div class="form-section-title" data-cat-title="savings" style="justify-content:space-between;">
       <span style="display:flex;align-items:center;gap:6px;"><span class="dot" style="background:#f59e0b;"></span>저축</span>
-      <button class="btn-soft" style="padding:4px 10px;font-size:11px;" onclick="openAddAccModal('savings')">+ 등록</button>
+      <button class="btn-soft" style="padding:3px 9px;font-size:11px;" onclick="openAddAccModal('savings')">+ 등록</button>
     </div>
     <div class="form-grid">
       <div class="form-field" data-bikey="housingSubscription">
-        <label>주택청약종합저축 <span style="color:#667eea;font-size:10px;">★ 집계포함</span></label>
+        <label>주택청약종합저축 <span style="color:var(--blue);font-size:10px;">★ 집계포함</span></label>
         <input id="fHousingSubscription" type="number" placeholder="0">
       </div>
     </div>
@@ -840,7 +606,7 @@
     <!-- 자유입출금 -->
     <div class="form-section-title" data-cat-title="liquid" style="justify-content:space-between;">
       <span style="display:flex;align-items:center;gap:6px;"><span class="dot" style="background:#3b82f6;"></span>자유입출금</span>
-      <button class="btn-soft" style="padding:4px 10px;font-size:11px;" onclick="openAddAccModal('liquid')">+ 등록</button>
+      <button class="btn-soft" style="padding:3px 9px;font-size:11px;" onclick="openAddAccModal('liquid')">+ 등록</button>
     </div>
     <div class="form-grid">
       <div class="form-field" data-bikey="youngHana"><label>Young 하나통장</label><input id="fYoungHana" type="number" placeholder="0"></div>
@@ -853,14 +619,14 @@
     <!-- 부동산 -->
     <div class="form-section-title" data-cat-title="realestate" style="justify-content:space-between;">
       <span style="display:flex;align-items:center;gap:6px;"><span class="dot" style="background:#a78bfa;"></span>부동산</span>
-      <button class="btn-soft" style="padding:4px 10px;font-size:11px;" onclick="openAddAccModal('realestate')">+ 등록</button>
+      <button class="btn-soft" style="padding:3px 9px;font-size:11px;" onclick="openAddAccModal('realestate')">+ 등록</button>
     </div>
     <div id="customInputs_realestate" class="form-grid"></div>
 
     <!-- 대출 -->
     <div class="form-section-title" data-cat-title="loan" style="justify-content:space-between;">
       <span style="display:flex;align-items:center;gap:6px;"><span class="dot" style="background:#ef4444;"></span>대출</span>
-      <button class="btn-soft" style="padding:4px 10px;font-size:11px;" onclick="openAddAccModal('loan')">+ 등록</button>
+      <button class="btn-soft" style="padding:3px 9px;font-size:11px;" onclick="openAddAccModal('loan')">+ 등록</button>
     </div>
     <div class="form-grid">
       <div class="form-field" data-bikey="hanaLoan"><label>하나은행 대출 (양수 입력)</label><input id="fHanaLoan" type="number" placeholder="0"></div>
@@ -868,23 +634,23 @@
     <div id="customInputs_loan" class="form-grid"></div>
 
     <!-- 메모 -->
-    <div class="form-grid" style="grid-template-columns:1fr;margin-bottom:20px;">
+    <div class="form-grid" style="grid-template-columns:1fr;margin-bottom:18px;">
       <div class="form-field">
         <label>메모 (선택)</label>
         <input id="fNote" type="text" placeholder="특이사항">
       </div>
     </div>
 
-    <!-- 미리보기 합계 -->
+    <!-- 미리보기 -->
     <div class="preview-panel">
       <div class="preview-row"><span class="lbl">연금합</span><span id="prevPension">0</span></div>
       <div class="preview-row"><span class="lbl">투자합</span><span id="prevInvest">0</span></div>
       <div class="preview-row"><span class="lbl">저축합</span><span id="prevSavings">0</span></div>
       <div class="preview-row"><span class="lbl">자유입출금합</span><span id="prevLiquid">0</span></div>
       <div class="preview-row"><span class="lbl">부동산합</span><span id="prevRealestate">0</span></div>
-      <div class="preview-row"><span class="lbl">대출</span><span id="prevLoan" style="color:#ef4444;">0</span></div>
+      <div class="preview-row"><span class="lbl">대출</span><span id="prevLoan" style="color:var(--red);">0</span></div>
       <div class="preview-divider"></div>
-      <div class="preview-row total"><span>총 자본</span><span id="prevTotal" style="color:#667eea;">0</span></div>
+      <div class="preview-row total"><span>총 자본</span><span id="prevTotal" style="color:var(--blue);">0</span></div>
     </div>
 
     <div style="display:flex;gap:10px;justify-content:flex-end;">
@@ -895,17 +661,17 @@
   </div>
 </div>
 
-<!-- ── CSV 모달 ── -->
+<!-- CSV 모달 -->
 <div id="importModal" class="modal-overlay">
   <div class="modal-box sm">
     <button onclick="closeImportModal()" class="modal-close">✕</button>
     <h2 class="modal-title">CSV 가져오기</h2>
-    <p style="font-size:13px;color:var(--text2);margin-bottom:20px;">CSV 파일을 선택하세요. 기존 날짜 데이터는 덮어씁니다.</p>
-    <div class="form-field" style="margin-bottom:16px;">
+    <p style="font-size:13px;color:var(--text2);margin-bottom:18px;">CSV 파일을 선택하세요. 기존 날짜 데이터는 덮어씁니다.</p>
+    <div class="form-field" style="margin-bottom:14px;">
       <label>CSV 파일 선택</label>
-      <input type="file" id="csvFileInput" accept=".csv" style="width:100%;padding:10px 12px;background:var(--bg2);border:1px solid var(--glass-border);border-radius:8px;color:var(--text);font-size:13px;">
+      <input type="file" id="csvFileInput" accept=".csv" style="width:100%;padding:9px 12px;background:var(--bg2);border:1px solid var(--glass-border);border-radius:8px;color:var(--text);font-size:13px;box-sizing:border-box;">
     </div>
-    <div id="csvPreview" style="font-size:12px;color:var(--text2);margin-bottom:20px;display:none;"></div>
+    <div id="csvPreview" style="font-size:12px;color:var(--text2);margin-bottom:18px;display:none;"></div>
     <div style="display:flex;gap:10px;justify-content:flex-end;">
       <button class="btn-soft" onclick="closeImportModal()">취소</button>
       <button class="btn-gradient" onclick="submitImport()" id="importBtn">가져오기</button>
@@ -913,16 +679,16 @@
   </div>
 </div>
 
-<!-- ── 계좌 추가 모달 ── -->
+<!-- 계좌 추가 모달 -->
 <div id="addAccModal" class="modal-overlay" style="z-index:300;">
   <div class="modal-box sm">
     <button onclick="closeAddAccModal()" class="modal-close">✕</button>
     <h2 class="modal-title">자산 추가</h2>
-    <div class="form-field" style="margin-bottom:14px;">
+    <div class="form-field" style="margin-bottom:12px;">
       <label>계좌명</label>
       <input id="newAccName" placeholder="예: 국민은행 입출금">
     </div>
-    <div class="form-field" style="margin-bottom:24px;">
+    <div class="form-field" style="margin-bottom:22px;">
       <label>분류</label>
       <select id="newAccCat">
         <option value="pension">연금</option>
@@ -942,14 +708,14 @@
 
 
 <!-- ══════════════════════════════════════
-     SCRIPT
+     SCRIPT  (기능 동일, 무변경)
 ══════════════════════════════════════ -->
 <script>
 let allData = [];
 let customAccounts = [];
 let deactivatedBuiltins = new Set();
-let builtinRenames = {};  // key → 사용자 지정 이름
-let builtinOrder   = {};  // cat → [key, key, ...] 순서
+let builtinRenames = {};
+let builtinOrder   = {};
 let chartTotal = null, chartCategory = null, accountDoughnutChart = null;
 let csvContent = null;
 let currentTab = 'recent';
@@ -977,7 +743,6 @@ const BUILT_IN = [
   {key:'hanaLoan',       name:'하나은행 대출',          cat:'loan'},
 ];
 
-// ── 포맷 헬퍼 ──
 function fmtKrw(v) {
   if (!v && v !== 0) return '—';
   const abs = Math.abs(v);
@@ -987,7 +752,6 @@ function fmtKrw(v) {
 }
 function fmtKrwFull(v) { return Math.round(v).toLocaleString() + '원'; }
 
-// ── 페이지 탭 ──
 function showPg(idx) {
   currentPg = idx;
   [0,1,2].forEach(i => {
@@ -997,7 +761,6 @@ function showPg(idx) {
   if (idx === 2) renderAccountBreakdown();
 }
 
-// ── 데이터 로드 ──
 async function loadData() {
   const [dataRes, accRes, settingRes] = await Promise.all([
     fetch('/api/assets'),
@@ -1017,7 +780,6 @@ async function loadData() {
   updateBuiltinFieldVisibility();
 }
 
-// ── 요약 카드 ──
 function renderCards() {
   if (!allData.length) return;
   const last = allData[allData.length - 1];
@@ -1042,7 +804,6 @@ function renderCards() {
   renderAccountDoughnut(last);
 }
 
-// ── 계좌 유형별 도넛 차트 ──
 function renderAccountDoughnut(last) {
   const grossAssets = (last.pensionTotal||0) + (last.investTotal||0) + (last.savingsTotal||0) + (last.liquidTotal||0) + (last.realestateTotal||0);
   const loan        = grossAssets - last.totalCapital;
@@ -1062,24 +823,21 @@ function renderAccountDoughnut(last) {
     {label:'대출',      color:'#ef4444', val: loan},
   ];
 
-  // 목록 렌더
   const total = grossAssets;
   const rows = cats.map(c => {
     const pct = total > 0 ? (c.val / total * 100).toFixed(1) : '0.0';
     const isLoan = c.label === '대출';
-    return `<div style="display:grid;grid-template-columns:2fr 1.5fr 0.7fr;align-items:center;padding:9px 4px;border-bottom:1px solid var(--border2);">
+    return `<div class="type-row">
       <div style="display:flex;align-items:center;gap:8px;">
-        <span style="width:8px;height:8px;border-radius:2px;background:${c.color};flex-shrink:0;display:inline-block;"></span>
+        <span style="width:7px;height:7px;border-radius:2px;background:${c.color};flex-shrink:0;display:inline-block;"></span>
         <span style="font-size:13px;font-weight:500;${isLoan?'color:#ef4444;':''}">${c.label}</span>
       </div>
-      <div style="text-align:right;font-size:13px;color:var(--text2);">${isLoan&&c.val>0?'-':''}${fmtKrw(c.val)}</div>
-      <div style="text-align:right;font-size:13px;font-weight:700;color:${c.color};">${pct}%</div>
+      <div style="font-size:13px;color:var(--text2);">${isLoan&&c.val>0?'-':''}${fmtKrw(c.val)}</div>
+      <div style="font-size:13px;font-weight:700;color:${c.color};">${pct}%</div>
     </div>`;
   }).join('');
-
   document.getElementById('accountTypeRows').innerHTML = rows;
 
-  // 도넛 차트 중앙 텍스트 플러그인
   const isDark = document.documentElement.getAttribute('data-theme') === 'dark';
   const centerTextColor = isDark ? '#ebebeb' : '#1a1a1a';
   const centerSubColor  = isDark ? '#a8b3c0' : '#6b7280';
@@ -1089,13 +847,10 @@ function renderAccountDoughnut(last) {
       const { ctx: c, chartArea: { top, bottom, left, right } } = chart;
       const cx = (left + right) / 2, cy = (top + bottom) / 2;
       c.save();
-      c.textAlign = 'center';
-      c.textBaseline = 'middle';
-      c.font = '11px -apple-system, sans-serif';
-      c.fillStyle = centerSubColor;
-      c.fillText('총자산', cx, cy - 14);
-      c.font = 'bold 17px -apple-system, sans-serif';
-      c.fillStyle = centerTextColor;
+      c.textAlign = 'center'; c.textBaseline = 'middle';
+      c.font = '11px -apple-system, sans-serif'; c.fillStyle = centerSubColor;
+      c.fillText('총자산', cx, cy - 13);
+      c.font = 'bold 16px -apple-system, sans-serif'; c.fillStyle = centerTextColor;
       c.fillText(fmtKrw(grossAssets), cx, cy + 6);
       c.restore();
     }
@@ -1114,26 +869,15 @@ function renderAccountDoughnut(last) {
     type: 'doughnut',
     data: {
       labels: cats.map(c => c.label),
-      datasets: [{
-        data: cats.map(c => c.val),
-        backgroundColor: cats.map(c => c.color),
-        borderColor: isDark ? '#2a2a2a' : '#ffffff',
-        borderWidth: 3,
-        hoverOffset: 8,
-      }]
+      datasets: [{ data: cats.map(c => c.val), backgroundColor: cats.map(c => c.color), borderColor: isDark ? '#2a2a2a' : '#ffffff', borderWidth: 3, hoverOffset: 8 }]
     },
     options: {
       responsive: true, maintainAspectRatio: false, cutout: '68%',
       plugins: {
         legend: { display: false },
         tooltip: {
-          backgroundColor: 'rgba(15,15,30,1)',
-          borderColor: '#334155',
-          borderWidth: 1,
-          padding: 10,
-          displayColors: true,
-          boxWidth: 10,
-          boxHeight: 10,
+          backgroundColor: 'rgba(15,15,30,1)', borderColor: '#334155', borderWidth: 1,
+          padding: 10, displayColors: true, boxWidth: 10, boxHeight: 10,
           callbacks: {
             title: () => '',
             label: ctx2 => {
@@ -1148,68 +892,36 @@ function renderAccountDoughnut(last) {
   });
 }
 
-// ── 차트 ──
 function renderCharts() {
   const tickColor = getComputedStyle(document.documentElement).getPropertyValue('--text2').trim() || '#a8b3c0';
   const labels = allData.map(d => d.date.slice(0,7));
   const ctxT = document.getElementById('chartTotal').getContext('2d');
   if (chartTotal) chartTotal.destroy();
-
-  // 그라데이션 생성
   const gradientUp = ctxT.createLinearGradient(0, 0, 0, 240);
-  gradientUp.addColorStop(0, 'rgba(16,185,129,0.8)');
-  gradientUp.addColorStop(1, 'rgba(16,185,129,0.4)');
+  gradientUp.addColorStop(0, 'rgba(16,185,129,0.8)'); gradientUp.addColorStop(1, 'rgba(16,185,129,0.4)');
   const gradientDown = ctxT.createLinearGradient(0, 0, 0, 240);
-  gradientDown.addColorStop(0, 'rgba(239,68,68,0.8)');
-  gradientDown.addColorStop(1, 'rgba(239,68,68,0.4)');
+  gradientDown.addColorStop(0, 'rgba(239,68,68,0.8)'); gradientDown.addColorStop(1, 'rgba(239,68,68,0.4)');
   const gradientFirst = ctxT.createLinearGradient(0, 0, 0, 240);
-  gradientFirst.addColorStop(0, 'rgba(102,126,234,0.8)');
-  gradientFirst.addColorStop(1, 'rgba(102,126,234,0.4)');
+  gradientFirst.addColorStop(0, 'rgba(102,126,234,0.8)'); gradientFirst.addColorStop(1, 'rgba(102,126,234,0.4)');
 
   chartTotal = new Chart(ctxT, {
     type: 'bar',
-    data: { labels, datasets: [{
-      label: '총 자산', data: allData.map(d => d.totalCapital),
-      backgroundColor: allData.map((d, i) => {
-        if (i === 0) return gradientFirst;
-        return d.totalCapital >= allData[i-1].totalCapital ? gradientUp : gradientDown;
-      }),
-      borderRadius: 6,
-      borderSkipped: false,
-    }]},
+    data: { labels, datasets: [{ label: '총 자산', data: allData.map(d => d.totalCapital),
+      backgroundColor: allData.map((d,i) => { if(i===0) return gradientFirst; return d.totalCapital>=allData[i-1].totalCapital?gradientUp:gradientDown; }),
+      borderRadius: 6, borderSkipped: false }]},
     options: {
       responsive: true, maintainAspectRatio: false,
-      plugins: {
-        legend: { display: false },
-        tooltip: {
-          backgroundColor: 'rgba(15,15,30,0.95)',
-          titleFont: { size: 12, weight: '600' },
-          bodyFont: { size: 12 },
-          padding: 12,
-          cornerRadius: 8,
-          borderColor: 'rgba(255,255,255,0.1)',
-          borderWidth: 1,
-          callbacks: {
-            label: ctx => {
-              const i = ctx.dataIndex;
-              const cur = allData[i].totalCapital;
-              const prev = i > 0 ? allData[i-1].totalCapital : null;
-              const lines = [fmtKrwFull(cur)];
-              if (prev) {
-                const diff = cur - prev;
-                const pct = (diff / Math.abs(prev) * 100).toFixed(1);
-                const sign = diff >= 0 ? '+' : '';
-                lines.push(`전월比 ${sign}${pct}% (${sign}${fmtKrw(diff)})`);
-              }
-              return lines;
-            }
-          }
-        }
-      },
-      scales: {
-        x: { ticks: { font:{size:10}, maxTicksLimit:12, color: tickColor }, grid:{display:false} },
-        y: { ticks: { font:{size:10}, callback: v => fmtKrw(v), color: tickColor }, grid:{color:'rgba(128,128,128,0.1)'}},
-      }
+      plugins: { legend:{display:false}, tooltip:{
+        backgroundColor:'rgba(15,15,30,0.95)', padding:12, cornerRadius:8,
+        borderColor:'rgba(255,255,255,0.1)', borderWidth:1,
+        callbacks: { label: ctx => {
+          const i=ctx.dataIndex, cur=allData[i].totalCapital, prev=i>0?allData[i-1].totalCapital:null;
+          const lines=[fmtKrwFull(cur)];
+          if(prev){const diff=cur-prev,pct=(diff/Math.abs(prev)*100).toFixed(1),s=diff>=0?'+':'';lines.push(`전월比 ${s}${pct}% (${s}${fmtKrw(diff)})`);}
+          return lines;
+        }}
+      }},
+      scales: { x:{ticks:{font:{size:10},maxTicksLimit:12,color:tickColor},grid:{display:false}}, y:{ticks:{font:{size:10},callback:v=>fmtKrw(v),color:tickColor},grid:{color:'rgba(128,128,128,0.08)'}} }
     }
   });
 
@@ -1218,38 +930,21 @@ function renderCharts() {
   if (chartCategory) chartCategory.destroy();
   chartCategory = new Chart(ctxC, {
     type: 'bar',
-    data: {
-      labels: recent.map(d => d.date.slice(0,7)),
-      datasets: [
-        {label:'연금',      data: recent.map(d=>d.pensionTotal),     backgroundColor:'rgba(99,102,241,0.75)',  borderRadius:{topLeft:0,topRight:0}, stack:'s'},
-        {label:'투자',      data: recent.map(d=>d.investTotal),      backgroundColor:'rgba(16,185,129,0.75)',  borderRadius:0, stack:'s'},
-        {label:'저축',      data: recent.map(d=>d.savingsTotal),     backgroundColor:'rgba(245,158,11,0.75)',  borderRadius:0, stack:'s'},
-        {label:'부동산',    data: recent.map(d=>d.realestateTotal),  backgroundColor:'rgba(167,139,250,0.75)', borderRadius:0, stack:'s'},
-        {label:'자유입출금',data: recent.map(d=>d.liquidTotal),      backgroundColor:'rgba(59,130,246,0.75)',  borderRadius:{topLeft:6,topRight:6}, stack:'s'},
-      ]
-    },
+    data: { labels: recent.map(d=>d.date.slice(0,7)), datasets: [
+      {label:'연금',      data:recent.map(d=>d.pensionTotal),    backgroundColor:'rgba(99,102,241,0.75)',  borderRadius:{topLeft:0,topRight:0},   stack:'s'},
+      {label:'투자',      data:recent.map(d=>d.investTotal),     backgroundColor:'rgba(16,185,129,0.75)',  borderRadius:0, stack:'s'},
+      {label:'저축',      data:recent.map(d=>d.savingsTotal),    backgroundColor:'rgba(245,158,11,0.75)',  borderRadius:0, stack:'s'},
+      {label:'부동산',    data:recent.map(d=>d.realestateTotal), backgroundColor:'rgba(167,139,250,0.75)', borderRadius:0, stack:'s'},
+      {label:'자유입출금',data:recent.map(d=>d.liquidTotal),     backgroundColor:'rgba(59,130,246,0.75)',  borderRadius:{topLeft:6,topRight:6}, stack:'s'},
+    ]},
     options: {
-      responsive: true, maintainAspectRatio: false,
-      plugins: {
-        legend:{display:false},
-        tooltip:{
-          backgroundColor: 'rgba(15,15,30,0.95)',
-          padding: 12,
-          cornerRadius: 8,
-          borderColor: 'rgba(255,255,255,0.1)',
-          borderWidth: 1,
-          callbacks:{ label: ctx => ctx.dataset.label+': '+fmtKrwFull(ctx.raw) }
-        }
-      },
-      scales: {
-        x: { stacked:true, ticks:{font:{size:10},color: tickColor}, grid:{display:false} },
-        y: { stacked:true, ticks:{font:{size:10}, callback: v=>fmtKrw(v), color: tickColor}, grid:{color:'rgba(128,128,128,0.1)'}},
-      }
+      responsive:true, maintainAspectRatio:false,
+      plugins:{legend:{display:false},tooltip:{backgroundColor:'rgba(15,15,30,0.95)',padding:12,cornerRadius:8,borderColor:'rgba(255,255,255,0.1)',borderWidth:1,callbacks:{label:ctx=>ctx.dataset.label+': '+fmtKrwFull(ctx.raw)}}},
+      scales:{x:{stacked:true,ticks:{font:{size:10},color:tickColor},grid:{display:false}},y:{stacked:true,ticks:{font:{size:10},callback:v=>fmtKrw(v),color:tickColor},grid:{color:'rgba(128,128,128,0.08)'}}}
     }
   });
 }
 
-// ── 항목 관리 테이블 ──
 function setTab(tab) {
   currentTab = tab;
   document.getElementById('tabRecent').classList.toggle('active', tab==='recent');
@@ -1269,16 +964,9 @@ function renderTable() {
   if (currentTab === 'recent') {
     const [y,m] = sorted[0].date.split('/').map(Number);
     const cutoff = new Date(y, m-13, 1);
-    rows = sorted.filter(d => {
-      const [dy,dm,dd] = d.date.split('/').map(Number);
-      return new Date(dy,dm-1,dd) >= cutoff;
-    });
-  } else {
-    rows = sorted;
-  }
-  document.getElementById('rowCount').textContent =
-    currentTab==='recent' ? `최근 ${rows.length}건 / 전체 ${allData.length}건` : `전체 ${allData.length}건`;
-
+    rows = sorted.filter(d => { const [dy,dm,dd]=d.date.split('/').map(Number); return new Date(dy,dm-1,dd)>=cutoff; });
+  } else { rows = sorted; }
+  document.getElementById('rowCount').textContent = currentTab==='recent' ? `최근 ${rows.length}건 / 전체 ${allData.length}건` : `전체 ${allData.length}건`;
   tbody.innerHTML = rows.map(d => `
     <tr>
       <td class="date-cell">${d.date}</td>
@@ -1287,12 +975,8 @@ function renderTable() {
       <td class="num-cell">${fmtKrw(d.investTotal)}</td>
       <td class="num-cell">${fmtKrw(d.savingsTotal)}</td>
       <td class="num-cell">${fmtKrw(d.liquidTotal)}</td>
-      <td class="num-cell" style="${d.realestateTotal>0?'':'color:var(--text2);'}">
-        ${d.realestateTotal>0 ? fmtKrw(d.realestateTotal) : '—'}
-      </td>
-      <td class="num-cell" style="${d.hanaLoan>0?'color:#ef4444;':'color:var(--text2);'}">
-        ${d.hanaLoan>0 ? '-'+fmtKrw(d.hanaLoan) : '—'}
-      </td>
+      <td class="num-cell" style="${d.realestateTotal>0?'':'color:var(--text2);'}">${d.realestateTotal>0?fmtKrw(d.realestateTotal):'—'}</td>
+      <td class="num-cell" style="${d.hanaLoan>0?'color:#ef4444;':'color:var(--text2);'}">${d.hanaLoan>0?'-'+fmtKrw(d.hanaLoan):'—'}</td>
       <td class="actions-cell">
         <button class="btn-icon" onclick="openEntryModal(${d.id})" title="수정">✏️</button>
         <button class="btn-icon danger" onclick="deleteRow(${d.id},'${d.date}')" title="삭제">🗑</button>
@@ -1300,7 +984,6 @@ function renderTable() {
     </tr>`).join('');
 }
 
-// ── 통장별 현황 ──
 function renderAccountBreakdown() {
   if (!allData.length) {
     document.getElementById('accountBreakdown').innerHTML = '<div class="empty-state-box"><div class="icon">🏦</div><div class="msg">데이터를 먼저 입력해주세요.</div></div>';
@@ -1320,27 +1003,21 @@ function renderAccountBreakdown() {
     cu.forEach(a => { catSum += parseFloat((last.extra||{})[String(a.id)]||0); });
 
     const rawRows = [
-      ...bi.map(a => ({name: builtinRenames[a.key] || a.name, val:last[a.key]||0, isCustom:false, key:a.key, order: 0})),
-      ...cu.map(a => ({name:a.name, val:parseFloat((last.extra||{})[String(a.id)]||0), isCustom:true, cid:a.id, order: a.display_order||0})),
+      ...bi.map(a => ({name: builtinRenames[a.key] || a.name, val:last[a.key]||0, isCustom:false, key:a.key, order:0})),
+      ...cu.map(a => ({name:a.name, val:parseFloat((last.extra||{})[String(a.id)]||0), isCustom:true, cid:a.id, order:a.display_order||0})),
     ];
-
     const savedOrder = builtinOrder[cat];
     const activeRows = savedOrder
-      ? rawRows.sort((a,b) => {
-          const ia = savedOrder.indexOf(a.key || ('c'+a.cid));
-          const ib = savedOrder.indexOf(b.key || ('c'+b.cid));
-          return (ia < 0 ? 999 : ia) - (ib < 0 ? 999 : ib);
-        })
+      ? rawRows.sort((a,b) => { const ia=savedOrder.indexOf(a.key||('c'+a.cid)),ib=savedOrder.indexOf(b.key||('c'+b.cid)); return (ia<0?999:ia)-(ib<0?999:ib); })
       : rawRows.sort((a,b) => b.val-a.val);
 
     html += `
     <div class="acc-category-card" data-cat="${cat}">
       <div class="acc-category-header">
         <div class="acc-category-name">
-          <span class="bar" style="background:${CAT_COLOR[cat]};"></span>
-          ${CAT_LABEL[cat]}
+          <span class="bar" style="background:${CAT_COLOR[cat]};"></span>${CAT_LABEL[cat]}
         </div>
-        <span style="font-weight:700;font-size:16px;font-variant-numeric:tabular-nums;">${cat==='loan'?'-':''}${fmtKrw(catSum)}</span>
+        <span style="font-weight:700;font-size:15px;font-variant-numeric:tabular-nums;">${cat==='loan'?'-':''}${fmtKrw(catSum)}</span>
       </div>
       ${activeRows.map(row => {
         const pct = catSum ? (row.val/catSum*100).toFixed(1) : '0.0';
@@ -1348,21 +1025,19 @@ function renderAccountBreakdown() {
         const rowId = row.isCustom ? ('c'+row.cid) : row.key;
         return `<div class="acc-row${isZero?' zero':''}" draggable="true" data-rowid="${rowId}" data-cat="${cat}"
             style="cursor:grab;"
-            ondragstart="onRowDragStart(event)"
-            ondragover="onRowDragOver(event)"
-            ondrop="onRowDrop(event)"
-            ondragend="onRowDragEnd(event)">
-          <div class="name" style="display:flex;align-items:center;gap:6px;">
-            <span style="font-size:14px;color:var(--text2);cursor:grab;flex-shrink:0;">⠿</span>
+            ondragstart="onRowDragStart(event)" ondragover="onRowDragOver(event)"
+            ondrop="onRowDrop(event)" ondragend="onRowDragEnd(event)">
+          <div class="name">
+            <span style="font-size:13px;color:var(--text2);cursor:grab;flex-shrink:0;">⠿</span>
             ${row.name}
           </div>
           <div class="right">
             <span class="amount">${isZero ? '—' : fmtKrw(row.val)}</span>
             ${!isZero ? `<span class="pct">${pct}%</span>` : '<span class="pct">—</span>'}
-            <button class="btn-icon" style="width:28px;height:28px;font-size:11px;" onclick="renameAccount(${row.isCustom ? `${row.cid},null,false` : `null,'${row.key}',true`},'${row.name.replace(/'/g,"\\'")}')" title="이름 수정">✏️</button>
+            <button class="btn-icon" style="width:26px;height:26px;font-size:11px;" onclick="renameAccount(${row.isCustom?`${row.cid},null,false`:`null,'${row.key}',true`},'${row.name.replace(/'/g,"\\'")}')" title="이름 수정">✏️</button>
             ${row.isCustom
-              ? `<button class="btn-icon danger" style="width:28px;height:28px;font-size:12px;" onclick="deleteAccount(${row.cid},'${row.name}')" title="삭제">×</button>`
-              : `<button class="btn-icon" style="width:28px;height:28px;font-size:10px;" onclick="deactivateBuiltin('${row.key}','${row.name}')" title="숨기기">👁‍🗨</button>`
+              ? `<button class="btn-icon danger" style="width:26px;height:26px;font-size:12px;" onclick="deleteAccount(${row.cid},'${row.name}')" title="삭제">×</button>`
+              : `<button class="btn-icon" style="width:26px;height:26px;font-size:10px;" onclick="deactivateBuiltin('${row.key}','${row.name}')" title="숨기기">👁‍🗨</button>`
             }
           </div>
         </div>`;
@@ -1372,7 +1047,7 @@ function renderAccountBreakdown() {
 
   if (deactivatedRows.length) {
     html += `
-    <div style="margin-top:12px;">
+    <div style="margin-top:10px;">
       <button onclick="this.nextElementSibling.style.display=this.nextElementSibling.style.display==='none'?'block':'none'"
         style="background:none;border:none;font-size:12px;color:var(--text2);cursor:pointer;padding:4px 0;opacity:0.6;">
         🙈 숨긴 계좌 ${deactivatedRows.length}개 보기 / 복구
@@ -1388,366 +1063,142 @@ function renderAccountBreakdown() {
       </div>
     </div>`;
   }
-
   document.getElementById('accountBreakdown').innerHTML = html || '<div class="empty-state-box"><div class="icon">🏦</div><div class="msg">잔액 있는 계좌가 없습니다.</div></div>';
 }
 
-// ── 계좌 행 드래그 앤 드롭 ──
 let _dragSrc = null;
-
-function onRowDragStart(e) {
-  _dragSrc = e.currentTarget;
-  e.dataTransfer.effectAllowed = 'move';
-  e.currentTarget.style.opacity = '0.4';
-}
-
-function onRowDragOver(e) {
-  e.preventDefault();
-  e.dataTransfer.dropEffect = 'move';
-  const target = e.currentTarget;
-  if (target === _dragSrc || target.dataset.cat !== _dragSrc.dataset.cat) return;
-  target.style.borderTop = '2px solid var(--blue)';
-}
-
+function onRowDragStart(e) { _dragSrc=e.currentTarget; e.dataTransfer.effectAllowed='move'; e.currentTarget.style.opacity='0.4'; }
+function onRowDragOver(e)  { e.preventDefault(); e.dataTransfer.dropEffect='move'; const t=e.currentTarget; if(t===_dragSrc||t.dataset.cat!==_dragSrc.dataset.cat) return; t.style.borderTop='2px solid var(--blue)'; }
 function onRowDrop(e) {
   e.preventDefault();
-  const target = e.currentTarget;
-  target.style.borderTop = '';
-  if (!_dragSrc || target === _dragSrc || target.dataset.cat !== _dragSrc.dataset.cat) return;
-
-  const cat = target.dataset.cat;
-  const card = target.closest('.acc-category-card');
-  const rows = [...card.querySelectorAll('.acc-row[data-rowid]')];
-  const ids  = rows.map(r => r.dataset.rowid);
-
-  const srcIdx = ids.indexOf(_dragSrc.dataset.rowid);
-  const tgtIdx = ids.indexOf(target.dataset.rowid);
-  ids.splice(srcIdx, 1);
-  ids.splice(tgtIdx, 0, _dragSrc.dataset.rowid);
-
-  builtinOrder[cat] = ids;
-  localStorage.setItem('builtinOrder', JSON.stringify(builtinOrder));
-
-  // 커스텀 계좌 display_order 저장
-  ids.forEach((id, i) => {
-    if (id.startsWith('c')) {
-      const cid = parseInt(id.slice(1));
-      fetch(`/api/accounts/${cid}`, {
-        method: 'PUT',
-        headers: {'Content-Type': 'application/json'},
-        body: JSON.stringify({display_order: i}),
-      });
-      const acc = customAccounts.find(a => a.id === cid);
-      if (acc) acc.display_order = i;
-    }
-  });
-
+  const target=e.currentTarget; target.style.borderTop='';
+  if(!_dragSrc||target===_dragSrc||target.dataset.cat!==_dragSrc.dataset.cat) return;
+  const cat=target.dataset.cat, card=target.closest('.acc-category-card');
+  const rows=[...card.querySelectorAll('.acc-row[data-rowid]')], ids=rows.map(r=>r.dataset.rowid);
+  const srcIdx=ids.indexOf(_dragSrc.dataset.rowid), tgtIdx=ids.indexOf(target.dataset.rowid);
+  ids.splice(srcIdx,1); ids.splice(tgtIdx,0,_dragSrc.dataset.rowid);
+  builtinOrder[cat]=ids; localStorage.setItem('builtinOrder',JSON.stringify(builtinOrder));
+  ids.forEach((id,i) => { if(id.startsWith('c')) { const cid=parseInt(id.slice(1)); fetch(`/api/accounts/${cid}`,{method:'PUT',headers:{'Content-Type':'application/json'},body:JSON.stringify({display_order:i})}); const acc=customAccounts.find(a=>a.id===cid); if(acc) acc.display_order=i; }});
   renderAccountBreakdown();
 }
+function onRowDragEnd(e) { e.currentTarget.style.opacity=''; document.querySelectorAll('.acc-row').forEach(r=>r.style.borderTop=''); _dragSrc=null; }
 
-function onRowDragEnd(e) {
-  e.currentTarget.style.opacity = '';
-  document.querySelectorAll('.acc-row').forEach(r => r.style.borderTop = '');
-  _dragSrc = null;
-}
-
-// ── 계좌 이름 수정 ──
 async function renameAccount(cid, key, isBuiltin, currentName) {
   const newName = prompt('새 이름을 입력하세요', currentName);
-  if (!newName || !newName.trim() || newName.trim() === currentName) return;
+  if (!newName||!newName.trim()||newName.trim()===currentName) return;
   const trimmed = newName.trim();
-  if (isBuiltin) {
-    builtinRenames[key] = trimmed;
-    localStorage.setItem('builtinRenames', JSON.stringify(builtinRenames));
-  } else {
-    await fetch(`/api/accounts/${cid}`, {
-      method: 'PUT',
-      headers: {'Content-Type': 'application/json'},
-      body: JSON.stringify({name: trimmed}),
-    });
-    const acc = customAccounts.find(a => a.id === cid);
-    if (acc) acc.name = trimmed;
-  }
+  if (isBuiltin) { builtinRenames[key]=trimmed; localStorage.setItem('builtinRenames',JSON.stringify(builtinRenames)); }
+  else { await fetch(`/api/accounts/${cid}`,{method:'PUT',headers:{'Content-Type':'application/json'},body:JSON.stringify({name:trimmed})}); const acc=customAccounts.find(a=>a.id===cid); if(acc) acc.name=trimmed; }
   renderAccountBreakdown();
 }
 
-// ── 기본 계좌 숨기기 / 복구 ──
 async function deactivateBuiltin(key, name) {
   if (!confirm(`'${name}' 계좌를 숨기기 처리하시겠습니까?\n(항목 추가 폼에서 숨겨지며, 기존 데이터는 보존됩니다)`)) return;
-  deactivatedBuiltins.add(key);
-  await saveDeactivatedBuiltins();
-  updateBuiltinFieldVisibility();
-  renderAccountBreakdown();
+  deactivatedBuiltins.add(key); await saveDeactivatedBuiltins(); updateBuiltinFieldVisibility(); renderAccountBreakdown();
 }
-async function reactivateBuiltin(key) {
-  deactivatedBuiltins.delete(key);
-  await saveDeactivatedBuiltins();
-  updateBuiltinFieldVisibility();
-  renderAccountBreakdown();
-}
-async function saveDeactivatedBuiltins() {
-  await fetch('/api/settings/deactivated_builtins', {
-    method: 'POST',
-    headers: {'Content-Type':'application/json'},
-    body: JSON.stringify({value: JSON.stringify([...deactivatedBuiltins])}),
-  });
-}
+async function reactivateBuiltin(key) { deactivatedBuiltins.delete(key); await saveDeactivatedBuiltins(); updateBuiltinFieldVisibility(); renderAccountBreakdown(); }
+async function saveDeactivatedBuiltins() { await fetch('/api/settings/deactivated_builtins',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({value:JSON.stringify([...deactivatedBuiltins])})}); }
+
 function updateBuiltinFieldVisibility() {
-  document.querySelectorAll('[data-bikey]').forEach(el => {
-    el.style.display = deactivatedBuiltins.has(el.dataset.bikey) ? 'none' : '';
-  });
-  // 섹션의 모든 builtin 필드가 숨김이면 빌트인 그리드/제목 숨기기
-  // 단, 같은 카테고리에 커스텀 input이 있으면 제목은 유지
+  document.querySelectorAll('[data-bikey]').forEach(el => { el.style.display=deactivatedBuiltins.has(el.dataset.bikey)?'none':''; });
   document.querySelectorAll('.form-grid').forEach(grid => {
-    const builtins = [...grid.querySelectorAll('[data-bikey]')];
-    if (!builtins.length) return;
-    const allHidden = builtins.every(f => deactivatedBuiltins.has(f.dataset.bikey));
-    grid.style.display = allHidden ? 'none' : '';
-    const title = grid.previousElementSibling;
-    if (title && title.classList.contains('form-section-title')) {
-      const cat = title.dataset.catTitle;
-      const customGrid = cat ? document.getElementById('customInputs_' + cat) : null;
-      const hasCustom = customGrid && customGrid.children.length > 0;
-      title.style.display = (allHidden && !hasCustom) ? 'none' : '';
-    }
+    const builtins=[...grid.querySelectorAll('[data-bikey]')]; if(!builtins.length) return;
+    const allHidden=builtins.every(f=>deactivatedBuiltins.has(f.dataset.bikey));
+    grid.style.display=allHidden?'none':'';
+    const title=grid.previousElementSibling;
+    if(title&&title.classList.contains('form-section-title')) { const cat=title.dataset.catTitle; const customGrid=cat?document.getElementById('customInputs_'+cat):null; const hasCustom=customGrid&&customGrid.children.length>0; title.style.display=(allHidden&&!hasCustom)?'none':''; }
   });
 }
 
-// ── 모달 커스텀 계좌 입력란 ──
 function _bindCustomInputListeners(wrap) {
   wrap.querySelectorAll('input[type="number"]').forEach(el => {
-    const div = document.createElement('div');
-    div.style.cssText = 'font-size:11px;color:var(--text2);min-height:14px;margin-top:3px;font-weight:500;';
-    el.parentNode.insertBefore(div, el.nextSibling);
-    el.addEventListener('input', () => {
-      updatePreview();
-      const val = parseFloat(el.value);
-      div.textContent = fmtKrwPreview(val);
-    });
+    const div=document.createElement('div'); div.style.cssText='font-size:11px;color:var(--text2);min-height:14px;margin-top:3px;font-weight:500;';
+    el.parentNode.insertBefore(div,el.nextSibling);
+    el.addEventListener('input',()=>{ updatePreview(); div.textContent=fmtKrwPreview(parseFloat(el.value)); });
   });
 }
-
 function renderCustomAccInputs() {
   ['pension','invest','savings','liquid','realestate','loan'].forEach(cat => {
-    const wrap = document.getElementById('customInputs_' + cat);
-    if (!wrap) return;
-    const accs = customAccounts.filter(a => a.category === cat);
-    if (!accs.length) {
-      wrap.innerHTML = '';
-      return;
-    }
-    wrap.innerHTML = accs.map(a => `
-      <div class="form-field">
-        <label>${a.name}</label>
-        <input id="cAcc_${a.id}" type="number" placeholder="0">
-      </div>`).join('');
+    const wrap=document.getElementById('customInputs_'+cat); if(!wrap) return;
+    const accs=customAccounts.filter(a=>a.category===cat);
+    if(!accs.length){ wrap.innerHTML=''; return; }
+    wrap.innerHTML=accs.map(a=>`<div class="form-field"><label>${a.name}</label><input id="cAcc_${a.id}" type="number" placeholder="0"></div>`).join('');
     _bindCustomInputListeners(wrap);
   });
 }
 
-// ── 계좌 추가/삭제 ──
 function openAddAccModal(defaultCat) {
-  document.getElementById('newAccName').value = '';
-  if (defaultCat) document.getElementById('newAccCat').value = defaultCat;
-  document.getElementById('addAccModal').style.display = 'block';
+  document.getElementById('newAccName').value='';
+  if(defaultCat) document.getElementById('newAccCat').value=defaultCat;
+  document.getElementById('addAccModal').style.display='block';
 }
-function closeAddAccModal() {
-  document.getElementById('addAccModal').style.display = 'none';
-}
+function closeAddAccModal() { document.getElementById('addAccModal').style.display='none'; }
 async function saveNewAccount() {
-  const name = document.getElementById('newAccName').value.trim();
-  const category = document.getElementById('newAccCat').value;
-  if (!name) { alert('계좌명을 입력해주세요.'); return; }
-  const btn = document.getElementById('saveAccBtn');
-  btn.disabled = true;
-  try {
-    const res = await fetch('/api/accounts', {
-      method: 'POST',
-      headers: {'Content-Type':'application/json'},
-      body: JSON.stringify({name, category}),
-    });
-    const acc = await res.json();
-    customAccounts.push(acc);
-    closeAddAccModal();
-    renderCustomAccInputs();
-    if (currentPg === 2) renderAccountBreakdown();
-  } finally { btn.disabled = false; }
+  const name=document.getElementById('newAccName').value.trim(), category=document.getElementById('newAccCat').value;
+  if(!name){ alert('계좌명을 입력해주세요.'); return; }
+  const btn=document.getElementById('saveAccBtn'); btn.disabled=true;
+  try { const res=await fetch('/api/accounts',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({name,category})}); const acc=await res.json(); customAccounts.push(acc); closeAddAccModal(); renderCustomAccInputs(); if(currentPg===2) renderAccountBreakdown(); }
+  finally { btn.disabled=false; }
 }
-async function deleteAccount(id, name) {
-  if (!confirm(`'${name}' 계좌를 삭제하시겠습니까?\n(기존 스냅샷의 금액 기록은 유지됩니다)`)) return;
-  await fetch(`/api/accounts/${id}`, {method:'DELETE'});
-  customAccounts = customAccounts.filter(a => a.id !== id);
-  renderCustomAccInputs();
-  renderAccountBreakdown();
+async function deleteAccount(id,name) {
+  if(!confirm(`'${name}' 계좌를 삭제하시겠습니까?\n(기존 스냅샷의 금액 기록은 유지됩니다)`)) return;
+  await fetch(`/api/accounts/${id}`,{method:'DELETE'}); customAccounts=customAccounts.filter(a=>a.id!==id); renderCustomAccInputs(); renderAccountBreakdown();
 }
 
-// ── 입력 모달 ──
 function openEntryModal(id) {
-  document.getElementById('fEditId').value = id || '';
-  const d = id ? allData.find(x => x.id === id) : null;
-  document.getElementById('modalTitle').textContent = d ? '항목 수정' : '항목 추가';
-
-  const today = new Date().toLocaleDateString('sv-SE').replace(/-/g,'/').replace(/(\d{4})\/(\d{2})\/(\d{2})/, '$1/$2/$3');
-  const fields = {
-    fDate: d?d.date:today, fDc: d?d.dc:0, fIrpMiraeasset: d?d.irpMiraeasset:0,
-    fIrpSamsung: d?d.irpSamsung:0, fPersonalPension: d?d.personalPension:0,
-    fPensionCma: d?d.pensionCma:0, fIsa: d?d.isa:0, fMiraeasset: d?d.miraeasset:0,
-    fSamsungTrading: d?d.samsungTrading:0, fTossSecurities: d?d.tossSecurities:0,
-    fHanaSalarySavings: d?d.hanaSalarySavings:0, fHanaHomeSavings: d?d.hanaHomeSavings:0,
-    fHousingSubscription: d?d.housingSubscription:0, fFixedDeposit: d?d.fixedDeposit:0,
-    fYoungHana: d?d.youngHana:0, fNaverpayHana: d?d.naverpayHana:0,
-    fShinhan: d?d.shinhan:0, fTossSavings: d?d.tossSavings:0,
-    fHanaLoan: d?d.hanaLoan:0, fNote: d?d.note:'',
-  };
-  for (const [fid, val] of Object.entries(fields)) {
-    const el = document.getElementById(fid);
-    if (el) el.value = val;
-  }
-  customAccounts.forEach(acc => {
-    const el = document.getElementById('cAcc_'+acc.id);
-    if (el) el.value = d ? (parseFloat((d.extra||{})[String(acc.id)])||0) : 0;
-  });
-  updatePreview();
-  updateBuiltinFieldVisibility();
-  document.getElementById('entryModal').style.display = 'block';
+  document.getElementById('fEditId').value=id||'';
+  const d=id?allData.find(x=>x.id===id):null;
+  document.getElementById('modalTitle').textContent=d?'항목 수정':'항목 추가';
+  const today=new Date().toLocaleDateString('sv-SE').replace(/-/g,'/').replace(/(\d{4})\/(\d{2})\/(\d{2})/,'$1/$2/$3');
+  const fields={fDate:d?d.date:today,fDc:d?d.dc:0,fIrpMiraeasset:d?d.irpMiraeasset:0,fIrpSamsung:d?d.irpSamsung:0,fPersonalPension:d?d.personalPension:0,fPensionCma:d?d.pensionCma:0,fIsa:d?d.isa:0,fMiraeasset:d?d.miraeasset:0,fSamsungTrading:d?d.samsungTrading:0,fTossSecurities:d?d.tossSecurities:0,fHanaSalarySavings:d?d.hanaSalarySavings:0,fHanaHomeSavings:d?d.hanaHomeSavings:0,fHousingSubscription:d?d.housingSubscription:0,fFixedDeposit:d?d.fixedDeposit:0,fYoungHana:d?d.youngHana:0,fNaverpayHana:d?d.naverpayHana:0,fShinhan:d?d.shinhan:0,fTossSavings:d?d.tossSavings:0,fHanaLoan:d?d.hanaLoan:0,fNote:d?d.note:''};
+  for(const [fid,val] of Object.entries(fields)){const el=document.getElementById(fid);if(el)el.value=val;}
+  customAccounts.forEach(acc=>{const el=document.getElementById('cAcc_'+acc.id);if(el)el.value=d?(parseFloat((d.extra||{})[String(acc.id)])||0):0;});
+  updatePreview(); updateBuiltinFieldVisibility(); document.getElementById('entryModal').style.display='block';
 }
-function closeEntryModal() {
-  document.getElementById('entryModal').style.display = 'none';
-}
+function closeEntryModal() { document.getElementById('entryModal').style.display='none'; }
 
-function n(id) { return parseFloat(document.getElementById(id)?.value) || 0; }
-
+function n(id){ return parseFloat(document.getElementById(id)?.value)||0; }
 function updatePreview() {
-  const pension = n('fDc')+n('fIrpMiraeasset')+n('fIrpSamsung')+n('fPersonalPension')+n('fPensionCma');
-  const invest  = n('fIsa')+n('fMiraeasset')+n('fSamsungTrading')+n('fTossSecurities');
-  let savings    = n('fHousingSubscription');
-  let liquid     = n('fYoungHana')+n('fNaverpayHana')+n('fShinhan')+n('fTossSavings');
-  let loan       = n('fHanaLoan');
-  let extraPension=0, extraInvest=0, extraSavings=0, extraLiquid=0, extraRealestate=0, extraLoan=0;
-  customAccounts.forEach(acc => {
-    const v = parseFloat(document.getElementById('cAcc_'+acc.id)?.value)||0;
-    if      (acc.category==='pension')    extraPension    += v;
-    else if (acc.category==='invest')     extraInvest     += v;
-    else if (acc.category==='savings')    extraSavings    += v;
-    else if (acc.category==='liquid')     extraLiquid     += v;
-    else if (acc.category==='realestate') extraRealestate += v;
-    else if (acc.category==='loan')       extraLoan       += v;
-  });
-  const total = (pension+extraPension)+(invest+extraInvest)+(savings+extraSavings)+(liquid+extraLiquid)+extraRealestate-(loan+extraLoan);
-  document.getElementById('prevPension').textContent     = fmtKrwFull(pension+extraPension);
-  document.getElementById('prevInvest').textContent      = fmtKrwFull(invest+extraInvest);
-  document.getElementById('prevSavings').textContent     = fmtKrwFull(savings+extraSavings);
-  document.getElementById('prevLiquid').textContent      = fmtKrwFull(liquid+extraLiquid);
-  document.getElementById('prevRealestate').textContent  = fmtKrwFull(extraRealestate);
-  document.getElementById('prevLoan').textContent        = fmtKrwFull(loan+extraLoan);
-  document.getElementById('prevTotal').textContent       = fmtKrwFull(total);
+  const pension=n('fDc')+n('fIrpMiraeasset')+n('fIrpSamsung')+n('fPersonalPension')+n('fPensionCma');
+  const invest=n('fIsa')+n('fMiraeasset')+n('fSamsungTrading')+n('fTossSecurities');
+  let savings=n('fHousingSubscription'), liquid=n('fYoungHana')+n('fNaverpayHana')+n('fShinhan')+n('fTossSavings'), loan=n('fHanaLoan');
+  let ep=0,ei=0,es=0,el=0,er=0,elo=0;
+  customAccounts.forEach(acc=>{const v=parseFloat(document.getElementById('cAcc_'+acc.id)?.value)||0;if(acc.category==='pension')ep+=v;else if(acc.category==='invest')ei+=v;else if(acc.category==='savings')es+=v;else if(acc.category==='liquid')el+=v;else if(acc.category==='realestate')er+=v;else if(acc.category==='loan')elo+=v;});
+  const total=(pension+ep)+(invest+ei)+(savings+es)+(liquid+el)+er-(loan+elo);
+  document.getElementById('prevPension').textContent=fmtKrwFull(pension+ep);
+  document.getElementById('prevInvest').textContent=fmtKrwFull(invest+ei);
+  document.getElementById('prevSavings').textContent=fmtKrwFull(savings+es);
+  document.getElementById('prevLiquid').textContent=fmtKrwFull(liquid+el);
+  document.getElementById('prevRealestate').textContent=fmtKrwFull(er);
+  document.getElementById('prevLoan').textContent=fmtKrwFull(loan+elo);
+  document.getElementById('prevTotal').textContent=fmtKrwFull(total);
 }
-
-function fmtKrwPreview(v) {
-  if (!v || isNaN(v) || v <= 0) return '';
-  const abs = Math.abs(v);
-  const s = v < 0 ? '-' : '';
-  if (abs >= 1e12) return s + (abs/1e12).toFixed(2) + '조원';
-  if (abs >= 1e8)  return s + (abs/1e8).toFixed(2) + '억원';
-  if (abs >= 1e4)  return s + Math.round(abs/1e4).toLocaleString() + '만원';
-  if (abs >= 1e3)  return s + Math.round(abs/1e3).toLocaleString() + '천원';
-  return s + Math.round(abs).toLocaleString() + '원';
-}
+function fmtKrwPreview(v){if(!v||isNaN(v)||v<=0)return '';const abs=Math.abs(v),s=v<0?'-':'';if(abs>=1e12)return s+(abs/1e12).toFixed(2)+'조원';if(abs>=1e8)return s+(abs/1e8).toFixed(2)+'억원';if(abs>=1e4)return s+Math.round(abs/1e4).toLocaleString()+'만원';if(abs>=1e3)return s+Math.round(abs/1e3).toLocaleString()+'천원';return s+Math.round(abs).toLocaleString()+'원';}
 
 document.querySelectorAll('#entryModal input[type="number"]').forEach(el => {
-  const div = document.createElement('div');
-  div.style.cssText = 'font-size:11px;color:var(--text2);min-height:14px;margin-top:3px;font-weight:500;';
-  el.parentNode.insertBefore(div, el.nextSibling);
-
-  el.addEventListener('input', () => {
-    updatePreview();
-    const val = parseFloat(el.value);
-    div.textContent = fmtKrwPreview(val);
-  });
+  const div=document.createElement('div'); div.style.cssText='font-size:11px;color:var(--text2);min-height:14px;margin-top:3px;font-weight:500;';
+  el.parentNode.insertBefore(div,el.nextSibling);
+  el.addEventListener('input',()=>{updatePreview();div.textContent=fmtKrwPreview(parseFloat(el.value));});
 });
 
 async function submitEntry() {
-  const btn = document.getElementById('submitBtn');
-  btn.disabled = true; btn.textContent = '저장 중...';
-  const extra = {};
-  customAccounts.forEach(acc => {
-    extra[String(acc.id)] = parseFloat(document.getElementById('cAcc_'+acc.id)?.value)||0;
-  });
-  const payload = {
-    date: document.getElementById('fDate').value.trim(),
-    dc: n('fDc'), irpMiraeasset: n('fIrpMiraeasset'), irpSamsung: n('fIrpSamsung'),
-    personalPension: n('fPersonalPension'), pensionCma: n('fPensionCma'),
-    isa: n('fIsa'), miraeasset: n('fMiraeasset'),
-    samsungTrading: n('fSamsungTrading'), tossSecurities: n('fTossSecurities'),
-    hanaSalarySavings: n('fHanaSalarySavings'), hanaHomeSavings: n('fHanaHomeSavings'),
-    housingSubscription: n('fHousingSubscription'), fixedDeposit: n('fFixedDeposit'),
-    youngHana: n('fYoungHana'), naverpayHana: n('fNaverpayHana'),
-    shinhan: n('fShinhan'), tossSavings: n('fTossSavings'),
-    hanaLoan: n('fHanaLoan'), extra,
-    note: document.getElementById('fNote').value.trim(),
-  };
-  try {
-    const res = await fetch('/api/assets', {method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify(payload)});
-    if (!res.ok) { const e = await res.json(); alert(e.detail||'저장 실패'); return; }
-    closeEntryModal();
-    await loadData();
-  } finally { btn.disabled=false; btn.textContent='저장'; }
+  const btn=document.getElementById('submitBtn'); btn.disabled=true; btn.textContent='저장 중...';
+  const extra={};
+  customAccounts.forEach(acc=>{extra[String(acc.id)]=parseFloat(document.getElementById('cAcc_'+acc.id)?.value)||0;});
+  const payload={date:document.getElementById('fDate').value.trim(),dc:n('fDc'),irpMiraeasset:n('fIrpMiraeasset'),irpSamsung:n('fIrpSamsung'),personalPension:n('fPersonalPension'),pensionCma:n('fPensionCma'),isa:n('fIsa'),miraeasset:n('fMiraeasset'),samsungTrading:n('fSamsungTrading'),tossSecurities:n('fTossSecurities'),hanaSalarySavings:n('fHanaSalarySavings'),hanaHomeSavings:n('fHanaHomeSavings'),housingSubscription:n('fHousingSubscription'),fixedDeposit:n('fFixedDeposit'),youngHana:n('fYoungHana'),naverpayHana:n('fNaverpayHana'),shinhan:n('fShinhan'),tossSavings:n('fTossSavings'),hanaLoan:n('fHanaLoan'),extra,note:document.getElementById('fNote').value.trim()};
+  try{const res=await fetch('/api/assets',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(payload)});if(!res.ok){const e=await res.json();alert(e.detail||'저장 실패');return;}closeEntryModal();await loadData();}
+  finally{btn.disabled=false;btn.textContent='저장';}
 }
 
-async function deleteRow(id, date) {
-  if (!confirm(`${date} 항목을 삭제하시겠습니까?`)) return;
-  await fetch(`/api/assets/${id}`, {method:'DELETE'});
-  await loadData();
-}
+async function deleteRow(id,date) { if(!confirm(`${date} 항목을 삭제하시겠습니까?`)) return; await fetch(`/api/assets/${id}`,{method:'DELETE'}); await loadData(); }
 
-// ── CSV 모달 ──
-function openImportModal() {
-  csvContent = null;
-  document.getElementById('csvFileInput').value = '';
-  document.getElementById('csvPreview').style.display = 'none';
-  document.getElementById('importModal').style.display = 'block';
-}
-function closeImportModal() { document.getElementById('importModal').style.display = 'none'; }
+function openImportModal(){csvContent=null;document.getElementById('csvFileInput').value='';document.getElementById('csvPreview').style.display='none';document.getElementById('importModal').style.display='block';}
+function closeImportModal(){document.getElementById('importModal').style.display='none';}
+document.getElementById('csvFileInput').addEventListener('change',function(){const file=this.files[0];if(!file)return;const reader=new FileReader();reader.onload=e=>{csvContent=e.target.result;const lines=csvContent.split('\n').filter(l=>l.trim());const preview=document.getElementById('csvPreview');preview.textContent=`${lines.length-1}행 감지됨 (헤더 제외)`;preview.style.display='block';};reader.readAsText(file,'UTF-8');});
+async function submitImport(){if(!csvContent){alert('CSV 파일을 선택해주세요.');return;}const btn=document.getElementById('importBtn');btn.disabled=true;btn.textContent='가져오는 중...';try{const res=await fetch('/api/assets/import-csv',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({csv:csvContent})});const data=await res.json();alert(`${data.imported}건 가져오기 완료`);closeImportModal();await loadData();}catch(e){alert('가져오기 실패: '+e.message);}finally{btn.disabled=false;btn.textContent='가져오기';}}
 
-document.getElementById('csvFileInput').addEventListener('change', function() {
-  const file = this.files[0];
-  if (!file) return;
-  const reader = new FileReader();
-  reader.onload = e => {
-    csvContent = e.target.result;
-    const lines = csvContent.split('\n').filter(l => l.trim());
-    const preview = document.getElementById('csvPreview');
-    preview.textContent = `${lines.length-1}행 감지됨 (헤더 제외)`;
-    preview.style.display = 'block';
-  };
-  reader.readAsText(file, 'UTF-8');
-});
+['importModal','addAccModal'].forEach(id=>{document.getElementById(id).addEventListener('click',function(e){if(e.target===this)this.style.display='none';});});
 
-async function submitImport() {
-  if (!csvContent) { alert('CSV 파일을 선택해주세요.'); return; }
-  const btn = document.getElementById('importBtn');
-  btn.disabled = true; btn.textContent = '가져오는 중...';
-  try {
-    const res = await fetch('/api/assets/import-csv', {
-      method:'POST', headers:{'Content-Type':'application/json'},
-      body: JSON.stringify({csv: csvContent}),
-    });
-    const data = await res.json();
-    alert(`${data.imported}건 가져오기 완료`);
-    closeImportModal();
-    await loadData();
-  } catch(e) { alert('가져오기 실패: '+e.message);
-  } finally { btn.disabled=false; btn.textContent='가져오기'; }
-}
-
-// 모달 바깥 클릭 닫기
-['importModal','addAccModal'].forEach(id => {
-  document.getElementById(id).addEventListener('click', function(e) {
-    if (e.target===this) this.style.display='none';
-  });
-});
-
-// 초기 로드
 showPg(0);
 loadData();
 </script>

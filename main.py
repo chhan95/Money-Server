@@ -351,7 +351,8 @@ def page_home(request: Request, db: Session = Depends(get_db)):
     items = []
     stale_tickers = []
     for p in portfolio:
-        stock = db.query(models.Stock).filter(models.Stock.ticker == p.ticker).first()
+        # 24시간 이상 지난 종목은 재무/forecast 데이터도 함께 갱신
+        stock = get_or_refresh(p.ticker, db)
         if _is_stale(stock):
             stale_tickers.append(p.ticker)
 
@@ -550,368 +551,6 @@ def api_kr_history(db: Session = Depends(get_db)):
             "unrealizedGainKrw": s.unrealized_gain_krw or 0,
         })
     return result
-
-
-R40_COLORS = [
-    '#667eea', '#f59e0b', '#10b981', '#ef4444', '#e879f9',
-    '#22d3ee', '#f97316', '#84cc16', '#ec4899', '#14b8a6',
-]
-
-R40_SAMPLE_DEFS = [
-    {"ticker": "CRM",  "color": "#00A1E0"},   # Salesforce
-    {"ticker": "PLTR", "color": "#1a1a1a"},   # Palantir
-]
-# 버전 키: SAMPLE_DEFS 변경 시 올려서 DB 재동기화
-_R40_SAMPLE_VERSION = "v3"
-
-
-def _r40_item_dict(r: models.Rule40Ticker) -> dict:
-    return {
-        "ticker":         r.ticker,
-        "name":           r.name,
-        "revenue_growth": r.revenue_growth,
-        "profit_margin":  r.profit_margin,
-        "score":          r.score,
-        "color":          r.color,
-        "fetched_at":     r.fetched_at.strftime("%Y-%m-%d") if r.fetched_at else None,
-    }
-
-
-def _ensure_r40_samples(db: Session):
-    """SAMPLE_DEFS 버전 기준으로 동기화. 정의에서 제거된 샘플은 삭제, 새 샘플은 추가."""
-    ver_key = f"r40_samples_seeded_{_R40_SAMPLE_VERSION}"
-    if db.query(models.AppSetting).filter_by(key=ver_key).first():
-        return
-
-    current_tickers = {d["ticker"] for d in R40_SAMPLE_DEFS}
-
-    # 더 이상 참고 종목이 아닌 샘플 삭제
-    old_samples = db.query(models.Rule40Ticker).filter_by(is_sample=True).all()
-    for r in old_samples:
-        if r.ticker not in current_tickers:
-            db.delete(r)
-
-    # 새 샘플 추가
-    for i, defn in enumerate(R40_SAMPLE_DEFS):
-        existing = db.query(models.Rule40Ticker).filter_by(ticker=defn["ticker"]).first()
-        if existing:
-            existing.is_sample     = True
-            existing.color         = defn["color"]
-            existing.display_order = -(len(R40_SAMPLE_DEFS) - i)
-        else:
-            db.add(models.Rule40Ticker(
-                ticker=defn["ticker"], color=defn["color"],
-                is_sample=True, display_order=-(len(R40_SAMPLE_DEFS) - i),
-            ))
-
-    # 이전 버전 키 정리 후 새 버전 키 저장
-    db.query(models.AppSetting).filter(
-        models.AppSetting.key.like("r40_samples_seeded_%")
-    ).delete(synchronize_session=False)
-    db.add(models.AppSetting(key=ver_key, value="1"))
-    db.commit()
-
-
-@app.get("/rule-of-40", response_class=HTMLResponse)
-def page_rule_of_40(request: Request, db: Session = Depends(get_db)):
-    _ensure_r40_samples(db)
-
-    portfolio = (
-        db.query(models.Portfolio)
-        .join(models.Stock, models.Portfolio.ticker == models.Stock.ticker, isouter=True)
-        .order_by(models.Portfolio.display_order)
-        .all()
-    )
-    all_items = (
-        db.query(models.Rule40Ticker)
-        .order_by(models.Rule40Ticker.display_order)
-        .all()
-    )
-
-    cutoff = datetime.utcnow() - timedelta(hours=CACHE_HOURS)
-    stale  = [r.ticker for r in all_items if r.fetched_at is None or r.fetched_at < cutoff]
-
-    portfolio_tickers = [
-        {"ticker": p.ticker, "name": (p.stock.name if p.stock else None) or p.ticker}
-        for p in portfolio
-    ]
-    sample_tickers = {d["ticker"] for d in R40_SAMPLE_DEFS}
-    r40_samples = [_r40_item_dict(r) for r in all_items if r.ticker in sample_tickers and r.revenue_growth is not None]
-    r40_data    = [_r40_item_dict(r) for r in all_items if r.ticker not in sample_tickers and r.revenue_growth is not None]
-
-    return templates.TemplateResponse("rule_of_40.html", {
-        "request":           request,
-        "active":            "rule_of_40",
-        "portfolio_tickers": json.dumps(portfolio_tickers),
-        "r40_samples":       json.dumps(r40_samples),
-        "r40_data":          json.dumps(r40_data),
-        "stale_r40":         json.dumps(stale),
-    })
-
-
-@app.post("/api/rule-of-40/add")
-async def api_r40_add(
-    request: Request,
-    ticker: str = Form(...),
-    db: Session = Depends(get_db),
-):
-    ticker = ticker.upper().strip()
-    existing = db.query(models.Rule40Ticker).filter(models.Rule40Ticker.ticker == ticker).first()
-    if existing and existing.revenue_growth is not None:
-        return JSONResponse({"ok": True, "cached": True, "data": {
-            "ticker":         existing.ticker,
-            "name":           existing.name,
-            "revenue_growth": existing.revenue_growth,
-            "profit_margin":  existing.profit_margin,
-            "score":          existing.score,
-            "color":          existing.color,
-            "fetched_at":     existing.fetched_at.strftime("%Y-%m-%d") if existing.fetched_at else None,
-        }})
-
-    data = fetcher.fetch_rule_of_40(ticker)
-    if not data:
-        raise HTTPException(status_code=400, detail=f"'{ticker}' 데이터를 가져올 수 없습니다. 티커를 확인해주세요.")
-
-    count = db.query(models.Rule40Ticker).count()
-    color = R40_COLORS[count % len(R40_COLORS)]
-
-    if existing:
-        existing.name           = data["name"]
-        existing.revenue_growth = data["revenue_growth"]
-        existing.profit_margin  = data["profit_margin"]
-        existing.score          = data["score"]
-        existing.fetched_at     = datetime.utcnow()
-        item = existing
-    else:
-        item = models.Rule40Ticker(
-            ticker=ticker,
-            name=data["name"],
-            revenue_growth=data["revenue_growth"],
-            profit_margin=data["profit_margin"],
-            score=data["score"],
-            color=color,
-            fetched_at=datetime.utcnow(),
-            display_order=count,
-        )
-        db.add(item)
-    db.commit()
-
-    return JSONResponse({"ok": True, "cached": False, "data": {
-        "ticker":         item.ticker,
-        "name":           item.name,
-        "revenue_growth": item.revenue_growth,
-        "profit_margin":  item.profit_margin,
-        "score":          item.score,
-        "color":          item.color,
-        "fetched_at":     item.fetched_at.strftime("%Y-%m-%d") if item.fetched_at else None,
-    }})
-
-
-@app.delete("/api/rule-of-40/{ticker}")
-def api_r40_delete(ticker: str, db: Session = Depends(get_db)):
-    item = db.query(models.Rule40Ticker).filter(
-        models.Rule40Ticker.ticker == ticker.upper()
-    ).first()
-    if item:
-        db.delete(item)
-        db.commit()
-    return JSONResponse({"ok": True})
-
-
-@app.post("/api/rule-of-40/refresh/{ticker}")
-def api_r40_refresh(ticker: str, db: Session = Depends(get_db)):
-    item = db.query(models.Rule40Ticker).filter(
-        models.Rule40Ticker.ticker == ticker.upper()
-    ).first()
-    if not item:
-        raise HTTPException(status_code=404, detail="종목을 찾을 수 없습니다.")
-
-    data = fetcher.fetch_rule_of_40(ticker)
-    if not data:
-        raise HTTPException(status_code=400, detail="데이터를 가져올 수 없습니다.")
-
-    item.name           = data["name"]
-    item.revenue_growth = data["revenue_growth"]
-    item.profit_margin  = data["profit_margin"]
-    item.score          = data["score"]
-    item.fetched_at     = datetime.utcnow()
-    db.commit()
-
-    return JSONResponse({"ok": True, "data": {
-        "ticker":         item.ticker,
-        "name":           item.name,
-        "revenue_growth": item.revenue_growth,
-        "profit_margin":  item.profit_margin,
-        "score":          item.score,
-        "color":          item.color,
-        "fetched_at":     item.fetched_at.strftime("%Y-%m-%d") if item.fetched_at else None,
-    }})
-
-
-# ════════════════════════════════════════════════════════════
-# 국내 Rule of 40
-# ════════════════════════════════════════════════════════════
-
-KR_R40_COLORS = [
-    '#667eea', '#f59e0b', '#10b981', '#ef4444', '#e879f9',
-    '#22d3ee', '#f97316', '#84cc16', '#ec4899', '#14b8a6',
-]
-
-KR_R40_SAMPLE_DEFS = [
-    {"ticker": "035420.KS", "color": "#03C75A"},   # NAVER
-    {"ticker": "035720.KS", "color": "#FFE500"},   # Kakao
-]
-
-
-def _kr_r40_item_dict(r: models.KrRule40Ticker) -> dict:
-    return {
-        "ticker":         r.ticker,
-        "name":           r.name,
-        "revenue_growth": r.revenue_growth,
-        "profit_margin":  r.profit_margin,
-        "score":          r.score,
-        "color":          r.color,
-        "fetched_at":     r.fetched_at.strftime("%Y-%m-%d") if r.fetched_at else None,
-    }
-
-
-def _ensure_kr_r40_samples(db: Session):
-    """최초 1회만 샘플 시딩. 이후 사용자가 삭제하면 복원하지 않음."""
-    seeded = db.query(models.AppSetting).filter_by(key="kr_r40_samples_seeded").first()
-    if seeded:
-        return
-    for i, defn in enumerate(KR_R40_SAMPLE_DEFS):
-        if not db.query(models.KrRule40Ticker).filter_by(ticker=defn["ticker"]).first():
-            db.add(models.KrRule40Ticker(
-                ticker=defn["ticker"], color=defn["color"],
-                is_sample=True, display_order=-(len(KR_R40_SAMPLE_DEFS) - i),
-            ))
-    db.add(models.AppSetting(key="kr_r40_samples_seeded", value="1"))
-    db.commit()
-
-
-@app.get("/kr-rule-of-40", response_class=HTMLResponse)
-def page_kr_rule_of_40(request: Request, db: Session = Depends(get_db)):
-    _ensure_kr_r40_samples(db)
-
-    kr_portfolio = (
-        db.query(models.KrPortfolio)
-        .order_by(models.KrPortfolio.display_order)
-        .all()
-    )
-    all_items = (
-        db.query(models.KrRule40Ticker)
-        .order_by(models.KrRule40Ticker.display_order)
-        .all()
-    )
-
-    cutoff = datetime.utcnow() - timedelta(hours=CACHE_HOURS)
-    stale  = [r.ticker for r in all_items if r.fetched_at is None or r.fetched_at < cutoff]
-
-    portfolio_tickers = [
-        {"ticker": p.ticker, "name": (p.stock.name if p.stock else None) or p.ticker}
-        for p in kr_portfolio
-    ]
-    sample_tickers = {d["ticker"] for d in KR_R40_SAMPLE_DEFS}
-    r40_samples = [_kr_r40_item_dict(r) for r in all_items if r.ticker in sample_tickers and r.revenue_growth is not None]
-    r40_data    = [_kr_r40_item_dict(r) for r in all_items if r.ticker not in sample_tickers and r.revenue_growth is not None]
-
-    return templates.TemplateResponse("kr_rule_of_40.html", {
-        "request":           request,
-        "active":            "kr_rule_of_40",
-        "portfolio_tickers": json.dumps(portfolio_tickers),
-        "r40_samples":       json.dumps(r40_samples),
-        "r40_data":          json.dumps(r40_data),
-        "stale_r40":         json.dumps(stale),
-    })
-
-
-@app.post("/api/kr-rule-of-40/add")
-async def api_kr_r40_add(
-    request: Request,
-    ticker: str = Form(...),
-    db: Session = Depends(get_db),
-):
-    raw = ticker.strip()
-    # suffix 결정: 이미 .KS/.KQ가 붙었으면 그대로, 아니면 fetch가 결정
-    existing_by_raw = (
-        db.query(models.KrRule40Ticker)
-        .filter(models.KrRule40Ticker.ticker == raw)
-        .first()
-        or db.query(models.KrRule40Ticker)
-        .filter(models.KrRule40Ticker.ticker == raw + ".KS")
-        .first()
-        or db.query(models.KrRule40Ticker)
-        .filter(models.KrRule40Ticker.ticker == raw + ".KQ")
-        .first()
-    )
-    if existing_by_raw and existing_by_raw.revenue_growth is not None:
-        return JSONResponse({"ok": True, "cached": True, "data": _kr_r40_item_dict(existing_by_raw)})
-
-    data = fetcher.fetch_kr_rule_of_40(raw)
-    if not data:
-        raise HTTPException(status_code=400, detail=f"'{raw}' 데이터를 가져올 수 없습니다. 종목코드를 확인해주세요.")
-
-    real_ticker = data["ticker"]
-    count = db.query(models.KrRule40Ticker).count()
-    color = KR_R40_COLORS[count % len(KR_R40_COLORS)]
-
-    existing = db.query(models.KrRule40Ticker).filter(models.KrRule40Ticker.ticker == real_ticker).first()
-    if existing:
-        existing.name           = data["name"]
-        existing.revenue_growth = data["revenue_growth"]
-        existing.profit_margin  = data["profit_margin"]
-        existing.score          = data["score"]
-        existing.fetched_at     = datetime.utcnow()
-        item = existing
-    else:
-        item = models.KrRule40Ticker(
-            ticker=real_ticker,
-            name=data["name"],
-            revenue_growth=data["revenue_growth"],
-            profit_margin=data["profit_margin"],
-            score=data["score"],
-            color=color,
-            fetched_at=datetime.utcnow(),
-            display_order=count,
-        )
-        db.add(item)
-    db.commit()
-
-    return JSONResponse({"ok": True, "cached": False, "data": _kr_r40_item_dict(item)})
-
-
-@app.delete("/api/kr-rule-of-40/{ticker:path}")
-def api_kr_r40_delete(ticker: str, db: Session = Depends(get_db)):
-    item = db.query(models.KrRule40Ticker).filter(
-        models.KrRule40Ticker.ticker == ticker
-    ).first()
-    if item:
-        db.delete(item)
-        db.commit()
-    return JSONResponse({"ok": True})
-
-
-@app.post("/api/kr-rule-of-40/refresh/{ticker:path}")
-def api_kr_r40_refresh(ticker: str, db: Session = Depends(get_db)):
-    item = db.query(models.KrRule40Ticker).filter(
-        models.KrRule40Ticker.ticker == ticker
-    ).first()
-    if not item:
-        raise HTTPException(status_code=404, detail="종목을 찾을 수 없습니다.")
-
-    data = fetcher.fetch_kr_rule_of_40(ticker)
-    if not data:
-        raise HTTPException(status_code=400, detail="데이터를 가져올 수 없습니다.")
-
-    item.name           = data["name"]
-    item.revenue_growth = data["revenue_growth"]
-    item.profit_margin  = data["profit_margin"]
-    item.score          = data["score"]
-    item.fetched_at     = datetime.utcnow()
-    db.commit()
-
-    return JSONResponse({"ok": True, "data": _kr_r40_item_dict(item)})
 
 
 # ════════════════════════════════════════════════════════════
@@ -1387,40 +1026,6 @@ def _asset_to_dict(s: models.AssetSnapshot, custom_accounts: list = None) -> dic
     }
 
 
-_YIELD_CACHE = Path("yield_history.json")
-
-def _get_yield_history() -> dict | None:
-    """하루 1회 갱신되는 금리 히스토리 캐시."""
-    if _YIELD_CACHE.exists():
-        try:
-            data = json.loads(_YIELD_CACHE.read_text(encoding="utf-8"))
-            fetched = datetime.fromisoformat(data["fetched_at"])
-            if _now() - fetched < timedelta(hours=24):
-                return data
-        except Exception:
-            pass
-    data = fetcher.fetch_yield_history(period="5y")
-    if data:
-        _YIELD_CACHE.write_text(json.dumps(data, ensure_ascii=False), encoding="utf-8")
-        logger.info("yield_history 캐시 갱신 완료 (%d개월)", len(data["labels"]))
-    return data
-
-
-@app.get("/forward-per", response_class=HTMLResponse)
-def page_forward_per(request: Request):
-    try:
-        us10y = fetcher.fetch_us10y_yield()
-    except Exception:
-        us10y = None
-    history = _get_yield_history()
-    return templates.TemplateResponse("forward_per.html", {
-        "request":        request,
-        "active":         "forward_per",
-        "us10y_rate":     us10y["rate"]         if us10y else None,
-        "us10y_open":     us10y["market_state"] == "REGULAR" if us10y else False,
-        "yield_history":  json.dumps(history, ensure_ascii=False) if history else "null",
-    })
-
 
 @app.get("/assets", response_class=HTMLResponse)
 def page_assets(request: Request):
@@ -1523,6 +1128,45 @@ def api_cheongyak_delete(cid: int, db: Session = Depends(get_db)):
 @app.get("/milestones", response_class=HTMLResponse)
 def page_milestones(request: Request):
     return templates.TemplateResponse("milestone.html", {"request": request, "active": "milestones"})
+
+
+@app.get("/dupont", response_class=HTMLResponse)
+def page_dupont(request: Request, db: Session = Depends(get_db)):
+    portfolio = db.query(models.Portfolio).all()
+    result = {}
+    for p in portfolio:
+        stock = db.query(models.Stock).filter(models.Stock.ticker == p.ticker).first()
+        fyears = (
+            db.query(models.FiscalYear)
+            .filter(models.FiscalYear.ticker == p.ticker)
+            .order_by(models.FiscalYear.year_key)
+            .all()
+        )
+        rows = []
+        for fy in fyears:
+            if not fy.revenue or not fy.net or not fy.roi or not fy.bvps or not fy.shares:
+                continue
+            assets = fy.net / fy.roi
+            equity = fy.bvps * fy.shares
+            npm = fy.net / fy.revenue
+            at  = fy.revenue / assets
+            em  = assets / equity
+            rows.append({
+                "year": fy.label,
+                "roe": round(fy.roe * 100, 1) if fy.roe else None,
+                "npm": round(npm * 100, 1),
+                "at":  round(at, 3),
+                "em":  round(em, 3),
+            })
+        result[p.ticker] = {
+            "name":  stock.name if stock else p.ticker,
+            "years": rows,
+        }
+    return templates.TemplateResponse("dupont.html", {
+        "request":     request,
+        "active":      "dupont",
+        "dupont_json": json.dumps(result, ensure_ascii=False),
+    })
 
 
 def _milestone_to_dict(m: models.Milestone) -> dict:

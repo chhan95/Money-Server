@@ -10,16 +10,13 @@
 <style>@keyframes spin{to{transform:rotate(360deg)}}</style>
 
 <style>
-/* ── Design Tokens (홈/마일스톤과 동일) ── */
 :root {
   --ms-gradient: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-  --glass: rgba(255,255,255,0.03);
   --glass-border: var(--border);
-  --shadow-sm: 0 1px 3px rgba(0,0,0,0.08);
-  --shadow-md: 0 4px 16px rgba(0,0,0,0.12);
-  --shadow-lg: 0 8px 32px rgba(0,0,0,0.18);
-  --shadow-glow: 0 0 40px rgba(102,126,234,0.15);
   --ease-out: cubic-bezier(0.16, 1, 0.3, 1);
+  --shadow-sm: 0 1px 3px rgba(0,0,0,0.07);
+  --shadow-md: 0 4px 16px rgba(0,0,0,0.11);
+  --shadow-lg: 0 8px 32px rgba(0,0,0,0.18);
   --r-xl: 16px;
   --r-2xl: 20px;
   --green: #10b981;
@@ -29,401 +26,267 @@
 }
 
 /* ── Page Header ── */
-.pf-page-header {
-  text-align: center;
-  padding: 32px 0 24px;
+.pf-header {
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 28px 0 20px;
+  gap: 12px;
 }
-.pf-page-header h1 {
-  font-size: 28px;
-  font-weight: 800;
-  letter-spacing: -0.5px;
+.pf-header-left h1 {
+  font-size: 22px; font-weight: 800; letter-spacing: -0.4px;
   background: var(--ms-gradient);
-  -webkit-background-clip: text;
-  -webkit-text-fill-color: transparent;
-  background-clip: text;
-  margin-bottom: 6px;
+  -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text;
+  margin-bottom: 2px;
 }
-.pf-page-header p {
-  font-size: 14px;
-  color: var(--text2);
-  font-weight: 400;
-}
+.pf-header-left p { font-size: 12px; color: var(--text2); }
 
 /* ── Buttons ── */
 .btn-gradient {
-  background: var(--ms-gradient);
-  color: white; border: none;
+  background: var(--ms-gradient); color: white; border: none;
   padding: 10px 20px; border-radius: 10px;
-  font-size: 13px; font-weight: 600;
-  cursor: pointer;
+  font-size: 13px; font-weight: 600; cursor: pointer;
   transition: all 0.2s var(--ease-out);
   box-shadow: 0 2px 12px rgba(102,126,234,0.3);
-  display: inline-flex; align-items: center; gap: 6px;
+  display: inline-flex; align-items: center; gap: 6px; white-space: nowrap;
 }
-.btn-gradient:hover {
-  transform: translateY(-1px);
-  box-shadow: 0 4px 20px rgba(102,126,234,0.45);
-}
+.btn-gradient:hover { transform: translateY(-1px); box-shadow: 0 4px 20px rgba(102,126,234,0.45); }
 .btn-soft {
-  background: var(--bg2);
-  color: var(--text);
-  border: 1px solid var(--glass-border);
-  padding: 8px 14px; border-radius: 8px;
-  font-size: 12px; font-weight: 500;
-  cursor: pointer;
-  transition: all 0.15s var(--ease-out);
+  background: var(--bg2); color: var(--text); border: 1px solid var(--glass-border);
+  padding: 7px 14px; border-radius: 8px; font-size: 12px; font-weight: 500;
+  cursor: pointer; transition: all 0.15s var(--ease-out);
+  display: inline-flex; align-items: center; gap: 5px;
 }
-.btn-soft:hover {
-  background: rgba(255,255,255,0.06);
-  border-color: rgba(255,255,255,0.12);
-}
-.btn-soft.danger:hover {
-  background: rgba(239,68,68,0.08);
-  border-color: rgba(239,68,68,0.2);
-  color: var(--red);
-}
-
-/* ── Hero Card ── */
-.pf-hero {
-  background: var(--ms-gradient);
-  border-radius: var(--r-2xl);
-  padding: 28px 32px;
-  color: white;
-  position: relative;
-  overflow: hidden;
-  box-shadow: var(--shadow-glow), var(--shadow-lg);
-  margin-bottom: 20px;
-}
-.pf-hero::before {
-  content: '';
-  position: absolute;
-  top: -60%; right: -15%;
-  width: 280px; height: 280px;
-  background: radial-gradient(circle, rgba(255,255,255,0.1) 0%, transparent 70%);
-  pointer-events: none;
-}
-.pf-hero::after {
-  content: '';
-  position: absolute;
-  bottom: -40%; left: -8%;
-  width: 180px; height: 180px;
-  background: radial-gradient(circle, rgba(255,255,255,0.06) 0%, transparent 70%);
-  pointer-events: none;
-}
-.pf-hero-top {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  margin-bottom: 8px;
-  position: relative; z-index: 1;
-}
-.pf-hero-label {
-  font-size: 13px; font-weight: 500;
-  opacity: 0.7; text-transform: uppercase; letter-spacing: 1.5px;
-}
-.pf-hero-count {
-  font-size: 14px; font-weight: 600; opacity: 0.9;
-}
-.pf-hero-value {
-  font-size: 36px; font-weight: 800; letter-spacing: -1px;
-  position: relative; z-index: 1;
-  margin-bottom: 2px;
-}
-.pf-hero-sub {
-  font-size: 14px; opacity: 0.65; position: relative; z-index: 1;
-}
-
-/* ── Summary Stats Row ── */
-.pf-summary-row {
-  display: grid;
-  grid-template-columns: repeat(2, 1fr);
-  gap: 12px;
-  margin-bottom: 24px;
-}
-@media (max-width: 500px) { .pf-summary-row { grid-template-columns: 1fr; } }
-
-.pf-stat-card {
-  background: var(--bg);
-  border: 1px solid var(--glass-border);
-  border-radius: var(--r-xl);
-  padding: 20px 22px;
-  transition: all 0.3s var(--ease-out);
-  position: relative;
-  overflow: hidden;
-}
-.pf-stat-card:hover {
-  transform: translateY(-2px);
-  box-shadow: var(--shadow-md);
-  border-color: rgba(255,255,255,0.1);
-}
-.pf-stat-card::before {
-  content: '';
-  position: absolute; left: 0; top: 0; bottom: 0;
-  width: 4px; border-radius: 4px 0 0 4px;
-}
-.pf-stat-card.green::before { background: var(--green); }
-.pf-stat-card.red::before { background: var(--red); }
-.pf-stat-card.amber::before { background: var(--amber); }
-
-.pf-stat-label {
-  font-size: 12px; font-weight: 500; color: var(--text2);
-  margin-bottom: 8px;
-  display: flex; align-items: center; gap: 8px;
-}
-.pf-stat-label .dot {
-  width: 8px; height: 8px; border-radius: 50%;
-}
-.pf-stat-value {
-  font-size: 24px; font-weight: 800; letter-spacing: -0.5px;
-}
-
-/* ── Stock Card Grid ── */
-.pf-grid {
-  display: grid;
-  grid-template-columns: repeat(2, 1fr);
-  gap: 16px;
-  margin-bottom: 24px;
-}
-@media (max-width: 700px) { .pf-grid { grid-template-columns: 1fr; } }
-
-.pf-card {
-  background: var(--bg);
-  border: 1px solid var(--glass-border);
-  border-radius: var(--r-xl);
-  overflow: hidden;
-  transition: all 0.3s var(--ease-out);
-  position: relative;
-}
-.pf-card:hover {
-  transform: translateY(-2px);
-  box-shadow: var(--shadow-md);
-  border-color: rgba(255,255,255,0.1);
-}
-
-/* Gain color bar at top */
-.pf-gain-bar {
-  height: 4px;
-  width: 100%;
-  background: var(--glass-border);
-}
-
-.pf-card-body { padding: 20px; }
-
-/* Logo */
-.pf-logo {
-  width: 40px; height: 40px;
-  flex-shrink: 0; position: relative;
-}
-.pf-logo img {
-  width: 100%; height: 100%;
-  object-fit: contain; border-radius: 10px;
-}
-.pf-logo-fallback {
-  display: none;
-  position: absolute; inset: 0;
-  border-radius: 10px;
-  background: var(--ms-gradient);
-  color: white;
-  align-items: center; justify-content: center;
-  font-size: 11px; font-weight: 700;
-}
-
-/* Gain Badge */
-.pf-gain-badge {
-  padding: 5px 12px;
-  border-radius: 99px;
-  font-size: 12px;
-  font-weight: 700;
-  line-height: 1;
-  white-space: nowrap;
-}
-
-/* Stats inside card */
-.pf-mini-grid {
-  display: grid;
-  grid-template-columns: repeat(3, 1fr);
-  gap: 8px;
-  margin-bottom: 10px;
-}
-.pf-mini-stat {
-  background: var(--bg2);
-  border-radius: 8px;
-  padding: 8px 10px;
-}
-.pf-mini-stat-label {
-  font-size: 9px;
-  color: var(--text2);
-  text-transform: uppercase;
-  letter-spacing: 0.5px;
-  margin-bottom: 4px;
-  font-weight: 600;
-}
-.pf-mini-stat-value {
-  font-size: 13px;
-  font-weight: 700;
-  font-variant-numeric: tabular-nums;
-}
-
-/* Eval row */
-.pf-eval-row {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  background: var(--bg2);
-  border-radius: 8px;
-  padding: 8px 12px;
-}
-.pf-eval-value {
-  font-size: 14px;
-  font-weight: 700;
-  color: var(--blue);
-}
-
-/* Memo */
-.pf-memo {
-  font-size: 11px;
-  color: var(--text2);
-  margin-top: 10px;
-  padding: 8px 12px;
-  background: var(--bg2);
-  border-radius: 8px;
-  border-left: 3px solid var(--blue);
-}
-
-/* Action buttons */
-.pf-actions {
-  display: flex; gap: 8px; margin-top: 14px;
-  opacity: 0;
-  transition: opacity 0.2s;
-}
-.pf-card:hover .pf-actions { opacity: 1; }
-@media (max-width: 700px) { .pf-actions { opacity: 1; } }
-
-/* ── Empty State ── */
-.pf-empty {
-  text-align: center;
-  padding: 60px 24px;
-  color: var(--text2);
-}
-.pf-empty .icon { font-size: 48px; margin-bottom: 14px; opacity: 0.3; }
-.pf-empty .title { font-weight: 600; font-size: 15px; margin-bottom: 6px; color: var(--text); }
-.pf-empty .msg { font-size: 13px; margin-bottom: 20px; }
+.btn-soft:hover { background: rgba(128,128,128,0.1); }
+.btn-soft.danger:hover { background: rgba(239,68,68,0.08); color: var(--red); border-color: rgba(239,68,68,0.2); }
 
 /* ── Error Banner ── */
 .pf-error-banner {
   display: flex; align-items: center; gap: 10px;
-  background: rgba(239,68,68,0.08);
-  border: 1px solid rgba(239,68,68,0.25);
-  border-radius: 12px;
-  padding: 12px 16px;
-  margin-bottom: 20px;
+  background: rgba(239,68,68,0.08); border: 1px solid rgba(239,68,68,0.25);
+  border-radius: 12px; padding: 12px 16px; margin-bottom: 16px;
   font-size: 13px; color: #ef4444; font-weight: 500;
 }
-.pf-error-banner .pf-error-close {
+.pf-error-banner .close-btn {
   margin-left: auto; background: none; border: none;
-  color: #ef4444; cursor: pointer; font-size: 14px; opacity: 0.7;
-  line-height: 1; padding: 0;
+  color: #ef4444; cursor: pointer; font-size: 14px; opacity: 0.7; padding: 0;
 }
-.pf-error-banner .pf-error-close:hover { opacity: 1; }
+.pf-error-banner .close-btn:hover { opacity: 1; }
+
+/* ── Summary Bar ── */
+.pf-summary {
+  display: grid; grid-template-columns: 2fr 1fr 1fr 1fr;
+  gap: 12px; margin-bottom: 20px;
+}
+@media (max-width: 860px) { .pf-summary { grid-template-columns: 1fr 1fr; } }
+@media (max-width: 500px) { .pf-summary { grid-template-columns: 1fr; } }
+
+.pf-sum-card {
+  background: var(--bg); border: 1px solid var(--glass-border);
+  border-radius: var(--r-xl); padding: 20px 22px;
+  position: relative; overflow: hidden;
+  transition: box-shadow 0.2s var(--ease-out);
+}
+.pf-sum-card:hover { box-shadow: var(--shadow-md); }
+.pf-sum-card.main {
+  background: var(--ms-gradient); color: white;
+  box-shadow: 0 4px 24px rgba(102,126,234,0.3);
+}
+.pf-sum-card.main::after {
+  content: ''; position: absolute; top: -40%; right: -10%;
+  width: 200px; height: 200px;
+  background: radial-gradient(circle, rgba(255,255,255,0.1) 0%, transparent 70%);
+  pointer-events: none;
+}
+.pf-sum-label {
+  font-size: 10px; font-weight: 700; letter-spacing: 1px;
+  text-transform: uppercase; color: var(--text2);
+  margin-bottom: 8px;
+}
+.pf-sum-card.main .pf-sum-label { color: rgba(255,255,255,0.7); }
+.pf-sum-value {
+  font-size: 26px; font-weight: 800; letter-spacing: -0.5px;
+  line-height: 1.1;
+}
+.pf-sum-card.main .pf-sum-value { color: white; }
+.pf-sum-sub {
+  font-size: 11px; color: var(--text2); margin-top: 3px;
+}
+.pf-sum-card.main .pf-sum-sub { color: rgba(255,255,255,0.6); }
+
+/* ── Allocation Bar ── */
+.pf-alloc-section {
+  background: var(--bg); border: 1px solid var(--glass-border);
+  border-radius: var(--r-xl); padding: 18px 22px;
+  margin-bottom: 20px;
+}
+.pf-alloc-label {
+  font-size: 11px; font-weight: 700; color: var(--text2);
+  text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 10px;
+}
+.pf-alloc-bar {
+  display: flex; height: 10px; border-radius: 99px; overflow: hidden; gap: 2px;
+}
+.pf-alloc-segment { height: 100%; border-radius: 99px; min-width: 4px; }
+.pf-alloc-legend {
+  display: flex; flex-wrap: wrap; gap: 10px; margin-top: 10px;
+}
+.pf-alloc-dot {
+  display: flex; align-items: center; gap: 5px;
+  font-size: 11px; color: var(--text2);
+}
+.pf-alloc-dot span { font-weight: 600; color: var(--text); }
+
+/* ── Stock List ── */
+.pf-list-card {
+  background: var(--bg); border: 1px solid var(--glass-border);
+  border-radius: var(--r-xl); overflow: hidden;
+  margin-bottom: 20px;
+}
+.pf-list-head {
+  display: grid;
+  grid-template-columns: 200px 80px 100px 100px 90px 110px 80px;
+  gap: 0; padding: 10px 20px;
+  border-bottom: 1px solid var(--glass-border);
+  font-size: 10px; font-weight: 700; color: var(--text2);
+  text-transform: uppercase; letter-spacing: 0.5px;
+}
+.pf-list-head > *:not(:first-child) { text-align: right; }
+
+.pf-list-row {
+  display: grid;
+  grid-template-columns: 200px 80px 100px 100px 90px 110px 80px;
+  gap: 0; padding: 14px 20px;
+  border-bottom: 1px solid rgba(128,128,128,0.06);
+  align-items: center;
+  transition: background 0.15s;
+  position: relative;
+}
+.pf-list-row:last-child { border-bottom: none; }
+.pf-list-row:hover { background: rgba(128,128,128,0.04); }
+.pf-list-row > *:not(:first-child) { text-align: right; }
+
+/* Left accent line based on gain */
+.pf-list-row::before {
+  content: ''; position: absolute; left: 0; top: 0; bottom: 0;
+  width: 3px; border-radius: 0 3px 3px 0;
+  background: transparent;
+  transition: background 0.3s;
+}
+.pf-list-row.gain-pos::before { background: var(--green); }
+.pf-list-row.gain-neg::before { background: var(--red); }
+
+.pf-ticker-cell { display: flex; align-items: center; gap: 10px; }
+.pf-logo {
+  width: 34px; height: 34px; flex-shrink: 0; border-radius: 9px;
+  overflow: hidden; background: rgba(102,126,234,0.08);
+  display: flex; align-items: center; justify-content: center;
+  position: relative;
+}
+.pf-logo img { width: 100%; height: 100%; object-fit: contain; }
+.pf-logo-fb {
+  font-size: 9px; font-weight: 800; color: var(--blue);
+  display: none; position: absolute; inset: 0;
+  align-items: center; justify-content: center;
+}
+.pf-ticker-name { font-size: 13px; font-weight: 700; color: var(--text); line-height: 1.2; }
+.pf-ticker-fullname { font-size: 10px; color: var(--text2); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 120px; }
+
+.pf-num { font-size: 13px; font-weight: 600; font-variant-numeric: tabular-nums; }
+.pf-num-sub { font-size: 10px; color: var(--text2); margin-top: 1px; }
+
+.pf-badge {
+  display: inline-flex; align-items: center; justify-content: center;
+  padding: 3px 10px; border-radius: 99px;
+  font-size: 11px; font-weight: 700; white-space: nowrap;
+}
+.pf-badge.pos { background: rgba(16,185,129,0.1); color: var(--green); border: 1px solid rgba(16,185,129,0.2); }
+.pf-badge.neg { background: rgba(239,68,68,0.08); color: var(--red); border: 1px solid rgba(239,68,68,0.15); }
+.pf-badge.neu { background: rgba(128,128,128,0.07); color: var(--text2); border: 1px solid rgba(128,128,128,0.12); }
+
+.pf-row-actions { display: flex; gap: 6px; justify-content: flex-end; opacity: 0; transition: opacity 0.15s; }
+.pf-list-row:hover .pf-row-actions { opacity: 1; }
+@media (max-width: 700px) { .pf-row-actions { opacity: 1; } }
+
+/* ── Mobile: collapse to simpler layout ── */
+@media (max-width: 760px) {
+  .pf-list-head { display: none; }
+  .pf-list-row {
+    grid-template-columns: 1fr auto;
+    grid-template-rows: auto auto auto;
+    gap: 6px; padding: 14px 16px;
+  }
+  .pf-ticker-cell { grid-column: 1; }
+  .pf-col-shares, .pf-col-avg, .pf-col-cur { display: none; }
+  .pf-col-gain { grid-column: 2; grid-row: 1; }
+  .pf-col-eval { grid-column: 1 / -1; grid-row: 2; text-align: left !important; }
+  .pf-col-actions { grid-column: 1 / -1; grid-row: 3; opacity: 1; text-align: left !important; }
+  .pf-row-actions { justify-content: flex-start; opacity: 1; }
+}
+
+/* ── Empty State ── */
+.pf-empty {
+  text-align: center; padding: 64px 24px;
+  color: var(--text2);
+}
+.pf-empty .icon { font-size: 48px; margin-bottom: 14px; opacity: 0.25; }
+.pf-empty .title { font-size: 16px; font-weight: 700; color: var(--text); margin-bottom: 6px; }
+.pf-empty .msg { font-size: 13px; margin-bottom: 22px; }
 
 /* ── Disclaimer ── */
 .pf-disclaimer {
-  font-size: 11px;
-  color: var(--text2);
-  opacity: 0.6;
-  text-align: center;
-  padding: 0 16px 24px;
+  font-size: 11px; color: var(--text2); opacity: 0.55;
+  text-align: center; padding: 4px 16px 28px;
 }
 
 /* ── Modal ── */
 .pf-modal-overlay {
-  display: none;
-  position: fixed; inset: 0;
-  background: rgba(0,0,0,0.6);
-  backdrop-filter: blur(4px);
-  z-index: 200;
-  overflow-y: auto;
+  display: none; position: fixed; inset: 0;
+  background: rgba(0,0,0,0.6); backdrop-filter: blur(4px);
+  z-index: 200; overflow-y: auto;
 }
 .pf-modal-box {
-  max-width: 460px;
-  margin: 60px auto;
-  background: var(--bg);
-  border: 1px solid var(--glass-border);
-  border-radius: var(--r-2xl);
-  overflow: hidden;
+  max-width: 460px; margin: 60px auto;
+  background: var(--bg); border: 1px solid var(--glass-border);
+  border-radius: var(--r-2xl); overflow: hidden;
   box-shadow: var(--shadow-lg);
-  animation: modalSlideUp 0.35s var(--ease-out);
+  animation: modalSlideUp 0.3s var(--ease-out);
 }
 @keyframes modalSlideUp {
-  from { opacity: 0; transform: translateY(20px); }
+  from { opacity: 0; transform: translateY(18px); }
   to   { opacity: 1; transform: translateY(0); }
 }
 .pf-modal-header {
-  padding: 20px 24px 16px;
-  border-bottom: 1px solid var(--glass-border);
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
+  padding: 20px 24px 16px; border-bottom: 1px solid var(--glass-border);
+  display: flex; justify-content: space-between; align-items: center;
 }
-.pf-modal-header h2 {
-  font-size: 16px; font-weight: 700;
-  margin: 0;
-}
+.pf-modal-header h2 { font-size: 16px; font-weight: 700; margin: 0; }
 .pf-modal-close {
-  background: var(--bg2);
-  border: none;
-  width: 32px; height: 32px;
-  border-radius: 8px;
-  cursor: pointer;
-  color: var(--text2);
-  font-size: 14px;
-  display: flex; align-items: center; justify-content: center;
-  transition: all 0.15s;
+  background: var(--bg2); border: none; width: 32px; height: 32px;
+  border-radius: 8px; cursor: pointer; color: var(--text2); font-size: 14px;
+  display: flex; align-items: center; justify-content: center; transition: all 0.15s;
 }
-.pf-modal-close:hover { background: rgba(255,255,255,0.08); color: var(--text); }
-
+.pf-modal-close:hover { background: rgba(128,128,128,0.15); color: var(--text); }
 .pf-modal-body { padding: 20px 24px 24px; }
-
-/* ── Form ── */
 .pf-form-field { margin-bottom: 14px; }
 .pf-form-field label {
-  display: block;
-  font-size: 12px; font-weight: 500;
-  color: var(--text2);
-  margin-bottom: 6px;
+  display: block; font-size: 12px; font-weight: 500; color: var(--text2); margin-bottom: 6px;
 }
 .pf-form-field input {
-  width: 100%;
-  padding: 10px 14px;
-  background: var(--bg2);
-  border: 1px solid var(--glass-border);
-  border-radius: 10px;
-  color: var(--text);
-  font-size: 13px;
-  outline: none;
-  transition: border-color 0.2s;
+  width: 100%; padding: 10px 14px; background: var(--bg2);
+  border: 1px solid var(--glass-border); border-radius: 10px;
+  color: var(--text); font-size: 13px; outline: none; transition: border-color 0.2s;
+  box-sizing: border-box;
 }
 .pf-form-field input:focus {
-  border-color: #667eea;
-  box-shadow: 0 0 0 3px rgba(102,126,234,0.15);
+  border-color: #667eea; box-shadow: 0 0 0 3px rgba(102,126,234,0.15);
 }
 .pf-form-field input::placeholder { color: var(--text2); opacity: 0.5; }
 .pf-form-field input.ticker-input {
-  text-transform: uppercase;
-  font-size: 20px; font-weight: 700;
-  letter-spacing: 0.06em;
+  text-transform: uppercase; font-size: 20px; font-weight: 700; letter-spacing: 0.06em;
 }
-.pf-form-row {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 10px;
-}
+.pf-form-row { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 14px; }
+.pf-form-row .pf-form-field { margin-bottom: 0; }
 
-/* ── Responsive ── */
-@media (max-width: 600px) {
-  .pf-hero { padding: 24px 20px; }
-  .pf-hero-value { font-size: 28px; }
-  .pf-card-body { padding: 16px; }
+@media (max-width: 500px) {
   .pf-modal-box { margin: 16px; }
 }
 </style>
@@ -432,141 +295,169 @@
 <!-- ══════════════════════════════════════
      PAGE HEADER
 ══════════════════════════════════════ -->
-<div class="pf-page-header">
-  <h1>해외 포트폴리오</h1>
-  <p>{{ items | length }}개 종목 보유</p>
+<div class="pf-header">
+  <div class="pf-header-left">
+    <h1>해외 포트폴리오</h1>
+    <p>{{ items | length }}개 종목 · Yahoo Finance 기준</p>
+  </div>
+  <button class="btn-gradient" onclick="openModal(null)">
+    <span style="font-size:16px;line-height:1;">+</span> 종목 추가
+  </button>
 </div>
 
 {% if error %}
 <div class="pf-error-banner" id="errorBanner">
   <span>⚠️ {{ error }}</span>
-  <button class="pf-error-close" onclick="document.getElementById('errorBanner').remove()">✕</button>
+  <button class="close-btn" onclick="document.getElementById('errorBanner').remove()">✕</button>
 </div>
 {% endif %}
 
 {% if stale_tickers and stale_tickers != '[]' %}
-<div id="refreshBanner" style="display:flex;align-items:center;gap:10px;background:rgba(245,158,11,0.06);border:1px solid rgba(245,158,11,0.12);color:var(--amber);border-radius:12px;padding:12px 16px;margin-bottom:20px;font-size:13px;font-weight:500;">
-  <div style="width:16px;height:16px;border:2px solid rgba(245,158,11,0.2);border-top-color:var(--amber);border-radius:50%;animation:pf-spin 0.8s linear infinite;flex-shrink:0;"></div>
+<div id="refreshBanner" style="display:flex;align-items:center;gap:10px;background:rgba(245,158,11,0.06);border:1px solid rgba(245,158,11,0.12);color:var(--amber);border-radius:12px;padding:12px 16px;margin-bottom:16px;font-size:13px;font-weight:500;">
+  <div style="width:16px;height:16px;border:2px solid rgba(245,158,11,0.2);border-top-color:var(--amber);border-radius:50%;animation:spin 0.8s linear infinite;flex-shrink:0;"></div>
   데이터 갱신 중… 완료 후 자동으로 새로고침됩니다
 </div>
-<style>@keyframes pf-spin { to { transform: rotate(360deg); } }</style>
 {% endif %}
+
 
 {% if items %}
 
 <!-- ══════════════════════════════════════
-     HERO — 총 평가액
+     SUMMARY BAR
 ══════════════════════════════════════ -->
-<div class="pf-hero">
-  <div class="pf-hero-top">
-    <span class="pf-hero-label">PORTFOLIO VALUE</span>
-    <span class="pf-hero-count">{{ items | length }}개 종목</span>
+<div class="pf-summary">
+  <div class="pf-sum-card main">
+    <div class="pf-sum-label">총 평가액</div>
+    <div class="pf-sum-value" id="sumTotal">—</div>
+    <div class="pf-sum-sub" id="sumTotalKrw">환율 적용 원화 환산</div>
   </div>
-  <div class="pf-hero-value" id="bannerTotal">—</div>
-  <div class="pf-hero-sub" id="bannerTotalKrw">—</div>
-</div>
-
-
-<!-- ══════════════════════════════════════
-     SUMMARY STATS
-══════════════════════════════════════ -->
-<div class="pf-summary-row">
-  <div class="pf-stat-card" id="gainCard">
-    <div class="pf-stat-label">
-      <span class="dot" id="gainDot" style="background:var(--text2);"></span>
-      평균 수익률
-    </div>
-    <div class="pf-stat-value" id="bannerGain">—</div>
+  <div class="pf-sum-card">
+    <div class="pf-sum-label">총 투자금</div>
+    <div class="pf-sum-value" id="sumCost">—</div>
+    <div class="pf-sum-sub" id="sumCostKrw">매수 기준</div>
   </div>
-  <div class="pf-stat-card amber">
-    <div class="pf-stat-label">
-      <span class="dot" style="background:var(--amber);"></span>
-      총 투자금
-    </div>
-    <div class="pf-stat-value" id="bannerCost">—</div>
+  <div class="pf-sum-card">
+    <div class="pf-sum-label">평가 손익</div>
+    <div class="pf-sum-value" id="sumPnl">—</div>
+    <div class="pf-sum-sub" id="sumPnlPct">수익률</div>
+  </div>
+  <div class="pf-sum-card">
+    <div class="pf-sum-label">보유 종목</div>
+    <div class="pf-sum-value">{{ items | length }}</div>
+    <div class="pf-sum-sub">개 종목</div>
   </div>
 </div>
 
 
+<!-- ══════════════════════════════════════
+     ALLOCATION BAR
+══════════════════════════════════════ -->
+<div class="pf-alloc-section">
+  <div class="pf-alloc-label">포트폴리오 구성</div>
+  <div class="pf-alloc-bar" id="allocBar"></div>
+  <div class="pf-alloc-legend" id="allocLegend"></div>
+</div>
+
 
 <!-- ══════════════════════════════════════
-     STOCK CARD GRID
+     STOCK LIST
 ══════════════════════════════════════ -->
-<div class="pf-grid">
+<div class="pf-list-card">
+  <!-- Header -->
+  <div class="pf-list-head">
+    <div>종목</div>
+    <div>보유주</div>
+    <div>평균단가</div>
+    <div>현재가</div>
+    <div>수익률</div>
+    <div>평가액</div>
+    <div></div>
+  </div>
+
+  <!-- Rows -->
   {% for item in items %}
   {% set gain_pct = ((item.current_price - item.avg_price) / item.avg_price * 100) if item.avg_price > 0 and item.current_price > 0 else none %}
   {% set eval_usd = item.shares_owned * item.current_price if item.current_price > 0 else 0 %}
-  <div class="pf-card"
+  <div class="pf-list-row {% if gain_pct is not none %}{% if gain_pct >= 0 %}gain-pos{% else %}gain-neg{% endif %}{% endif %}"
        data-shares="{{ item.shares_owned }}"
        data-avg="{{ item.avg_price }}"
-       data-cur="{{ item.current_price }}">
+       data-cur="{{ item.current_price }}"
+       data-ticker="{{ item.ticker }}">
 
-    <div class="pf-gain-bar"></div>
-
-    <div class="pf-card-body">
-      <!-- Top: Logo + Ticker + Badge -->
-      <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:16px;">
-        <div style="display:flex;align-items:center;gap:12px;">
-          <div class="pf-logo">
-            <img src="/resources/icons/{{ item.ticker }}.png"
-                 onerror="this.style.display='none';this.parentElement.querySelector('.pf-logo-fallback').style.display='flex';" />
-            <div class="pf-logo-fallback">{{ item.ticker[:2] }}</div>
-          </div>
-          <div>
-            <div style="font-size:16px;font-weight:700;letter-spacing:.02em;line-height:1.2;">{{ item.ticker }}</div>
-            <div style="font-size:11px;color:var(--text2);margin-top:2px;max-width:120px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">{{ item.name or '—' }}</div>
-          </div>
-        </div>
-        {% if gain_pct is not none %}
-        <div class="pf-gain-badge" data-gain="{{ '%.2f'|format(gain_pct) }}">
-          {{ '+' if gain_pct >= 0 else '' }}{{ "%.1f"|format(gain_pct) }}%
-        </div>
+    <!-- 종목 -->
+    <div class="pf-ticker-cell">
+      <div class="pf-logo">
+        <img src="/resources/icons/{{ item.ticker }}.png"
+             onerror="this.style.display='none';this.parentElement.querySelector('.pf-logo-fb').style.display='flex';" />
+        <div class="pf-logo-fb">{{ item.ticker[:3] }}</div>
+      </div>
+      <div>
+        <div class="pf-ticker-name">{{ item.ticker }}</div>
+        <div class="pf-ticker-fullname" title="{{ item.name or '' }}">{{ item.name or '—' }}</div>
+        {% if item.memo %}
+        <div style="font-size:10px;color:var(--blue);margin-top:2px;" title="{{ item.memo }}">💬 {{ item.memo[:28] }}{% if item.memo|length > 28 %}…{% endif %}</div>
         {% endif %}
       </div>
+    </div>
 
-      <!-- Divider -->
-      <div style="height:1px;background:var(--glass-border);margin-bottom:14px;"></div>
+    <!-- 보유주 -->
+    <div class="pf-col-shares">
+      <div class="pf-num">{{ item.shares_owned | int if item.shares_owned == (item.shares_owned | int) else item.shares_owned }}</div>
+      <div class="pf-num-sub">주</div>
+    </div>
 
-      <!-- Stats Grid -->
-      <div class="pf-mini-grid">
-        <div class="pf-mini-stat">
-          <div class="pf-mini-stat-label">보유주</div>
-          <div class="pf-mini-stat-value">{{ item.shares_owned | int if item.shares_owned == (item.shares_owned | int) else item.shares_owned }}</div>
-        </div>
-        <div class="pf-mini-stat">
-          <div class="pf-mini-stat-label">평균단가</div>
-          <div class="pf-mini-stat-value">{% if item.avg_price > 0 %}${{ "%.2f"|format(item.avg_price) }}{% else %}—{% endif %}</div>
-        </div>
-        <div class="pf-mini-stat">
-          <div class="pf-mini-stat-label">현재가</div>
-          <div class="pf-mini-stat-value">{% if item.current_price > 0 %}${{ "%.2f"|format(item.current_price) }}{% else %}—{% endif %}</div>
-        </div>
-      </div>
+    <!-- 평균단가 -->
+    <div class="pf-col-avg">
+      {% if item.avg_price > 0 %}
+      <div class="pf-num">${{ "%.2f"|format(item.avg_price) }}</div>
+      {% else %}
+      <div class="pf-num" style="color:var(--text2);">—</div>
+      {% endif %}
+    </div>
 
-      <!-- Eval -->
+    <!-- 현재가 -->
+    <div class="pf-col-cur">
+      {% if item.current_price > 0 %}
+      <div class="pf-num">${{ "%.2f"|format(item.current_price) }}</div>
+      {% else %}
+      <div class="pf-num" style="color:var(--text2);">—</div>
+      {% endif %}
+    </div>
+
+    <!-- 수익률 -->
+    <div class="pf-col-gain">
+      {% if gain_pct is not none %}
+      <span class="pf-badge {% if gain_pct >= 0 %}pos{% else %}neg{% endif %}">
+        {{ '+' if gain_pct >= 0 else '' }}{{ "%.1f"|format(gain_pct) }}%
+      </span>
+      {% else %}
+      <span class="pf-badge neu">—</span>
+      {% endif %}
+    </div>
+
+    <!-- 평가액 -->
+    <div class="pf-col-eval">
       {% if eval_usd > 0 %}
-      <div class="pf-eval-row">
-        <span style="font-size:11px;color:var(--text2);">평가액</span>
-        <span class="pf-eval-value">${{ "{:,.0f}".format(eval_usd) }}</span>
-      </div>
+      <div class="pf-num" style="color:var(--blue);">${{ "{:,.0f}".format(eval_usd) }}</div>
+      <div class="pf-num-sub eval-krw"></div>
+      {% else %}
+      <div class="pf-num" style="color:var(--text2);">—</div>
       {% endif %}
+    </div>
 
-      <!-- Memo -->
-      {% if item.memo %}
-      <div class="pf-memo">{{ item.memo }}</div>
-      {% endif %}
-
-      <!-- Actions -->
-      <div class="pf-actions">
-        <button class="btn-soft" style="flex:1;"
+    <!-- 액션 -->
+    <div class="pf-col-actions">
+      <div class="pf-row-actions">
+        <button class="btn-soft"
                 data-ticker="{{ item.ticker }}"
                 data-shares="{{ item.shares_owned }}"
                 data-avg="{{ item.avg_price }}"
                 data-memo="{{ item.memo or '' }}"
-                onclick="openModalFromBtn(this)">✏️ 수정</button>
-        <form method="post" action="/portfolio/delete/{{ item.id }}" style="flex:1;"
-              onsubmit="return confirm('{{ item.ticker }} 종목을 삭제하시겠습니까?')">
-          <button type="submit" class="btn-soft danger" style="width:100%;">🗑️ 삭제</button>
+                onclick="openModalFromBtn(this)"
+                title="수정">✏️</button>
+        <form method="post" action="/portfolio/delete/{{ item.id }}"
+              onsubmit="return confirm('{{ item.ticker }} 종목을 삭제하시겠습니까?')" style="margin:0;">
+          <button type="submit" class="btn-soft danger" title="삭제">🗑️</button>
         </form>
       </div>
     </div>
@@ -579,20 +470,16 @@
 <!-- ══════════════════════════════════════
      EMPTY STATE
 ══════════════════════════════════════ -->
-<div class="pf-empty">
-  <div class="icon">📭</div>
-  <div class="title">보유 종목이 없습니다</div>
-  <div class="msg">상단 "+ 종목 추가" 버튼으로 첫 종목을 추가하세요.</div>
-  <button class="btn-gradient" onclick="openModal(null)">+ 종목 추가</button>
+<div style="background:var(--bg);border:1px solid var(--glass-border);border-radius:var(--r-xl);margin-bottom:20px;">
+  <div class="pf-empty">
+    <div class="icon">📭</div>
+    <div class="title">보유 종목이 없습니다</div>
+    <div class="msg">상단 "+ 종목 추가" 버튼으로 첫 종목을 추가하세요.</div>
+    <button class="btn-gradient" onclick="openModal(null)">+ 종목 추가</button>
+  </div>
 </div>
 
 {% endif %}
-
-<div style="display:flex;justify-content:center;margin:32px 0 16px;">
-  <button class="btn-gradient" onclick="openModal(null)" style="padding:14px 40px;font-size:15px;">
-    <span style="font-size:18px;line-height:1;">+</span> 종목 추가
-  </button>
-</div>
 
 <div class="pf-disclaimer">
   ※ 종목 추가 시 Yahoo Finance에서 재무 데이터를 자동으로 가져옵니다. 데이터는 24시간 캐시됩니다.
@@ -615,13 +502,13 @@
           <input type="text" name="ticker" id="f-ticker" class="ticker-input"
                  placeholder="NVDA" required maxlength="12" />
         </div>
-        <div class="pf-form-row" style="margin-bottom:14px;">
-          <div class="pf-form-field" style="margin-bottom:0;">
+        <div class="pf-form-row">
+          <div class="pf-form-field">
             <label>보유 주식 수</label>
             <input type="number" name="shares_owned" id="f-shares"
                    placeholder="100" min="0" step="0.01" required />
           </div>
-          <div class="pf-form-field" style="margin-bottom:0;">
+          <div class="pf-form-field">
             <label>평균 매수단가 ($)</label>
             <input type="number" name="avg_price" id="f-price"
                    placeholder="0.00" min="0" step="0.01" />
@@ -646,6 +533,122 @@
      SCRIPT
 ══════════════════════════════════════ -->
 <script>
+// ── 티커 색상 ─────────────────────────────────────────────
+const TICKER_COLORS = {
+  "AAPL":"#F5F5F7","MSFT":"#0078D4","GOOGL":"#4285F4","GOOG":"#4285F4",
+  "AMZN":"#FF9900","META":"#0866FF","NVDA":"#76B900","TSLA":"#E31937",
+  "NFLX":"#E50914","ORCL":"#F80000","CRM":"#00A1E0","ADBE":"#FF0000",
+  "NOW":"#00A1E0","SNOW":"#29B5E8","TEAM":"#0052CC","MDB":"#00ED64",
+  "DDOG":"#632CA6","NET":"#F38020","ZS":"#005DAA","CRWD":"#FC1D2D",
+  "PANW":"#00C0E8","SHOP":"#96BF48","PLTR":"#1a1a1a","V":"#1A1F71",
+  "MA":"#CF4500","LLY":"#D52B1E","NVO":"#004B87","TSM":"#EB0029",
+  "AVGO":"#CC0000","ASML":"#F58220","KLAC":"#007BC6","INTC":"#0071C5",
+  "AMD":"#ED1C24","QCOM":"#3253DC","AMAT":"#00A3E0","ARM":"#0091BD",
+  "MU":"#E1251B","UBER":"#000000","ABNB":"#FF5A5F","SPOT":"#1ED760",
+  "APP":"#001026","DUOL":"#58CC02","TTD":"#0085CA","HUBS":"#FF7A59",
+  "COIN":"#0052FF","CELH":"#E31837","IOT":"#1A56DB","MPWR":"#E31837",
+};
+const FALLBACK_COLORS = ['#667eea','#10b981','#f59e0b','#22d3ee','#ec4899','#8b5cf6','#f97316'];
+const _THEME_AWARE = {
+  "PLTR": { light:"#1a1a1a", dark:"#ffffff" },
+  "APP":  { light:"#001026", dark:"#ffffff" },
+  "AAPL": { light:"#1d1d1f", dark:"#F5F5F7" },
+};
+let _fi = 0;
+function tickerColor(ticker) {
+  if (_THEME_AWARE[ticker]) {
+    return document.documentElement.getAttribute('data-theme') === 'dark'
+      ? _THEME_AWARE[ticker].dark : _THEME_AWARE[ticker].light;
+  }
+  return TICKER_COLORS[ticker] || FALLBACK_COLORS[_fi++ % FALLBACK_COLORS.length];
+}
+
+// ── 원화 포맷 ─────────────────────────────────────────────
+function fmtKRW(w) {
+  var s = w < 0 ? '-' : '', a = Math.abs(w);
+  if (a >= 1e12) return s + (a/1e12).toFixed(2) + '조원';
+  if (a >= 1e8)  return s + (a/1e8 ).toFixed(2) + '억원';
+  if (a >= 1e4)  return s + Math.round(a/1e4).toLocaleString() + '만원';
+  return s + Math.round(a).toLocaleString() + '원';
+}
+function fmtUSD(v) {
+  if (v >= 1e6) return '$' + (v/1e6).toFixed(2) + 'M';
+  if (v >= 1e3) return '$' + Math.round(v).toLocaleString();
+  return '$' + v.toFixed(2);
+}
+
+// ── 초기화 ───────────────────────────────────────────────
+(function() {
+  var fxRate = {{ fx_default|int }};
+  var rows   = document.querySelectorAll('[data-shares][data-avg][data-cur]');
+
+  var totalVal = 0, totalCost = 0, totalCur = 0;
+  var allocData = [];
+
+  rows.forEach(function(row) {
+    var ticker = row.dataset.ticker;
+    var shares = parseFloat(row.dataset.shares) || 0;
+    var avg    = parseFloat(row.dataset.avg)    || 0;
+    var cur    = parseFloat(row.dataset.cur)    || 0;
+    var evalV  = cur > 0 ? shares * cur : 0;
+
+    if (evalV > 0) { totalVal += evalV; }
+    if (avg > 0 && cur > 0) { totalCost += shares * avg; totalCur += shares * cur; }
+
+    // 원화 평가액
+    var krwEl = row.querySelector('.eval-krw');
+    if (krwEl && cur > 0) krwEl.textContent = '≈ ' + fmtKRW(evalV * fxRate);
+
+    // 할당 데이터
+    if (evalV > 0) allocData.push({ ticker, val: evalV, color: tickerColor(ticker) });
+  });
+
+  // ── Summary ─────────────────────────────────────────────
+  var el = function(id) { return document.getElementById(id); };
+  if (totalVal > 0) {
+    el('sumTotal').textContent    = fmtUSD(totalVal);
+    el('sumTotalKrw').textContent = '≈ ' + fmtKRW(totalVal * fxRate);
+  }
+  if (totalCost > 0) {
+    el('sumCost').textContent    = fmtUSD(totalCost);
+    el('sumCostKrw').textContent = '매수 기준';
+    var pnl = totalCur - totalCost;
+    var pnlPct = pnl / totalCost * 100;
+    var pnlEl = el('sumPnl'), pctEl = el('sumPnlPct');
+    if (pnlEl) {
+      pnlEl.textContent = (pnl >= 0 ? '+' : '') + fmtUSD(Math.abs(pnl)).replace('$',pnl>=0?'+$':'-$').replace('+-','$+');
+      pnlEl.textContent = (pnl >= 0 ? '+$' : '-$') + fmtUSD(Math.abs(pnl)).slice(1);
+      pnlEl.style.color = pnl >= 0 ? 'var(--green)' : 'var(--red)';
+    }
+    if (pctEl) {
+      pctEl.textContent = (pnlPct >= 0 ? '+' : '') + pnlPct.toFixed(1) + '%';
+      pctEl.style.color = pnlPct >= 0 ? 'var(--green)' : 'var(--red)';
+    }
+  }
+
+  // ── Allocation bar ──────────────────────────────────────
+  var bar    = el('allocBar');
+  var legend = el('allocLegend');
+  if (bar && totalVal > 0) {
+    allocData.sort(function(a,b) { return b.val - a.val; });
+    allocData.forEach(function(d) {
+      var pct = d.val / totalVal * 100;
+      var seg = document.createElement('div');
+      seg.className = 'pf-alloc-segment';
+      seg.style.cssText = 'flex:' + pct + ';background:' + d.color + ';opacity:0.85;';
+      seg.title = d.ticker + ' ' + pct.toFixed(1) + '%';
+      bar.appendChild(seg);
+
+      var dot = document.createElement('div');
+      dot.className = 'pf-alloc-dot';
+      dot.innerHTML = '<span style="width:8px;height:8px;border-radius:50%;background:' + d.color + ';flex-shrink:0;display:inline-block;"></span>'
+        + d.ticker + ' <span>' + pct.toFixed(1) + '%</span>';
+      legend.appendChild(dot);
+    });
+  }
+})();
+
+// ── Modal ─────────────────────────────────────────────────
 function openModal(ticker) {
   document.getElementById('modalTitle').textContent = '종목 추가';
   document.getElementById('f-ticker').value = '';
@@ -682,102 +685,7 @@ document.getElementById('f-ticker').addEventListener('input', function() {
   this.value = this.value.toUpperCase();
 });
 
-function fmtKRWraw(w) {
-  var s = w < 0 ? '-' : '', a = Math.abs(w);
-  if (a >= 1e12) return s + (a/1e12).toFixed(2) + '조원';
-  if (a >= 1e8)  return s + (a/1e8 ).toFixed(2) + '억원';
-  if (a >= 1e4)  return s + Math.round(a/1e4).toLocaleString() + '만원';
-  return s + Math.round(a).toLocaleString() + '원';
-}
-
-(function() {
-  var fxRate = {{ fx_default|int }};
-  var cards = document.querySelectorAll('[data-shares][data-avg][data-cur]');
-  var totalVal = 0, totalCost = 0, totalCur = 0;
-
-  cards.forEach(function(card) {
-    var shares = parseFloat(card.dataset.shares) || 0;
-    var avg    = parseFloat(card.dataset.avg)    || 0;
-    var cur    = parseFloat(card.dataset.cur)    || 0;
-
-    if (cur > 0) totalVal += shares * cur;
-    if (cur > 0 && avg > 0) {
-      totalCost += shares * avg;
-      totalCur  += shares * cur;
-    }
-
-    var isGain = cur >= avg;
-
-    var bar = card.querySelector('.pf-gain-bar');
-    if (bar && cur > 0 && avg > 0) {
-      bar.style.background = isGain
-        ? 'linear-gradient(90deg,#10b981,#34d399)'
-        : 'linear-gradient(90deg,#ef4444,#f87171)';
-    }
-
-    /* 평가액 원화 표시 */
-    var evalVal = card.querySelector('.pf-eval-value');
-    if (evalVal && cur > 0) {
-      var krwSpan = evalVal.querySelector('.eval-krw');
-      if (!krwSpan) {
-        krwSpan = document.createElement('span');
-        krwSpan.className = 'eval-krw';
-        krwSpan.style.cssText = 'display:block;font-size:10px;font-weight:500;color:var(--text2);margin-top:1px;';
-        evalVal.appendChild(krwSpan);
-      }
-      krwSpan.textContent = '≈ ' + fmtKRWraw(shares * cur * fxRate);
-    }
-
-    var badge = card.querySelector('.pf-gain-badge');
-    if (badge) {
-      var gain = parseFloat(badge.dataset.gain);
-      if (gain >= 0) {
-        badge.style.background = 'rgba(16,185,129,.1)';
-        badge.style.color = '#10b981';
-        badge.style.border = '1px solid rgba(16,185,129,.2)';
-      } else {
-        badge.style.background = 'rgba(239,68,68,.08)';
-        badge.style.color = '#ef4444';
-        badge.style.border = '1px solid rgba(239,68,68,.15)';
-      }
-    }
-  });
-
-  /* Hero */
-  var bannerTotal = document.getElementById('bannerTotal');
-  var bannerTotalKrw = document.getElementById('bannerTotalKrw');
-  if (bannerTotal && totalVal > 0) {
-    bannerTotal.textContent = '$' + Math.round(totalVal).toLocaleString();
-  }
-  if (bannerTotalKrw && totalVal > 0) {
-    bannerTotalKrw.textContent = '≈ ' + fmtKRWraw(totalVal * fxRate);
-  }
-
-  /* Cost */
-  var bannerCost = document.getElementById('bannerCost');
-  if (bannerCost && totalCost > 0) {
-    bannerCost.textContent = '$' + Math.round(totalCost).toLocaleString();
-  }
-
-  /* Gain */
-  var bannerGain = document.getElementById('bannerGain');
-  var gainCard   = document.getElementById('gainCard');
-  var gainDot    = document.getElementById('gainDot');
-  if (bannerGain && totalCost > 0) {
-    var pct = (totalCur - totalCost) / totalCost * 100;
-    bannerGain.textContent = (pct >= 0 ? '+' : '') + pct.toFixed(1) + '%';
-    if (pct >= 0) {
-      bannerGain.style.color = 'var(--green)';
-      if (gainCard) gainCard.classList.add('green');
-      if (gainDot) gainDot.style.background = 'var(--green)';
-    } else {
-      bannerGain.style.color = 'var(--red)';
-      if (gainCard) gainCard.classList.add('red');
-      if (gainDot) gainDot.style.background = 'var(--red)';
-    }
-  }
-})();
-
+// ── 자동 갱신 ─────────────────────────────────────────────
 var STALE = {{ stale_tickers | safe }};
 var NEEDS_REFRESH = {{ needs_refresh | safe }};
 if (NEEDS_REFRESH) {

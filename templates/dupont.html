@@ -1,0 +1,487 @@
+{% extends "base.html" %}
+{% block title %}Money — DuPont 분석{% endblock %}
+{% block content %}
+
+<style>
+:root {
+  --ms-gradient: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  --dp-blue:   #667eea;
+  --dp-purple: #764ba2;
+  --dp-green:  #10b981;
+  --dp-amber:  #f59e0b;
+  --dp-red:    #ef4444;
+  --dp-cyan:   #22d3ee;
+  --r-xl: 16px;
+  --ease-out: cubic-bezier(0.16, 1, 0.3, 1);
+  --shadow-sm: 0 1px 3px rgba(0,0,0,0.07);
+  --shadow-md: 0 4px 16px rgba(0,0,0,0.10);
+}
+
+/* ── Page Header ── */
+.dp-header {
+  text-align: center;
+  padding: 36px 0 24px;
+}
+.dp-header h1 {
+  font-size: 28px; font-weight: 800; letter-spacing: -0.5px;
+  background: var(--ms-gradient);
+  -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text;
+  margin-bottom: 6px;
+}
+.dp-header p { font-size: 14px; color: var(--text2); }
+
+/* ── Formula Banner ── */
+.dp-formula {
+  display: flex; align-items: center; justify-content: center;
+  flex-wrap: wrap; gap: 6px 0;
+  background: var(--bg); border: 1px solid var(--border);
+  border-radius: var(--r-xl); padding: 18px 24px;
+  margin-bottom: 28px; font-size: 14px; font-weight: 600;
+}
+.dp-formula-chip {
+  display: inline-flex; flex-direction: column; align-items: center;
+  padding: 6px 14px; border-radius: 10px;
+  font-size: 12px; font-weight: 700; line-height: 1.3;
+}
+.dp-formula-chip .val { font-size: 16px; font-weight: 800; }
+.dp-formula-chip.roe  { background: rgba(102,126,234,0.12); color: var(--dp-blue); }
+.dp-formula-chip.npm  { background: rgba(16,185,129,0.12);  color: var(--dp-green); }
+.dp-formula-chip.at   { background: rgba(245,158,11,0.12);  color: var(--dp-amber); }
+.dp-formula-chip.em   { background: rgba(34,211,238,0.12);  color: var(--dp-cyan); }
+.dp-op { font-size: 20px; font-weight: 700; color: var(--text2); padding: 0 8px; }
+
+/* ── Explainer Cards ── */
+.dp-explain-grid {
+  display: grid; grid-template-columns: repeat(4, 1fr);
+  gap: 12px; margin-bottom: 28px;
+}
+@media (max-width: 800px) { .dp-explain-grid { grid-template-columns: repeat(2, 1fr); } }
+@media (max-width: 480px) { .dp-explain-grid { grid-template-columns: 1fr; } }
+
+.dp-explain-card {
+  background: var(--bg); border: 1px solid var(--border);
+  border-radius: var(--r-xl); padding: 16px 18px;
+  border-top: 3px solid;
+  transition: transform 0.2s var(--ease-out), box-shadow 0.2s;
+}
+.dp-explain-card:hover { transform: translateY(-2px); box-shadow: var(--shadow-md); }
+.dp-explain-card.roe { border-top-color: var(--dp-blue); }
+.dp-explain-card.npm { border-top-color: var(--dp-green); }
+.dp-explain-card.at  { border-top-color: var(--dp-amber); }
+.dp-explain-card.em  { border-top-color: var(--dp-cyan); }
+
+.dp-explain-abbr {
+  font-size: 11px; font-weight: 700; letter-spacing: 1px;
+  text-transform: uppercase; margin-bottom: 4px;
+}
+.roe .dp-explain-abbr { color: var(--dp-blue); }
+.npm .dp-explain-abbr { color: var(--dp-green); }
+.at  .dp-explain-abbr { color: var(--dp-amber); }
+.em  .dp-explain-abbr { color: var(--dp-cyan); }
+
+.dp-explain-name { font-size: 13px; font-weight: 700; margin-bottom: 6px; color: var(--text); }
+.dp-explain-formula {
+  font-size: 11px; color: var(--text2);
+  font-family: monospace; background: rgba(128,128,128,0.07);
+  padding: 4px 8px; border-radius: 6px; margin-bottom: 6px;
+}
+.dp-explain-desc { font-size: 11px; color: var(--text2); line-height: 1.5; }
+
+/* ── Stock Card ── */
+.dp-stock-card {
+  background: var(--bg); border: 1px solid var(--border);
+  border-radius: var(--r-xl); padding: 24px;
+  margin-bottom: 20px;
+  position: relative; overflow: hidden;
+  transition: box-shadow 0.2s var(--ease-out);
+}
+.dp-stock-card:hover { box-shadow: var(--shadow-md); }
+.dp-stock-card::before {
+  content: ''; position: absolute; top: 0; left: 0; right: 0; height: 3px;
+  background: var(--ms-gradient); opacity: 0.5;
+  border-radius: var(--r-xl) var(--r-xl) 0 0;
+}
+
+.dp-stock-header {
+  display: flex; align-items: center; gap: 14px; margin-bottom: 20px;
+}
+.dp-ticker-badge {
+  width: 42px; height: 42px; border-radius: 10px; flex-shrink: 0;
+  display: flex; align-items: center; justify-content: center;
+  overflow: hidden; background: rgba(102,126,234,0.1);
+}
+.dp-ticker-badge img {
+  width: 100%; height: 100%; object-fit: contain; border-radius: 8px;
+}
+.dp-ticker-badge .dp-ticker-fallback {
+  font-size: 10px; font-weight: 800; color: var(--dp-blue); letter-spacing: 0;
+}
+.dp-stock-title { min-width: 0; }
+.dp-stock-ticker { font-size: 15px; font-weight: 800; color: var(--text); }
+.dp-stock-name   { font-size: 12px; color: var(--text2); }
+
+/* ── Table ── */
+.dp-table-wrap { overflow-x: auto; -webkit-overflow-scrolling: touch; }
+.dp-table {
+  width: 100%; border-collapse: collapse;
+  font-size: 13px;
+}
+.dp-table th {
+  padding: 8px 12px; text-align: right;
+  font-size: 10px; font-weight: 700; letter-spacing: 0.5px;
+  text-transform: uppercase; color: var(--text2);
+  border-bottom: 1px solid var(--border);
+}
+.dp-table th:first-child { text-align: left; }
+.dp-table td {
+  padding: 11px 12px; text-align: right;
+  border-bottom: 1px solid rgba(128,128,128,0.07);
+  font-variant-numeric: tabular-nums; line-height: 1.2;
+}
+.dp-table td:first-child { text-align: left; font-weight: 700; }
+.dp-table tr:last-child td { border-bottom: none; }
+.dp-table tr:hover td { background: rgba(128,128,128,0.04); }
+
+.dp-val-num  { font-size: 14px; font-weight: 700; }
+.dp-val-sub  { font-size: 10px; color: var(--text2); margin-top: 1px; }
+
+/* ROE 색상 */
+.dp-roe-high { color: var(--dp-green); }
+.dp-roe-mid  { color: var(--dp-amber); }
+.dp-roe-low  { color: var(--dp-red); }
+
+/* 컬럼 색상 헤더 */
+.dp-table th.th-roe { color: var(--dp-blue); }
+.dp-table th.th-npm { color: var(--dp-green); }
+.dp-table th.th-at  { color: var(--dp-amber); }
+.dp-table th.th-em  { color: var(--dp-cyan); }
+
+/* ── Mini Chart ── */
+.dp-chart-row {
+  display: grid; grid-template-columns: 1fr 1fr;
+  gap: 14px; margin-top: 20px;
+}
+@media (max-width: 600px) { .dp-chart-row { grid-template-columns: 1fr; } }
+
+.dp-chart-box {
+  background: rgba(128,128,128,0.03); border: 1px solid var(--border);
+  border-radius: 12px; padding: 12px 14px;
+}
+.dp-chart-box-title {
+  font-size: 11px; font-weight: 700; color: var(--text2);
+  text-transform: uppercase; letter-spacing: 0.5px;
+  margin-bottom: 10px;
+}
+.dp-chart-wrap { height: 120px; position: relative; }
+
+/* ── Empty / No Data ── */
+.dp-empty {
+  text-align: center; padding: 60px 20px;
+  color: var(--text2); font-size: 14px;
+}
+.dp-empty h2 { font-size: 20px; margin-bottom: 8px; color: var(--text); }
+
+.dp-no-data {
+  font-size: 12px; color: var(--text2); text-align: center;
+  padding: 24px 0; opacity: 0.6;
+}
+
+/* ── Disclaimer ── */
+.dp-disclaimer {
+  font-size: 11px; color: var(--text2); opacity: 0.6;
+  text-align: center; padding: 8px 16px 28px;
+}
+</style>
+
+
+<!-- ══════════════════════════════════════
+     PAGE HEADER
+══════════════════════════════════════ -->
+<div class="dp-header">
+  <h1>🔬 DuPont 분석</h1>
+  <p>ROE를 세 가지 핵심 동인으로 분해하여 수익성의 원천을 파악합니다</p>
+</div>
+
+<!-- ══════════════════════════════════════
+     FORMULA BANNER
+══════════════════════════════════════ -->
+<div class="dp-formula">
+  <div class="dp-formula-chip roe">
+    <span>ROE</span>
+    <span class="val">자기자본이익률</span>
+  </div>
+  <span class="dp-op">=</span>
+  <div class="dp-formula-chip npm">
+    <span>NPM</span>
+    <span class="val">순이익률</span>
+  </div>
+  <span class="dp-op">×</span>
+  <div class="dp-formula-chip at">
+    <span>AT</span>
+    <span class="val">자산회전율</span>
+  </div>
+  <span class="dp-op">×</span>
+  <div class="dp-formula-chip em">
+    <span>EM</span>
+    <span class="val">재무레버리지</span>
+  </div>
+</div>
+
+<!-- ══════════════════════════════════════
+     EXPLAINER CARDS
+══════════════════════════════════════ -->
+<div class="dp-explain-grid">
+  <div class="dp-explain-card roe">
+    <div class="dp-explain-abbr">ROE</div>
+    <div class="dp-explain-name">자기자본이익률</div>
+    <div class="dp-explain-formula">순이익 ÷ 자기자본</div>
+    <div class="dp-explain-desc">주주가 투자한 자본으로 얼마나 이익을 창출했는지 나타냄. 높을수록 우수.</div>
+  </div>
+  <div class="dp-explain-card npm">
+    <div class="dp-explain-abbr">NPM</div>
+    <div class="dp-explain-name">순이익률</div>
+    <div class="dp-explain-formula">순이익 ÷ 매출</div>
+    <div class="dp-explain-desc">매출 1원당 최종적으로 남는 이익. 원가 통제 및 비용 효율성을 반영.</div>
+  </div>
+  <div class="dp-explain-card at">
+    <div class="dp-explain-abbr">AT</div>
+    <div class="dp-explain-name">자산회전율</div>
+    <div class="dp-explain-formula">매출 ÷ 총자산</div>
+    <div class="dp-explain-desc">보유 자산을 얼마나 효율적으로 활용해 매출을 만드는지. 높을수록 효율적.</div>
+  </div>
+  <div class="dp-explain-card em">
+    <div class="dp-explain-abbr">EM</div>
+    <div class="dp-explain-name">재무레버리지</div>
+    <div class="dp-explain-formula">총자산 ÷ 자기자본</div>
+    <div class="dp-explain-desc">자기자본 대비 총자산 비율. 부채 활용도를 의미하며 높을수록 레버리지가 큼.</div>
+  </div>
+</div>
+
+
+<!-- ══════════════════════════════════════
+     STOCK CARDS
+══════════════════════════════════════ -->
+<div id="dpStockList"></div>
+
+<div class="dp-disclaimer">
+  ※ 총자산은 ROI(= 순이익/총자산)에서 역산하며, 자기자본은 BVPS × 발행주식수로 계산됩니다. 데이터 출처: Yahoo Finance
+</div>
+
+
+<script>
+const DUPONT_DATA = {{ dupont_json | safe }};
+
+const TICKER_COLORS = {
+  "AAPL":"#F5F5F7","MSFT":"#0078D4","GOOGL":"#4285F4","GOOG":"#4285F4",
+  "AMZN":"#FF9900","META":"#0866FF","NVDA":"#76B900","TSLA":"#E31937",
+  "NFLX":"#E50914","ORCL":"#F80000","CRM":"#00A1E0","ADBE":"#FF0000",
+  "NOW":"#00A1E0","SNOW":"#29B5E8","TEAM":"#0052CC","MDB":"#00ED64",
+  "DDOG":"#632CA6","NET":"#F38020","ZS":"#005DAA","CRWD":"#FC1D2D",
+  "PANW":"#00C0E8","SHOP":"#96BF48","PLTR":"#1a1a1a","V":"#1A1F71",
+  "MA":"#CF4500","LLY":"#D52B1E","NVO":"#004B87","TSM":"#EB0029",
+  "AVGO":"#CC0000","ASML":"#F58220","KLAC":"#007BC6","INTC":"#0071C5",
+  "AMD":"#ED1C24","QCOM":"#3253DC","AMAT":"#00A3E0","ARM":"#0091BD",
+  "MU":"#E1251B","UBER":"#000000","ABNB":"#FF5A5F","SPOT":"#1ED760",
+  "APP":"#001026","DUOL":"#58CC02","TTD":"#0085CA","HUBS":"#FF7A59",
+  "COIN":"#0052FF","CELH":"#E31837","IOT":"#1A56DB","MPWR":"#E31837",
+};
+const FALLBACK_COLORS = ['#667eea','#10b981','#f59e0b','#22d3ee','#ec4899','#8b5cf6','#f97316'];
+let _fi = 0;
+const _THEME_AWARE = {
+  "PLTR": { light:"#1a1a1a", dark:"#ffffff" },
+  "APP":  { light:"#001026", dark:"#ffffff" },
+  "AAPL": { light:"#1d1d1f", dark:"#F5F5F7" },
+};
+
+function tickerColor(ticker) {
+  if (_THEME_AWARE[ticker]) {
+    const isDark = document.documentElement.getAttribute('data-theme') === 'dark';
+    return isDark ? _THEME_AWARE[ticker].dark : _THEME_AWARE[ticker].light;
+  }
+  return TICKER_COLORS[ticker] || FALLBACK_COLORS[_fi++ % FALLBACK_COLORS.length];
+}
+
+function roeColorClass(roe) {
+  if (roe == null) return '';
+  if (roe >= 15) return 'dp-roe-high';
+  if (roe >= 5)  return 'dp-roe-mid';
+  return 'dp-roe-low';
+}
+
+function fmt(v, suffix, decimals) {
+  if (v == null) return '<span style="color:var(--text2);opacity:.4;">—</span>';
+  return v.toFixed(decimals) + suffix;
+}
+
+function makeChart(canvasId, labels, datasets) {
+  const isDark = document.documentElement.getAttribute('data-theme') === 'dark';
+  const gridColor  = isDark ? 'rgba(255,255,255,0.05)' : 'rgba(0,0,0,0.05)';
+  const tickColor  = isDark ? '#666' : '#aaa';
+  const tooltipBg  = isDark ? '#1e2330' : '#fff';
+  const tooltipBorder = isDark ? '#333' : '#ddd';
+
+  new Chart(document.getElementById(canvasId), {
+    type: 'line',
+    data: { labels, datasets },
+    options: {
+      responsive: true, maintainAspectRatio: false,
+      interaction: { mode: 'index', intersect: false },
+      plugins: {
+        legend: {
+          display: true,
+          position: 'top',
+          labels: {
+            color: tickColor,
+            font: { size: 10 }, boxWidth: 10, padding: 10,
+          },
+        },
+        tooltip: {
+          backgroundColor: tooltipBg, borderColor: tooltipBorder, borderWidth: 1,
+          padding: 8, cornerRadius: 8,
+          titleColor: isDark ? '#fff' : '#111',
+          bodyColor: isDark ? '#aaa' : '#555',
+        },
+      },
+      scales: {
+        x: {
+          grid: { color: gridColor },
+          ticks: { color: tickColor, font: { size: 10 } },
+        },
+        y: {
+          grid: { color: gridColor },
+          ticks: { color: tickColor, font: { size: 10 } },
+        },
+      },
+    },
+  });
+}
+
+function renderStockCard(ticker, data) {
+  const color = tickerColor(ticker);
+  const years = data.years;
+
+  // ── 헤더 ────────────────────────────────────────────────
+  const labels = years.map(r => r.year);
+
+  const card = document.createElement('div');
+  card.className = 'dp-stock-card';
+
+  const chartId1 = 'dp-c1-' + ticker;
+  const chartId2 = 'dp-c2-' + ticker;
+
+  // ── 테이블 행 ──────────────────────────────────────────
+  const tableRows = years.length === 0
+    ? '<tr><td colspan="5" class="dp-no-data">재무 데이터가 부족합니다 (ROI · BVPS 필요)</td></tr>'
+    : years.map(r => `
+      <tr>
+        <td>${r.year}</td>
+        <td><div class="dp-val-num ${roeColorClass(r.roe)}">${fmt(r.roe, '%', 1)}</div></td>
+        <td><div class="dp-val-num" style="color:var(--dp-green);">${fmt(r.npm, '%', 1)}</div></td>
+        <td><div class="dp-val-num" style="color:var(--dp-amber);">${fmt(r.at, 'x', 2)}</div></td>
+        <td><div class="dp-val-num" style="color:var(--dp-cyan);">${fmt(r.em, 'x', 2)}</div></td>
+      </tr>`).join('');
+
+  // ── 최신 연도 요약 (헤더용) ────────────────────────────
+  const latest = years[years.length - 1];
+  const latestRoeHtml = latest
+    ? `<span class="${roeColorClass(latest.roe)}" style="font-size:13px;font-weight:700;margin-left:8px;">${latest.roe != null ? 'ROE ' + latest.roe.toFixed(1) + '%' : ''}</span>`
+    : '';
+
+  // ── 차트 섹션 (연도 2개 이상일 때) ────────────────────
+  const showChart = years.length >= 2;
+  const chartHtml = showChart ? `
+    <div class="dp-chart-row">
+      <div class="dp-chart-box">
+        <div class="dp-chart-box-title">ROE · NPM 추이 (%)</div>
+        <div class="dp-chart-wrap"><canvas id="${chartId1}"></canvas></div>
+      </div>
+      <div class="dp-chart-box">
+        <div class="dp-chart-box-title">AT · EM 추이 (배)</div>
+        <div class="dp-chart-wrap"><canvas id="${chartId2}"></canvas></div>
+      </div>
+    </div>` : '';
+
+  card.innerHTML = `
+    <div class="dp-stock-header">
+      <div class="dp-ticker-badge" style="background:${color}18;">
+        <img src="/resources/icons/${ticker}.png"
+             onerror="this.style.display='none';this.parentElement.innerHTML='<span class=\\'dp-ticker-fallback\\'>${ticker.slice(0,4)}</span>';"
+             style="width:100%;height:100%;object-fit:contain;border-radius:8px;" />
+      </div>
+      <div class="dp-stock-title">
+        <div class="dp-stock-ticker" style="color:${color};">${ticker}${latestRoeHtml}</div>
+        <div class="dp-stock-name">${data.name}</div>
+      </div>
+    </div>
+
+    <div class="dp-table-wrap">
+      <table class="dp-table">
+        <thead>
+          <tr>
+            <th>연도</th>
+            <th class="th-roe">ROE</th>
+            <th class="th-npm">NPM</th>
+            <th class="th-at">AT</th>
+            <th class="th-em">EM</th>
+          </tr>
+        </thead>
+        <tbody>${tableRows}</tbody>
+      </table>
+    </div>
+    ${chartHtml}`;
+
+  document.getElementById('dpStockList').appendChild(card);
+
+  // ── 차트 렌더 ──────────────────────────────────────────
+  if (showChart) {
+    makeChart(chartId1, labels, [
+      {
+        label: 'ROE (%)',
+        data: years.map(r => r.roe),
+        borderColor: 'rgba(102,126,234,0.9)',
+        backgroundColor: 'rgba(102,126,234,0.08)',
+        fill: true, tension: 0.4, pointRadius: 4, borderWidth: 2.5,
+      },
+      {
+        label: 'NPM (%)',
+        data: years.map(r => r.npm),
+        borderColor: 'rgba(16,185,129,0.9)',
+        backgroundColor: 'transparent',
+        fill: false, tension: 0.4, pointRadius: 4, borderWidth: 2,
+        borderDash: [6, 3],
+      },
+    ]);
+    makeChart(chartId2, labels, [
+      {
+        label: 'AT (x)',
+        data: years.map(r => r.at),
+        borderColor: 'rgba(245,158,11,0.9)',
+        backgroundColor: 'rgba(245,158,11,0.06)',
+        fill: true, tension: 0.4, pointRadius: 4, borderWidth: 2.5,
+      },
+      {
+        label: 'EM (x)',
+        data: years.map(r => r.em),
+        borderColor: 'rgba(34,211,238,0.9)',
+        backgroundColor: 'transparent',
+        fill: false, tension: 0.4, pointRadius: 4, borderWidth: 2,
+        borderDash: [6, 3],
+      },
+    ]);
+  }
+}
+
+// ── 초기 렌더링 ──────────────────────────────────────────
+const tickers = Object.keys(DUPONT_DATA);
+if (tickers.length === 0) {
+  document.getElementById('dpStockList').innerHTML = `
+    <div class="dp-empty">
+      <h2>포트폴리오가 비어 있습니다</h2>
+      <p><a href="/portfolio" style="color:var(--dp-blue);">포트폴리오</a>에서 종목을 추가하면 DuPont 분석이 여기에 표시됩니다.</p>
+    </div>`;
+} else {
+  tickers.forEach(ticker => renderStockCard(ticker, DUPONT_DATA[ticker]));
+}
+</script>
+
+{% endblock %}

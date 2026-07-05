@@ -233,71 +233,6 @@ def fetch_stock(ticker: str) -> dict | None:
         return None
 
 
-def fetch_rule_of_40(ticker: str) -> dict | None:
-    """
-    Rule of 40 지표 계산.
-    - revenue_growth: 최근 2개 연간 매출 YoY 성장률 (%)
-    - profit_margin : 최근 연간 순이익률 (%)
-    - score         : growth + margin
-    """
-    try:
-        t    = yf.Ticker(ticker.upper())
-        info = t.info or {}
-        name = info.get("shortName") or info.get("longName") or ticker.upper()
-
-        fin: pd.DataFrame | None = None
-        for attr in ("income_stmt", "financials"):
-            try:
-                f = getattr(t, attr, None)
-                if f is not None and not f.empty:
-                    fin = f
-                    break
-            except Exception:
-                continue
-
-        if fin is None or fin.empty:
-            logger.warning("[Rule40/%s] 재무제표 없음", ticker)
-            return None
-
-        rev_row = _get_row(fin, _REVENUE_KEYS)
-        net_row = _get_row(fin, _NET_KEYS)
-
-        if rev_row is None or net_row is None:
-            logger.warning("[Rule40/%s] 매출/순이익 행 없음", ticker)
-            return None
-
-        # 최신 2개 연도 컬럼 (index 0=최신, 1=직전)
-        valid_cols = [c for c in fin.columns[:4]
-                      if not pd.isna(rev_row.get(c)) and not pd.isna(net_row.get(c))]
-        if len(valid_cols) < 2:
-            logger.warning("[Rule40/%s] 유효 연도 부족 (%d개)", ticker, len(valid_cols))
-            return None
-
-        rev1 = float(rev_row[valid_cols[0]])   # 최신 매출
-        rev0 = float(rev_row[valid_cols[1]])   # 직전 매출
-        net1 = float(net_row[valid_cols[0]])   # 최신 순이익
-
-        if rev0 == 0 or rev1 == 0:
-            return None
-
-        revenue_growth = (rev1 - rev0) / abs(rev0) * 100
-        profit_margin  = net1 / rev1 * 100
-
-        return {
-            "ticker":         ticker.upper(),
-            "name":           name,
-            "revenue_growth": round(revenue_growth, 1),
-            "profit_margin":  round(profit_margin, 1),
-            "score":          round(revenue_growth + profit_margin, 1),
-            "year_latest":    valid_cols[0].year,
-            "year_prev":      valid_cols[1].year,
-        }
-
-    except Exception as e:
-        logger.error("[Rule40/%s] 조회 실패: %s", ticker, e, exc_info=True)
-        return None
-
-
 def fetch_stock_quick(ticker: str) -> dict | None:
     """
     최신 1개 회계연도만 빠르게 조회.
@@ -491,31 +426,6 @@ def fetch_kr_name(ticker: str) -> str | None:
     return None
 
 
-def fetch_kr_rule_of_40(raw_ticker: str) -> dict | None:
-    """
-    국내 주식 Rule of 40 지표 계산.
-    raw_ticker: "035420" 또는 "035420.KS" / "035420.KQ"
-    반환값: {ticker, name, revenue_growth, profit_margin, score}
-    실패 시 None 반환.
-    """
-    raw = raw_ticker.strip()
-    if raw.endswith(".KS") or raw.endswith(".KQ"):
-        candidates = [raw]
-    else:
-        candidates = [raw + ".KS", raw + ".KQ"]
-
-    for t_code in candidates:
-        result = fetch_rule_of_40(t_code)
-        if result:
-            result["ticker"] = t_code
-            kr_name = fetch_kr_name(t_code)
-            if kr_name:
-                result["name"] = kr_name
-            return result
-
-    return None
-
-
 def fetch_kr_stock(raw_ticker: str) -> dict | None:
     """
     yfinance로 한국 주식 현재가 조회.
@@ -564,48 +474,3 @@ def fetch_krw_rate() -> float:
     return 1380.0
 
 
-def fetch_us10y_yield() -> dict | None:
-    """미국 10년물 국채 금리 조회. 반환: {rate, market_state} 또는 None."""
-    try:
-        info = yf.Ticker("^TNX").info
-        rate = info.get("regularMarketPrice")
-        if not rate or rate <= 0:
-            return None
-        return {
-            "rate":         round(float(rate), 3),
-            "market_state": info.get("marketState", ""),
-        }
-    except Exception:
-        return None
-
-
-def fetch_yield_history(period: str = "5y") -> dict | None:
-    """
-    10년물(^TNX)·단기금리(^IRX) 월별 평균 히스토리.
-    반환: {labels, yield10y, irx, fetched_at}  NaN → None 변환 포함.
-    """
-    try:
-        def _monthly(ticker: str) -> pd.Series:
-            df = yf.Ticker(ticker).history(period=period)
-            if df.empty:
-                return pd.Series(dtype=float)
-            return df["Close"].resample("ME").last().round(3)
-
-        s10 = _monthly("^TNX")
-        sIRX = _monthly("^IRX")
-        idx = s10.index.union(sIRX.index).sort_values()
-        s10  = s10.reindex(idx)
-        sIRX = sIRX.reindex(idx)
-
-        def _to_list(s: pd.Series) -> list:
-            return [None if pd.isna(v) else float(v) for v in s]
-
-        return {
-            "labels":    [d.strftime("%y.%m") for d in idx],
-            "yield10y":  _to_list(s10),
-            "irx":       _to_list(sIRX),
-            "fetched_at": pd.Timestamp.utcnow().isoformat(),
-        }
-    except Exception as e:
-        logger.warning("fetch_yield_history 실패: %s", e)
-        return None

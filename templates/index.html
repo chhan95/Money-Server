@@ -1,593 +1,357 @@
 {% extends "base.html" %}
-{% block title %}Money - HOME{% endblock %}
+{% block title %}Money — HOME{% endblock %}
 {% block content %}
 
 <!-- ── 로딩 오버레이 ── -->
 <div id="priceLoadingOverlay" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.75);z-index:9999;flex-direction:column;align-items:center;justify-content:center;gap:20px;">
-  <div style="width:48px;height:48px;border:4px solid rgba(255,255,255,0.15);border-top-color:#667eea;border-radius:50%;animation:spin 0.8s linear infinite;"></div>
+  <div style="width:48px;height:48px;border:4px solid rgba(255,255,255,0.15);border-top-color:#667eea;border-radius:50%;animation:hmSpin 0.8s linear infinite;"></div>
   <div style="color:#fff;font-size:16px;font-weight:700;">현재가 업데이트 중...</div>
-  <div id="priceLoadingTickers" style="color:rgba(255,255,255,0.5);font-size:13px;"></div>
+  <div id="priceLoadingTickers" style="color:rgba(255,255,255,0.45);font-size:12px;"></div>
 </div>
-<style>@keyframes spin{to{transform:rotate(360deg)}}</style>
 
 <style>
-/* ── Design Tokens (마일스톤과 동일) ── */
+@keyframes hmSpin { to { transform: rotate(360deg); } }
+
 :root {
   --ms-gradient: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-  --glass: rgba(255,255,255,0.03);
   --glass-border: var(--border);
-  --shadow-sm: 0 1px 3px rgba(0,0,0,0.08);
-  --shadow-md: 0 4px 16px rgba(0,0,0,0.12);
-  --shadow-lg: 0 8px 32px rgba(0,0,0,0.18);
-  --shadow-glow: 0 0 40px rgba(102,126,234,0.15);
   --ease-out: cubic-bezier(0.16, 1, 0.3, 1);
+  --shadow-sm: 0 1px 3px rgba(0,0,0,0.07);
+  --shadow-md: 0 4px 16px rgba(0,0,0,0.11);
+  --shadow-lg: 0 8px 32px rgba(0,0,0,0.18);
   --r-xl: 16px;
   --r-2xl: 20px;
   --green: #10b981;
   --amber: #f59e0b;
   --blue: #667eea;
+  --red: #ef4444;
 }
 
-/* ── Page Header ── */
-.hm-page-header {
-  text-align: center;
-  padding: 32px 0 24px;
+/* ══ Header ══ */
+.hm-header {
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 28px 0 20px; gap: 12px;
 }
-.hm-page-header h1 {
-  font-size: 28px;
-  font-weight: 800;
-  letter-spacing: -0.5px;
+.hm-header-left h1 {
+  font-size: 22px; font-weight: 800; letter-spacing: -0.4px;
   background: var(--ms-gradient);
-  -webkit-background-clip: text;
-  -webkit-text-fill-color: transparent;
-  background-clip: text;
-  margin-bottom: 6px;
+  -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text;
+  margin-bottom: 2px;
 }
-.hm-page-header p {
-  font-size: 14px;
-  color: var(--text2);
-  font-weight: 400;
+.hm-header-left p { font-size: 12px; color: var(--text2); }
+.hm-refresh-btn {
+  display: flex; align-items: center; gap: 6px;
+  padding: 8px 16px; border-radius: 10px;
+  background: var(--bg); border: 1px solid var(--glass-border);
+  color: var(--text2); font-size: 12px; font-weight: 600;
+  cursor: pointer; transition: all 0.15s var(--ease-out);
+  white-space: nowrap;
 }
+.hm-refresh-btn:hover { background: rgba(102,126,234,0.08); border-color: rgba(102,126,234,0.25); color: var(--blue); }
+.hm-refresh-btn:disabled { opacity: 0.5; cursor: not-allowed; }
 
-/* ── Empty State ── */
-.hm-empty {
-  text-align: center;
-  padding: 48px 24px;
-  color: var(--text2);
+/* ══ Top row: Hero + 2 stat cards ══ */
+.hm-top-row {
+  display: grid; grid-template-columns: 1fr 200px 200px;
+  gap: 12px; margin-bottom: 16px;
 }
-.hm-empty .icon { font-size: 40px; margin-bottom: 12px; opacity: 0.3; }
-.hm-empty .msg { font-size: 14px; line-height: 1.7; }
-.hm-empty a {
-  color: #667eea;
-  text-decoration: none;
-  font-weight: 600;
-}
-.hm-empty a:hover { text-decoration: underline; }
+@media (max-width: 820px) { .hm-top-row { grid-template-columns: 1fr 1fr; } }
+@media (max-width: 540px) { .hm-top-row { grid-template-columns: 1fr; } }
 
-/* ── Hero Card (총 평가액) ── */
+/* Hero */
 .hm-hero {
-  background: var(--ms-gradient);
-  border-radius: var(--r-2xl);
-  padding: 28px 32px;
-  color: white;
-  position: relative;
-  overflow: hidden;
-  box-shadow: var(--shadow-glow), var(--shadow-lg);
-  margin-bottom: 20px;
+  background: var(--ms-gradient); border-radius: var(--r-2xl);
+  padding: 26px 28px; color: white;
+  position: relative; overflow: hidden;
+  box-shadow: 0 4px 24px rgba(102,126,234,0.3);
 }
 .hm-hero::before {
-  content: '';
-  position: absolute;
-  top: -60%; right: -15%;
-  width: 280px; height: 280px;
+  content: ''; position: absolute; top: -50%; right: -10%;
+  width: 240px; height: 240px;
   background: radial-gradient(circle, rgba(255,255,255,0.1) 0%, transparent 70%);
   pointer-events: none;
 }
-.hm-hero::after {
-  content: '';
-  position: absolute;
-  bottom: -40%; left: -8%;
-  width: 180px; height: 180px;
-  background: radial-gradient(circle, rgba(255,255,255,0.06) 0%, transparent 70%);
-  pointer-events: none;
-}
-.hm-hero-top {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  margin-bottom: 8px;
-  position: relative; z-index: 1;
-}
 .hm-hero-label {
-  font-size: 13px; font-weight: 500;
-  opacity: 0.7; text-transform: uppercase; letter-spacing: 1.5px;
-}
-.hm-hero-count {
-  font-size: 14px; font-weight: 600; opacity: 0.9;
+  font-size: 10px; font-weight: 700; opacity: 0.65;
+  text-transform: uppercase; letter-spacing: 1.5px; margin-bottom: 10px;
 }
 .hm-hero-value {
-  font-size: 36px; font-weight: 800; letter-spacing: -1px;
-  position: relative; z-index: 1;
-  margin-bottom: 2px;
+  font-size: 32px; font-weight: 800; letter-spacing: -1px;
+  position: relative; z-index: 1; margin-bottom: 3px;
 }
-.hm-hero-value span { font-size: 18px; font-weight: 500; opacity: 0.6; }
-.hm-hero-sub {
-  font-size: 14px; opacity: 0.65; position: relative; z-index: 1;
+.hm-hero-sub { font-size: 13px; opacity: 0.6; position: relative; z-index: 1; }
+.hm-hero-count {
+  position: absolute; top: 24px; right: 24px;
+  font-size: 11px; font-weight: 600; opacity: 0.75;
+  background: rgba(255,255,255,0.12); border-radius: 99px;
+  padding: 3px 10px;
 }
 
-/* ── Summary Grid ── */
-.hm-summary-grid {
-  display: grid;
-  grid-template-columns: repeat(2, 1fr);
-  gap: 12px;
-  margin-bottom: 20px;
-}
-@media (max-width: 500px) {
-  .hm-summary-grid { grid-template-columns: 1fr; }
-}
+/* Stat cards */
 .hm-stat-card {
-  background: var(--bg);
-  border: 1px solid var(--glass-border);
-  border-radius: var(--r-xl);
-  padding: 20px 22px;
-  transition: all 0.3s var(--ease-out);
-  position: relative;
-  overflow: hidden;
+  background: var(--bg); border: 1px solid var(--glass-border);
+  border-radius: var(--r-xl); padding: 20px 20px;
+  position: relative; overflow: hidden;
+  transition: box-shadow 0.2s var(--ease-out);
 }
-.hm-stat-card:hover {
-  transform: translateY(-2px);
-  box-shadow: var(--shadow-md);
-  border-color: rgba(255,255,255,0.1);
-}
+@media (max-width: 820px) { .hm-stat-card:first-of-type { display: none; } }
+.hm-stat-card:hover { box-shadow: var(--shadow-md); }
 .hm-stat-card::before {
-  content: '';
-  position: absolute; left: 0; top: 0; bottom: 0;
-  width: 4px;
-  border-radius: 4px 0 0 4px;
+  content: ''; position: absolute; left: 0; top: 0; bottom: 0;
+  width: 3px; border-radius: 3px 0 0 3px;
 }
-.hm-stat-card.income::before { background: var(--green); }
+.hm-stat-card.net::before      { background: var(--green); }
 .hm-stat-card.forecast::before { background: var(--amber); }
-
-.hm-stat-label {
-  font-size: 12px; font-weight: 500; color: var(--text2);
-  margin-bottom: 8px;
-  display: flex; align-items: center; gap: 8px;
-}
-.hm-stat-label .dot {
-  width: 8px; height: 8px; border-radius: 50%;
-}
-.hm-stat-label .dot.green { background: var(--green); }
-.hm-stat-label .dot.amber { background: var(--amber); }
-.hm-stat-label .tag {
-  font-size: 10px; padding: 1px 8px; border-radius: 99px;
-  font-weight: 600; letter-spacing: 0.5px;
-}
-.hm-stat-label .tag.green-tag {
-  background: rgba(16,185,129,0.1); color: var(--green);
-  border: 1px solid rgba(16,185,129,0.15);
-}
-.hm-stat-label .tag.amber-tag {
-  background: rgba(245,158,11,0.1); color: var(--amber);
-  border: 1px solid rgba(245,158,11,0.15);
-}
-.hm-stat-value {
-  font-size: 24px; font-weight: 800; letter-spacing: -0.5px;
-  line-height: 1.2;
-}
+.hm-stat-label { font-size: 10px; font-weight: 700; color: var(--text2); text-transform: uppercase; letter-spacing: 0.7px; margin-bottom: 8px; }
+.hm-stat-value { font-size: 18px; font-weight: 800; letter-spacing: -0.4px; line-height: 1.2; }
 .hm-stat-value.green { color: var(--green); }
 .hm-stat-value.amber { color: var(--amber); }
-.hm-stat-sub {
-  font-size: 12px; color: var(--text2); margin-top: 4px;
-}
+.hm-stat-sub { font-size: 10px; color: var(--text2); margin-top: 4px; }
 
-/* ── Section Card (차트, 테이블 공용) ── */
-.hm-section-card {
-  background: var(--bg);
-  border: 1px solid var(--glass-border);
-  border-radius: var(--r-xl);
-  padding: 24px;
-  margin-bottom: 20px;
-  transition: all 0.3s var(--ease-out);
+/* ══ Middle row: Pie + Bar ══ */
+.hm-mid-row {
+  display: grid; grid-template-columns: 1fr 1fr;
+  gap: 12px; margin-bottom: 16px;
 }
-.hm-section-card:hover { box-shadow: var(--shadow-sm); }
-.hm-section-title {
-  font-size: 15px; font-weight: 700; color: var(--text);
-  margin-bottom: 4px;
-}
-.hm-section-sub {
-  font-size: 12px; color: var(--text2); margin-bottom: 16px;
-}
+@media (max-width: 720px) { .hm-mid-row { grid-template-columns: 1fr; } }
 
-/* ── Portfolio Composition Card ── */
-.hm-pie-card {
-  background: var(--bg);
-  border: 1px solid var(--glass-border);
-  border-radius: var(--r-2xl);
-  padding: 28px;
-  margin-bottom: 20px;
-  transition: all 0.3s var(--ease-out);
-  position: relative;
-  overflow: visible;
+.hm-card {
+  background: var(--bg); border: 1px solid var(--glass-border);
+  border-radius: var(--r-xl); padding: 20px 22px;
+  transition: box-shadow 0.2s var(--ease-out);
 }
-.hm-pie-card:hover { box-shadow: var(--shadow-md); border-color: rgba(255,255,255,0.1); }
-/* Subtle gradient accent at top */
-.hm-pie-card::before {
-  content: '';
-  position: absolute;
-  top: 0; left: 0; right: 0; height: 3px;
-  background: var(--ms-gradient);
-  opacity: 0.6;
-}
-.hm-pie-card-header {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-  margin-bottom: 24px;
-}
-.hm-pie-card-header .hm-hdr-icon {
-  width: 36px; height: 36px; border-radius: 10px;
-  background: rgba(102,126,234,0.1);
-  display: flex; align-items: center; justify-content: center;
-  font-size: 16px;
-}
-.hm-pie-card-header .hm-hdr-text h3 {
-  font-size: 16px; font-weight: 700; margin: 0; color: var(--text);
-}
-.hm-pie-card-header .hm-hdr-text span {
-  font-size: 11px; color: var(--text2);
-}
+.hm-card:hover { box-shadow: var(--shadow-sm); }
+.hm-card-title { font-size: 13px; font-weight: 700; color: var(--text); margin-bottom: 2px; }
+.hm-card-sub   { font-size: 11px; color: var(--text2); margin-bottom: 14px; }
 
-.hm-pie-layout {
-  display: grid;
-  grid-template-columns: 240px 1fr;
-  gap: 36px;
-  align-items: center;
+/* Donut */
+.hm-pie-wrap {
+  display: grid; grid-template-columns: 150px 1fr;
+  gap: 16px; align-items: center;
 }
-@media (max-width: 750px) {
-  .hm-pie-layout { grid-template-columns: 1fr; justify-items: center; }
-}
-
-/* Donut area */
-.hm-pie-chart-area {
-  width: 240px; height: 240px;
-  position: relative;
-  flex-shrink: 0;
-}
-@media (max-width: 500px) {
-  .hm-pie-chart-area { width: 200px; height: 200px; }
-}
+@media (max-width: 480px) { .hm-pie-wrap { grid-template-columns: 1fr; justify-items: center; } }
+.hm-pie-area { width: 150px; height: 150px; position: relative; }
 .hm-pie-center {
-  position: absolute;
-  top: 50%; left: 50%;
+  position: absolute; top: 50%; left: 50%;
   transform: translate(-50%, -50%);
-  text-align: center;
-  pointer-events: none;
-  z-index: 2;
+  text-align: center; pointer-events: none;
 }
-.hm-pie-center-label {
-  font-size: 10px; font-weight: 600; color: var(--text2);
-  text-transform: uppercase; letter-spacing: 1.2px;
-  margin-bottom: 4px;
-}
-.hm-pie-center-value {
-  font-size: 20px; font-weight: 800; color: var(--text);
-  letter-spacing: -0.5px;
-}
+.hm-pie-center-label { font-size: 9px; font-weight: 700; color: var(--text2); text-transform: uppercase; letter-spacing: 1px; }
+.hm-pie-center-value { font-size: 14px; font-weight: 800; color: var(--text); }
 
-/* Custom legend list with pct bars */
-.hm-pie-legend {
-  display: flex;
-  flex-direction: column;
-  gap: 6px;
-  min-width: 0;
-  width: 100%;
+.hm-pie-list { display: flex; flex-direction: column; gap: 4px; width: 100%; }
+.hm-pie-row {
+  display: flex; align-items: center; gap: 8px;
+  padding: 5px 8px; border-radius: 8px;
+  transition: background 0.15s;
 }
-.hm-pie-legend-item {
-  display: grid;
-  grid-template-columns: 34px 1fr auto;
-  gap: 12px;
-  align-items: center;
-  padding: 10px 14px;
-  border-radius: 12px;
-  background: var(--glass);
-  border: 1px solid transparent;
-  transition: all 0.25s var(--ease-out);
-  cursor: default;
-}
-.hm-pie-legend-item:hover {
-  background: rgba(255,255,255,0.05);
-  border-color: var(--glass-border);
-  transform: translateX(3px);
-}
-.hm-pie-legend-badge {
-  width: 34px; height: 34px; border-radius: 10px;
-  display: flex; align-items: center; justify-content: center;
-  font-size: 9px; font-weight: 700; color: #fff;
-  letter-spacing: 0.3px; flex-shrink: 0;
-  overflow: hidden;
-}
-.hm-pie-legend-body {
-  min-width: 0;
-}
-.hm-pie-legend-row1 {
-  display: flex;
-  align-items: baseline;
-  gap: 8px;
-  margin-bottom: 6px;
-}
-.hm-pie-legend-ticker {
-  font-size: 13px; font-weight: 700; color: var(--text);
-}
-.hm-pie-legend-name {
-  font-size: 10px; color: var(--text2);
-  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
-}
-/* Percentage bar */
-.hm-pct-bar-track {
-  height: 5px;
-  background: rgba(255,255,255,0.04);
-  border-radius: 99px;
-  overflow: hidden;
-}
-.hm-pct-bar-fill {
-  height: 100%;
-  border-radius: 99px;
-  transition: width 0.6s var(--ease-out);
-}
-.hm-pie-legend-right {
-  text-align: right; flex-shrink: 0;
-  min-width: 80px;
-}
-.hm-pie-legend-val {
-  font-size: 13px; font-weight: 700; color: var(--text);
-  font-variant-numeric: tabular-nums;
-}
-.hm-pie-legend-pct {
-  font-size: 11px; font-weight: 600; margin-top: 2px;
-  font-variant-numeric: tabular-nums;
-}
+.hm-pie-row:hover { background: rgba(128,128,128,0.05); }
+.hm-pie-dot { width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0; }
+.hm-pie-ticker { font-size: 11px; font-weight: 700; color: var(--text); flex: 1; }
+.hm-pie-pct { font-size: 11px; font-weight: 600; color: var(--text2); font-variant-numeric: tabular-nums; }
+.hm-pie-bar-track { flex: 2; height: 4px; background: rgba(128,128,128,0.1); border-radius: 99px; overflow: hidden; }
+.hm-pie-bar-fill  { height: 100%; border-radius: 99px; }
 
-/* ── Bar Chart ── */
-.hm-bar-wrap {
-  position: relative;
-  width: 100%; height: 260px;
-}
-.hm-legend-row {
-  display: flex; gap: 16px; flex-wrap: wrap; margin-bottom: 12px;
-}
-.hm-legend-item {
-  display: flex; align-items: center; gap: 6px;
-  font-size: 11px; color: var(--text2); font-weight: 500;
-}
-.hm-legend-dot {
-  width: 10px; height: 10px; border-radius: 3px; flex-shrink: 0;
-}
-.hm-legend-dot.actual { background: rgba(16,185,129,0.7); }
-.hm-legend-dot.forecast {
-  background: rgba(245,158,11,0.35);
-  border: 1.5px dashed rgba(245,158,11,0.7);
-}
+/* Bar chart */
+.hm-bar-wrap { position: relative; height: 190px; }
+.hm-legend-row { display: flex; gap: 12px; flex-wrap: wrap; margin-bottom: 10px; }
+.hm-legend-item { display: flex; align-items: center; gap: 5px; font-size: 10px; color: var(--text2); }
+.hm-legend-dot  { width: 10px; height: 10px; border-radius: 3px; }
 
-/* ── FX / Refresh Badge ── */
-.hm-badge {
-  display: flex; align-items: center; gap: 10px;
-  padding: 12px 18px; border-radius: 12px;
-  font-size: 13px; font-weight: 500; margin-bottom: 20px;
-}
-.hm-badge.fx {
-  background: rgba(102,126,234,0.06);
-  border: 1px solid rgba(102,126,234,0.12);
-  color: var(--text2);
-}
-.hm-badge.refresh {
-  background: rgba(245,158,11,0.06);
-  border: 1px solid rgba(245,158,11,0.12);
-  color: var(--amber);
-}
-.hm-badge .spinner {
-  width: 16px; height: 16px;
-  border: 2px solid rgba(245,158,11,0.2);
-  border-top-color: var(--amber);
-  border-radius: 50%;
-  animation: spin 0.8s linear infinite;
-}
-@keyframes spin { to { transform: rotate(360deg); } }
-
-/* ── Income Table ── */
-.hm-table-card {
-  background: var(--bg);
-  border: 1px solid var(--glass-border);
-  border-radius: var(--r-xl);
-  overflow: hidden;
-  margin-bottom: 20px;
-  transition: all 0.3s var(--ease-out);
-}
-.hm-table-card:hover { box-shadow: var(--shadow-sm); }
-.hm-table-header {
-  padding: 20px 24px 14px;
-  border-bottom: 1px solid var(--glass-border);
-  display: flex; align-items: center; gap: 12px;
-}
-.hm-table-header .th-icon {
-  width: 34px; height: 34px; border-radius: 10px;
-  background: rgba(16,185,129,0.08);
-  display: flex; align-items: center; justify-content: center;
-  font-size: 16px;
-}
-.hm-table-header h3 {
-  font-size: 15px; font-weight: 700; margin: 0;
-}
-.hm-table-header span {
+/* ══ FX badge ══ */
+.hm-fx-strip {
+  display: flex; align-items: center; justify-content: space-between;
+  gap: 10px; flex-wrap: wrap;
   font-size: 11px; color: var(--text2);
+  padding: 9px 14px; border-radius: 10px;
+  background: rgba(102,126,234,0.05); border: 1px solid rgba(102,126,234,0.1);
+  margin-bottom: 16px;
 }
+.hm-stale-strip {
+  display: none; align-items: center; gap: 10px;
+  padding: 10px 14px; border-radius: 10px;
+  background: rgba(245,158,11,0.06); border: 1px solid rgba(245,158,11,0.15);
+  color: var(--amber); font-size: 12px; font-weight: 500;
+  margin-bottom: 12px;
+}
+.hm-stale-spinner {
+  width: 14px; height: 14px; flex-shrink: 0; border-radius: 50%;
+  border: 2px solid rgba(245,158,11,0.2); border-top-color: var(--amber);
+  animation: hmSpin 0.8s linear infinite; display: none;
+}
+
+/* ══ Income Table ══ */
+.hm-table-card {
+  background: var(--bg); border: 1px solid var(--glass-border);
+  border-radius: var(--r-xl); overflow: hidden;
+  margin-bottom: 20px;
+}
+.hm-table-head {
+  padding: 16px 20px; border-bottom: 1px solid var(--glass-border);
+  display: flex; align-items: center; justify-content: space-between; gap: 8px;
+}
+.hm-table-head-title { font-size: 13px; font-weight: 700; }
+.hm-table-head-sub   { font-size: 11px; color: var(--text2); }
 .hm-table-scroll { overflow-x: auto; }
 .hm-table {
   width: 100%; border-collapse: collapse; font-size: 13px;
 }
 .hm-table thead th {
-  padding: 10px 18px; text-align: right;
-  font-size: 10px; font-weight: 600;
-  text-transform: uppercase; letter-spacing: 0.8px;
-  color: var(--text2);
-  background: var(--glass);
-  border-bottom: 1px solid var(--glass-border);
-  white-space: nowrap;
+  padding: 9px 16px; text-align: right;
+  font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.6px;
+  color: var(--text2); border-bottom: 1px solid var(--glass-border);
+  background: rgba(128,128,128,0.03); white-space: nowrap;
 }
-.hm-table thead th:first-child { text-align: left; padding-left: 24px; }
-.hm-table thead th:last-child { padding-right: 24px; }
-.hm-table tbody tr { transition: background 0.2s; }
-.hm-table tbody tr:hover { background: rgba(255,255,255,0.02); }
+.hm-table thead th:first-child { text-align: left; padding-left: 20px; }
+.hm-table thead th:last-child  { padding-right: 20px; }
+.hm-table tbody tr { transition: background 0.15s; }
+.hm-table tbody tr:hover { background: rgba(128,128,128,0.03); }
 .hm-table tbody td {
-  padding: 14px 18px; text-align: right;
-  border-bottom: 1px solid rgba(255,255,255,0.03);
+  padding: 12px 16px; text-align: right;
+  border-bottom: 1px solid rgba(128,128,128,0.05);
   color: var(--text2); vertical-align: middle;
 }
-.hm-table tbody td:first-child { text-align: left; padding-left: 24px; }
-.hm-table tbody td:last-child { padding-right: 24px; }
+.hm-table tbody td:first-child { text-align: left; padding-left: 20px; }
+.hm-table tbody td:last-child  { padding-right: 20px; text-align: center; }
+.hm-table tbody tr:last-child td { border-bottom: none; }
 
-.hm-ticker-cell { display: flex; align-items: center; gap: 12px; }
-.hm-ticker-badge {
-  width: 36px; height: 36px; border-radius: 10px;
+.hm-tick-cell { display: flex; align-items: center; gap: 10px; }
+.hm-tick-badge {
+  width: 32px; height: 32px; border-radius: 9px;
   display: flex; align-items: center; justify-content: center;
-  font-size: 10px; font-weight: 700; color: #fff;
-  letter-spacing: 0.5px; flex-shrink: 0;
-  overflow: hidden;
+  font-size: 9px; font-weight: 700; color: #fff; flex-shrink: 0; overflow: hidden;
 }
-.hm-ticker-name { font-weight: 600; font-size: 14px; color: var(--text); }
-.hm-ticker-company { font-size: 11px; color: var(--text2); margin-top: 1px; }
-.hm-mono { font-variant-numeric: tabular-nums; font-size: 13px; }
-.hm-income-val { font-weight: 700; font-size: 14px; color: var(--green) !important; }
-.hm-forecast-val { font-weight: 600; font-size: 14px; color: var(--amber); }
-.hm-forecast-sub { font-size: 10px; color: var(--text2); margin-top: 2px; }
+.hm-tick-name    { font-size: 13px; font-weight: 700; color: var(--text); }
+.hm-tick-company { font-size: 10px; color: var(--text2); }
+.hm-mono         { font-variant-numeric: tabular-nums; }
+.hm-income-val   { font-weight: 700; color: var(--green) !important; }
+.hm-fc-val       { font-weight: 600; color: var(--amber); }
+.hm-fc-sub       { font-size: 10px; color: var(--text2); margin-top: 1px; }
 
-/* Total row */
 .hm-table tbody tr.total-row td {
-  border-top: 2px solid rgba(255,255,255,0.08);
-  border-bottom: none;
-  padding-top: 16px; padding-bottom: 20px;
+  border-top: 1px solid rgba(128,128,128,0.1);
+  border-bottom: none; padding-top: 14px; padding-bottom: 16px;
 }
-.hm-total-label { font-size: 14px; font-weight: 700; color: var(--text); }
-.hm-total-income { font-size: 16px; font-weight: 800; color: var(--green) !important; }
-.hm-total-forecast { font-size: 16px; font-weight: 700; color: var(--amber); }
+.hm-total-label    { font-size: 13px; font-weight: 700; color: var(--text); }
+.hm-total-income   { font-size: 15px; font-weight: 800; color: var(--green) !important; }
+.hm-total-forecast { font-size: 15px; font-weight: 700; color: var(--amber); }
 
-/* ── Responsive ── */
-@media (max-width: 600px) {
-  .hm-hero { padding: 24px 20px; }
-  .hm-hero-value { font-size: 28px; }
-  .hm-section-card { padding: 18px; }
+/* ══ Empty ══ */
+.hm-empty {
+  text-align: center; padding: 60px 24px; color: var(--text2);
+  background: var(--bg); border: 1px solid var(--glass-border);
+  border-radius: var(--r-xl); margin-bottom: 16px;
 }
+.hm-empty .icon { font-size: 40px; margin-bottom: 12px; opacity: 0.25; }
+.hm-empty a { color: var(--blue); text-decoration: none; font-weight: 600; }
 </style>
 
 
 <!-- ══════════════════════════════════════
-     PAGE HEADER
+     HEADER
 ══════════════════════════════════════ -->
-<div class="hm-page-header">
-  <h1>홈</h1>
-  <p id="pageDate"></p>
+<div class="hm-header">
+  <div class="hm-header-left">
+    <h1>홈</h1>
+    <p id="pageDate">로드 중...</p>
+  </div>
+  {% if has_items %}
+  <button class="hm-refresh-btn" id="forceRefreshBtn" onclick="forceRefreshPrices()">
+    <svg id="forceRefreshIcon" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="23 4 23 10 17 10"/><path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"/></svg>
+    현재가 갱신
+  </button>
+  {% endif %}
 </div>
 
 
 {% if not has_items %}
 <div class="hm-empty">
   <div class="icon">📂</div>
-  <div class="msg">아직 보유 종목이 없습니다.<br><a href="/portfolio">포트폴리오 관리</a>에서 종목을 추가하세요.</div>
+  <div style="font-size:14px;line-height:1.7;">아직 보유 종목이 없습니다.<br><a href="/portfolio">포트폴리오 관리</a>에서 종목을 추가하세요.</div>
 </div>
 {% else %}
 
 
 <!-- ══════════════════════════════════════
-     HERO — 총 평가액
+     TOP ROW: Hero + stat cards
 ══════════════════════════════════════ -->
-<div class="hm-hero">
-  <div class="hm-hero-top">
-    <span class="hm-hero-label">TOTAL VALUE</span>
-    <div style="display:flex;align-items:center;gap:10px;">
-      <span class="hm-hero-count" id="s-count">—</span>
-      <button id="forceRefreshBtn" onclick="forceRefreshPrices()" title="현재가 강제 갱신" style="display:flex;align-items:center;gap:5px;padding:4px 10px;font-size:11px;font-weight:600;background:rgba(255,255,255,0.12);border:1px solid rgba(255,255,255,0.2);border-radius:8px;color:rgba(255,255,255,0.85);cursor:pointer;transition:background 0.2s;">
-        <svg id="forceRefreshIcon" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="23 4 23 10 17 10"/><path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"/></svg>
-        현재가 갱신
-      </button>
-    </div>
+<div class="hm-top-row">
+
+  <!-- Hero -->
+  <div class="hm-hero">
+    <span class="hm-hero-count" id="s-count">—</span>
+    <div class="hm-hero-label">TOTAL VALUE</div>
+    <div class="hm-hero-value" id="s-value">—</div>
+    <div class="hm-hero-sub"   id="s-value-krw">—</div>
   </div>
-  <div class="hm-hero-value" id="s-value">—</div>
-  <div class="hm-hero-sub" id="s-value-krw">—</div>
-</div>
 
-
-<!-- ══════════════════════════════════════
-     SUMMARY — 월 소득 카드 2장
-══════════════════════════════════════ -->
-<div class="hm-summary-grid">
-  <div class="hm-stat-card income">
-    <div class="hm-stat-label">
-      <span class="dot green"></span>
-      통합 월 소득
-      <span class="tag green-tag">NET</span>
-    </div>
+  <!-- 순이익 월 소득 -->
+  <div class="hm-stat-card net">
+    <div class="hm-stat-label">통합 월 소득</div>
     <div class="hm-stat-value green" id="s-income">—</div>
     <div class="hm-stat-sub">순이익 기준</div>
   </div>
+
+  <!-- 예상 월 소득 -->
   <div class="hm-stat-card forecast">
-    <div class="hm-stat-label">
-      <span class="dot amber"></span>
-      예상 월 소득
-      <span class="tag amber-tag">ANALYST</span>
-    </div>
+    <div class="hm-stat-label">예상 월 소득</div>
     <div class="hm-stat-value amber" id="s-forecast">—</div>
-    <div class="hm-stat-sub" id="s-forecast-label">내년 FY 예상</div>
+    <div class="hm-stat-sub">애널리스트 예상 <span id="s-forecast-growth" style="display:none;margin-left:4px;font-size:10px;font-weight:700;padding:1px 6px;border-radius:99px;"></span></div>
   </div>
+
 </div>
 
 
 <!-- ══════════════════════════════════════
-     CHART 1 — 포트폴리오 구성
+     STALE BANNER
 ══════════════════════════════════════ -->
-<div class="hm-pie-card">
-  <div class="hm-pie-card-header">
-    <div class="hm-hdr-icon">📊</div>
-    <div class="hm-hdr-text">
-      <h3>포트폴리오 구성</h3>
-      <span>평가액 기준 비중</span>
-    </div>
-  </div>
-  <div class="hm-pie-layout">
-    <div class="hm-pie-chart-area">
-      <canvas id="pieChart"></canvas>
-      <div class="hm-pie-center">
-        <div class="hm-pie-center-label">Total</div>
-        <div class="hm-pie-center-value" id="pieCenterVal">—</div>
+<div id="refreshBanner" class="hm-stale-strip">
+  <div class="hm-stale-spinner" id="refreshSpinner"></div>
+  <span id="refreshText">📡 일부 데이터가 오래됐습니다</span>
+  <button id="refreshBtn" onclick="doRefresh()" style="margin-left:auto;padding:4px 12px;font-size:11px;font-weight:600;background:rgba(245,158,11,0.12);border:1px solid rgba(245,158,11,0.25);border-radius:6px;color:var(--amber);cursor:pointer;">업데이트</button>
+</div>
+
+
+<!-- ══════════════════════════════════════
+     MIDDLE ROW: Pie + Bar
+══════════════════════════════════════ -->
+<div class="hm-mid-row">
+
+  <!-- 포트폴리오 구성 -->
+  <div class="hm-card">
+    <div class="hm-card-title">포트폴리오 구성</div>
+    <div class="hm-card-sub">평가액 기준 비중</div>
+    <div class="hm-pie-wrap">
+      <div class="hm-pie-area">
+        <canvas id="pieChart"></canvas>
+        <div class="hm-pie-center">
+          <div class="hm-pie-center-label">Total</div>
+          <div class="hm-pie-center-value" id="pieCenterVal">—</div>
+        </div>
       </div>
+      <div class="hm-pie-list" id="pieCustomLegend"></div>
     </div>
-    <div class="hm-pie-legend" id="pieCustomLegend"></div>
   </div>
+
+  <!-- 연도별 월 소득 -->
+  <div class="hm-card">
+    <div class="hm-card-title">연도별 월 소득 합계</div>
+    <div class="hm-card-sub">순이익 기준 · 포트폴리오 전체</div>
+    <div class="hm-legend-row">
+      <span class="hm-legend-item"><span class="hm-legend-dot" style="background:rgba(16,185,129,0.7);"></span>실적</span>
+      <span class="hm-legend-item"><span class="hm-legend-dot" style="background:rgba(245,158,11,0.45);border:1.5px dashed rgba(245,158,11,0.7);"></span>예상</span>
+    </div>
+    <div class="hm-bar-wrap"><canvas id="portfolioBarChart"></canvas></div>
+  </div>
+
 </div>
 
 
 <!-- ══════════════════════════════════════
-     CHART 2 — 연도별 월 소득 합계
+     FX STRIP
 ══════════════════════════════════════ -->
-<div class="hm-section-card">
-  <div class="hm-section-title">연도별 월 소득 합계</div>
-  <div class="hm-section-sub">순이익 기준 · 포트폴리오 전체</div>
-  <div class="hm-legend-row">
-    <span class="hm-legend-item"><span class="hm-legend-dot actual"></span>실적</span>
-    <span class="hm-legend-item"><span class="hm-legend-dot forecast"></span>애널리스트 예상</span>
-  </div>
-  <div class="hm-bar-wrap"><canvas id="portfolioBarChart"></canvas></div>
-</div>
-
-
-<!-- ══════════════════════════════════════
-     BADGES
-══════════════════════════════════════ -->
-<div id="refreshBanner" class="hm-badge refresh" style="display:none;">
-  <div class="spinner" id="refreshSpinner" style="display:none;"></div>
-  <span id="refreshText">📡 데이터가 오래됐습니다</span>
-  <button id="refreshBtn" onclick="doRefresh()" style="margin-left:10px;padding:4px 12px;font-size:12px;font-weight:600;background:rgba(245,158,11,0.15);border:1px solid rgba(245,158,11,0.3);border-radius:6px;color:var(--amber);cursor:pointer;">업데이트</button>
-</div>
-<div id="fxBadge" class="hm-badge fx">
-  💱 적용 환율: <strong style="color:var(--text);margin:0 4px;">{{ fx_default|int }}원/$</strong> · Yahoo Finance 실시간
+<div class="hm-fx-strip">
+  <span>💱 적용 환율: <strong style="color:var(--text);">{{ fx_default|int }}원/$</strong> · Yahoo Finance</span>
 </div>
 
 
@@ -595,22 +359,22 @@
      INCOME TABLE
 ══════════════════════════════════════ -->
 <div class="hm-table-card">
-  <div class="hm-table-header">
-    <div class="th-icon">💵</div>
+  <div class="hm-table-head">
     <div>
-      <h3>지분비례 월 소득 내역</h3>
-      <span>순이익 기준 · 현재 FY 예상</span>
+      <div class="hm-table-head-title">지분비례 월 소득 내역</div>
+      <div class="hm-table-head-sub">순이익 기준 · 현재 FY 예상</div>
     </div>
   </div>
   <div class="hm-table-scroll">
     <table class="hm-table">
       <thead>
         <tr>
-          <th style="text-align:left;">종목</th>
+          <th>종목</th>
           <th>보유주</th>
           <th>평가액</th>
-          <th>현재 FY 예상</th>
-          <th>내년 FY 예상</th>
+          <th>현재 FY 월 소득</th>
+          <th>내년 FY 월 소득</th>
+          <th>성장률</th>
         </tr>
       </thead>
       <tbody id="incomeTableBody"></tbody>
@@ -629,224 +393,180 @@
 const ITEMS         = {{ items_json | safe }};
 const STALE         = {{ stale_tickers | safe }};
 const NEEDS_REFRESH = {{ needs_refresh | safe }};
-let fxRate         = {{ fx_default|int }};
-let pieChart       = null;
+let fxRate = {{ fx_default|int }};
+let pieChart = null;
+let portfolioBarChart = null;
 
 const TICKER_COLORS = {
-  "AAPL":"#000000","MSFT":"#0078D4","GOOGL":"#FBBC05","AMZN":"#FF9900",
-  "META":"#0866FF","NVDA":"#76B900","TSLA":"#E31937","NFLX":"#E50914",
-  "ADBE":"#FF0000","CRM":"#00A1E0","TSM":"#EB0029","KLAC":"#0071C5",
-  "LLY":"#D52B1E", "APP":"#5AC8FA", "ASML":"#F58220", "INTC":"#0071C5", 
-  "AVGO":"#FF6B81", "KLAC":"#003A8F"
+  "AAPL":"#1d1d1f","MSFT":"#0078D4","GOOGL":"#4285F4","GOOG":"#4285F4",
+  "AMZN":"#FF9900","META":"#0866FF","NVDA":"#76B900","TSLA":"#E31937",
+  "NFLX":"#E50914","ADBE":"#FF0000","CRM":"#00A1E0","TSM":"#EB0029",
+  "LLY":"#D52B1E","APP":"#001026","ASML":"#F58220","AVGO":"#CC092F",
+  "KLAC":"#003A8F","INTC":"#0071C5","PLTR":"#7B2D8B","V":"#1A1F71",
 };
-const PIE_FALLBACK = [
-  '#667eea','#10b981','#f59e0b','#ec4899','#0ea5e9',
-  '#8b5cf6','#f97316','#6366f1','#14b8a6','#ef4444',
-];
-let _fallbackIdx = 0;
-function tickerColor(ticker) {
-  if (TICKER_COLORS[ticker]) return TICKER_COLORS[ticker];
-  return PIE_FALLBACK[_fallbackIdx++ % PIE_FALLBACK.length];
-}
-function tickerBadgeHtml(ticker, bgColor, cssClass) {
-  const initials = ticker.slice(0, 2);
-  return `<div class="${cssClass}" style="background:${bgColor};">` +
-    `<img src="/resources/icons/${ticker}.png" ` +
-    `style="width:100%;height:100%;object-fit:contain;border-radius:inherit;" ` +
-    `onerror="this.style.display='none';this.parentElement.textContent='${initials}';">` +
+const PIE_FALLBACK = ['#667eea','#10b981','#f59e0b','#ec4899','#0ea5e9','#8b5cf6','#f97316','#6366f1','#14b8a6','#ef4444'];
+let _fbIdx = 0;
+function tickerColor(t) { return TICKER_COLORS[t] || PIE_FALLBACK[_fbIdx++ % PIE_FALLBACK.length]; }
+
+function tickerBadge(ticker, color, cls) {
+  return `<div class="${cls}" style="background:${color};">` +
+    `<img src="/resources/icons/${ticker}.png" style="width:100%;height:100%;object-fit:contain;border-radius:inherit;" ` +
+    `onerror="this.style.display='none';this.parentElement.textContent='${ticker.slice(0,2)}';">` +
     `</div>`;
 }
 
-/* ── 포맷 헬퍼 ── */
 function fmtUSD(usdM) {
-  const v = Math.abs(usdM) * 1e6, sign = usdM < 0 ? '-' : '';
-  if (v >= 1e9) return sign + '$' + (v/1e9).toFixed(3) + 'B';
-  if (v >= 1e6) return sign + '$' + (v/1e6).toFixed(3) + 'M';
-  if (v >= 1e3) return sign + '$' + (v/1e3).toFixed(2) + 'K';
-  if (v >= 1)   return sign + '$' + v.toFixed(2);
-  return sign + '$' + v.toFixed(4);
+  const v = Math.abs(usdM)*1e6, s = usdM<0?'-':'';
+  if (v>=1e9) return s+'$'+(v/1e9).toFixed(3)+'B';
+  if (v>=1e6) return s+'$'+(v/1e6).toFixed(3)+'M';
+  if (v>=1e3) return s+'$'+(v/1e3).toFixed(2)+'K';
+  if (v>=1)   return s+'$'+v.toFixed(2);
+  return s+'$'+v.toFixed(4);
 }
 function fmtKRWraw(w) {
-  const sign = w < 0 ? '-' : '', a = Math.abs(w);
-  if (a >= 1e12) return sign + (a/1e12).toFixed(2) + '조원';
-  if (a >= 1e8)  return sign + (a/1e8 ).toFixed(2) + '억원';
-  if (a >= 1e4)  return sign + Math.round(a/1e4).toLocaleString() + '만원';
-  return sign + Math.round(a).toLocaleString() + '원';
+  const s = w<0?'-':'', a = Math.abs(w);
+  if (a>=1e12) return s+(a/1e12).toFixed(2)+'조원';
+  if (a>=1e8)  return s+(a/1e8 ).toFixed(2)+'억원';
+  if (a>=1e4)  return s+Math.round(a/1e4).toLocaleString()+'만원';
+  return s+Math.round(a).toLocaleString()+'원';
 }
-function fmtKRW(usdM) { return fmtKRWraw(usdM * 1e6 * fxRate); }
+function fmtKRW(usdM) { return fmtKRWraw(usdM*1e6*fxRate); }
+function setText(id, v) { const e = document.getElementById(id); if(e) e.textContent = v; }
 
-/* ── 계산 ── */
 function getMonthlyNet(item) {
-  // 현재 FY 예상(fc_0y)이 있으면 우선 사용, 없으면 최신 확정 FY
-  const fc0Key = (item.forecast_keys || [])[0];
-  const fc0 = fc0Key ? (item.fiscal_data || {})[fc0Key] : null;
+  const fc0Key = (item.forecast_keys||[])[0];
+  const fc0 = fc0Key ? (item.fiscal_data||{})[fc0Key] : null;
   if (fc0 && fc0.net != null) {
-    const sharesM = fc0.shares || 1;
-    return fc0.net * (item.shares_owned / (sharesM * 1e6)) / 12;
+    return fc0.net * (item.shares_owned / ((fc0.shares||1)*1e6)) / 12;
   }
-  const lat = item.latest || {}, sharesM = lat.shares || 1;
-  return (lat.net || 0) * (item.shares_owned / (sharesM * 1e6)) / 12;
+  const lat = item.latest||{};
+  return (lat.net||0) * (item.shares_owned / ((lat.shares||1)*1e6)) / 12;
 }
 function getForecastMonthlyNet(item) {
   const fc = item.forecast;
-  if (!fc || fc.net == null) return null;
-  const sharesM = (item.latest || {}).shares || 1;
-  return fc.net * (item.shares_owned / (sharesM * 1e6)) / 12;
+  if (!fc || fc.net==null) return null;
+  const lat = item.latest||{};
+  return fc.net * (item.shares_owned / ((lat.shares||1)*1e6)) / 12;
 }
 
-/* ── 연도별 포트폴리오 차트 ── */
-let portfolioBarChart = null;
-function renderPortfolioChart() {
+function renderAll() {
+  setText('pageDate', new Date().toLocaleDateString('ko-KR',{year:'numeric',month:'long',day:'numeric'})+' 기준');
+  _fbIdx = 0;
+
+  const totalValue    = ITEMS.reduce((s,i) => s + i.shares_owned*i.current_price, 0);
+  const totalMonthly  = ITEMS.reduce((s,i) => s + getMonthlyNet(i), 0);
+  const fcItems       = ITEMS.filter(i => getForecastMonthlyNet(i)!==null);
+  const totalFc       = fcItems.reduce((s,i) => s + getForecastMonthlyNet(i), 0);
+
+  setText('s-count',   ITEMS.length+'개 종목');
+  setText('s-value',   '$'+Math.round(totalValue).toLocaleString());
+  setText('s-value-krw', '≈ '+fmtKRWraw(totalValue*fxRate));
+  setText('s-income',  fmtKRW(totalMonthly)+'/월');
+  setText('s-forecast', fcItems.length>0 ? fmtKRW(totalFc)+'/월' : '데이터 없음');
+
+  const growthEl = document.getElementById('s-forecast-growth');
+  if (fcItems.length>0 && totalMonthly>0) {
+    const g = (totalFc-totalMonthly)/totalMonthly*100;
+    const pos = g>=0;
+    growthEl.textContent = (pos?'+':'')+g.toFixed(1)+'%';
+    growthEl.style.cssText = `display:inline;background:${pos?'rgba(16,185,129,0.12)':'rgba(239,68,68,0.12)'};color:${pos?'#10b981':'#ef4444'};`;
+  }
+
+  renderPie(totalValue);
+  renderBarChart();
+  renderTable(fcItems);
+}
+
+function renderPie(totalValue) {
+  _fbIdx = 0;
+  const colors = ITEMS.map(i => tickerColor(i.ticker));
+  const ctx = document.getElementById('pieChart').getContext('2d');
+  if (pieChart) pieChart.destroy();
+  setText('pieCenterVal', '$'+Math.round(totalValue/1000).toLocaleString()+'K');
+
+  pieChart = new Chart(ctx, {
+    type: 'doughnut',
+    data: {
+      labels: ITEMS.map(i=>i.ticker),
+      datasets:[{ data: ITEMS.map(i=>i.shares_owned*i.current_price), backgroundColor:colors, borderWidth:0, spacing:2, hoverOffset:6 }],
+    },
+    options: {
+      responsive:true, maintainAspectRatio:true, cutout:'70%',
+      plugins: {
+        legend: { display:false },
+        tooltip: {
+          backgroundColor:'rgba(15,20,35,0.95)', titleColor:'#fff', bodyColor:'#ccc',
+          borderColor:'rgba(255,255,255,0.08)', borderWidth:1, cornerRadius:10, padding:10,
+          callbacks: { label: c => c.label+': $'+Math.round(c.parsed).toLocaleString()+' ('+((c.parsed/totalValue)*100).toFixed(1)+'%)' }
+        },
+      },
+    },
+  });
+
+  const legend = document.getElementById('pieCustomLegend');
+  legend.innerHTML = '';
+  const sorted = ITEMS.map((item,i)=>({item,color:colors[i],val:item.shares_owned*item.current_price}))
+    .sort((a,b)=>b.val-a.val);
+
+  sorted.forEach(({item, color, val}) => {
+    const pct = totalValue ? val/totalValue*100 : 0;
+    const row = document.createElement('div');
+    row.className = 'hm-pie-row';
+    row.innerHTML = `<span class="hm-pie-dot" style="background:${color};"></span>`
+      + `<span class="hm-pie-ticker">${item.ticker}</span>`
+      + `<div class="hm-pie-bar-track"><div class="hm-pie-bar-fill" style="width:${pct}%;background:${color};opacity:0.7;"></div></div>`
+      + `<span class="hm-pie-pct">${pct.toFixed(1)}%</span>`;
+    legend.appendChild(row);
+  });
+}
+
+function renderBarChart() {
   const histMap = new Map(), fcMap = new Map();
   ITEMS.forEach(item => {
-    const fd = item.fiscal_data || {};
-    (item.year_keys || []).forEach(k => {
-      const d = fd[k]; if (!d || !d.shares) return;
-      const man = (d.net||0)*(item.shares_owned/(d.shares*1e6))/12*1e6*fxRate/1e4;
-      histMap.set(d.label, (histMap.get(d.label)||0)+man);
+    const fd = item.fiscal_data||{};
+    (item.year_keys||[]).forEach(k => {
+      const d=fd[k]; if(!d||!d.shares) return;
+      const v = (d.net||0)*(item.shares_owned/(d.shares*1e6))/12*1e6*fxRate/1e4;
+      histMap.set(d.label,(histMap.get(d.label)||0)+v);
     });
-    (item.forecast_keys || []).forEach(k => {
-      const d = fd[k]; if (!d || !d.shares) return;
-      const man = (d.net||0)*(item.shares_owned/(d.shares*1e6))/12*1e6*fxRate/1e4;
-      fcMap.set(d.label, (fcMap.get(d.label)||0)+man);
+    (item.forecast_keys||[]).forEach(k => {
+      const d=fd[k]; if(!d||!d.shares) return;
+      const v = (d.net||0)*(item.shares_owned/(d.shares*1e6))/12*1e6*fxRate/1e4;
+      fcMap.set(d.label,(fcMap.get(d.label)||0)+v);
     });
   });
-  const hE = [...histMap.entries()].sort((a,b) => a[0]<b[0]?-1:1);
+  const hE = [...histMap.entries()].sort((a,b)=>a[0]<b[0]?-1:1);
   const fE = [...fcMap.entries()];
   if (!hE.length && !fE.length) return;
   const labels = [...hE.map(([l])=>l), ...fE.map(([l])=>l)];
   const data   = [...hE.map(([,v])=>+v.toFixed(2)), ...fE.map(([,v])=>+v.toFixed(2))];
   const isFc   = [...hE.map(()=>false), ...fE.map(()=>true)];
-
-  const tickColor = getComputedStyle(document.documentElement).getPropertyValue('--text2').trim() || '#a8b3c0';
+  const tickColor = getComputedStyle(document.documentElement).getPropertyValue('--text2').trim()||'#a8b3c0';
   const ctx = document.getElementById('portfolioBarChart').getContext('2d');
   if (portfolioBarChart) portfolioBarChart.destroy();
   portfolioBarChart = new Chart(ctx, {
-    type: 'bar',
-    data: {
-      labels,
-      datasets: [{
-        label: '월 소득 합계', data,
-        backgroundColor: isFc.map(f => f ? 'rgba(245,158,11,0.22)' : 'rgba(16,185,129,0.28)'),
-        borderColor:     isFc.map(f => f ? 'rgba(245,158,11,0.65)'  : 'rgba(16,185,129,0.6)'),
-        borderWidth: 1.5, borderRadius: 6, borderSkipped: false,
-      }],
-    },
-    options: {
-      responsive: true, maintainAspectRatio: false,
-      plugins: {
-        legend: { display: false },
-        tooltip: {
-          backgroundColor: 'rgba(15,20,35,0.95)',
-          titleColor: '#fff', bodyColor: '#ccc',
-          borderColor: 'rgba(255,255,255,0.08)', borderWidth: 1,
-          cornerRadius: 10, padding: 12,
-          callbacks: { label: c => '월 소득' + (isFc[c.dataIndex]?' (예상)':'') + ': ' + fmtKRWraw(c.parsed.y*1e4) + '/월' },
+    type:'bar',
+    data:{ labels, datasets:[{
+      label:'월 소득', data,
+      backgroundColor: isFc.map(f=>f?'rgba(245,158,11,0.22)':'rgba(16,185,129,0.28)'),
+      borderColor:     isFc.map(f=>f?'rgba(245,158,11,0.65)':'rgba(16,185,129,0.6)'),
+      borderWidth:1.5, borderRadius:6, borderSkipped:false,
+    }]},
+    options:{
+      responsive:true, maintainAspectRatio:false,
+      plugins:{
+        legend:{display:false},
+        tooltip:{
+          backgroundColor:'rgba(15,20,35,0.95)',titleColor:'#fff',bodyColor:'#ccc',
+          borderColor:'rgba(255,255,255,0.08)',borderWidth:1,cornerRadius:10,padding:10,
+          callbacks:{ label: c=>'월 소득'+(isFc[c.dataIndex]?' (예상)':'')+': '+fmtKRWraw(c.parsed.y*1e4)+'/월' }
         },
       },
-      scales: {
-        y: {
-          ticks: { callback: v => v.toLocaleString()+'만', font:{size:10}, color: tickColor },
-          grid: { color:'rgba(128,128,128,0.1)', drawBorder:false },
-          border: { display:false },
-        },
-        x: {
-          grid: { display:false },
-          ticks: { font:{size:11}, color: tickColor },
-          border: { display:false },
-        },
+      scales:{
+        y:{ ticks:{callback:v=>v.toLocaleString()+'만',font:{size:10},color:tickColor}, grid:{color:'rgba(128,128,128,0.08)',drawBorder:false}, border:{display:false} },
+        x:{ grid:{display:false}, ticks:{font:{size:11},color:tickColor}, border:{display:false} },
       },
     },
-  });
-}
-
-/* ── 전체 렌더 ── */
-function renderAll() {
-  document.getElementById('pageDate').textContent =
-    new Date().toLocaleDateString('ko-KR',{year:'numeric',month:'long',day:'numeric'}) + ' 기준';
-  const totalValue = ITEMS.reduce((s,i) => s + i.shares_owned*i.current_price, 0);
-  const totalMonthlyUsd = ITEMS.reduce((s,i) => s + getMonthlyNet(i), 0);
-  const fcItems = ITEMS.filter(i => getForecastMonthlyNet(i) !== null);
-  const totalFcUsd = fcItems.reduce((s,i) => s + getForecastMonthlyNet(i), 0);
-
-  document.getElementById('s-count').textContent     = ITEMS.length + '개 종목 보유';
-  document.getElementById('s-value').textContent     = '$' + Math.round(totalValue).toLocaleString();
-  document.getElementById('s-value-krw').textContent = '≈ ' + fmtKRWraw(totalValue * fxRate);
-  document.getElementById('s-income').textContent    = fmtKRW(totalMonthlyUsd) + '/월';
-  document.getElementById('s-forecast').textContent  = fcItems.length > 0 ? fmtKRW(totalFcUsd) + '/월' : '데이터 없음';
-
-  renderPie(totalValue);
-  renderPortfolioChart();
-  renderTable(fcItems);
-}
-
-function renderPie(totalValue) {
-  _fallbackIdx = 0;
-  const ctx = document.getElementById('pieChart').getContext('2d');
-  if (pieChart) pieChart.destroy();
-
-  // Center label
-  document.getElementById('pieCenterVal').textContent = '$' + Math.round(totalValue).toLocaleString();
-
-  // Colors array (keep in sync for legend)
-  _fallbackIdx = 0;
-  const colors = ITEMS.map(i => tickerColor(i.ticker));
-
-  pieChart = new Chart(ctx, {
-    type: 'doughnut',
-    data: {
-      labels: ITEMS.map(i => i.ticker),
-      datasets: [{
-        data: ITEMS.map(i => i.shares_owned * i.current_price),
-        backgroundColor: colors,
-        borderWidth: 0, spacing: 3, hoverOffset: 8,
-      }],
-    },
-    options: {
-      responsive: true, maintainAspectRatio: true,
-      cutout: '68%',
-      layout: { padding: 10 },
-      plugins: {
-        legend: { display: false },
-        tooltip: {
-          backgroundColor: 'rgba(15,20,35,0.95)',
-          titleColor: '#fff', bodyColor: '#ccc',
-          borderColor: 'rgba(255,255,255,0.08)', borderWidth: 1,
-          cornerRadius: 10, padding: 12,
-          callbacks: {
-            label: c => {
-              const pct = ((c.parsed / totalValue) * 100).toFixed(1);
-              return c.label + ': $' + Math.round(c.parsed).toLocaleString() + ' (' + pct + '%)';
-            },
-          },
-        },
-      },
-    },
-  });
-
-  // Build custom legend
-  const legendEl = document.getElementById('pieCustomLegend');
-  legendEl.innerHTML = '';
-  ITEMS.forEach((item, idx) => {
-    const val = item.shares_owned * item.current_price;
-    const pct = totalValue ? (val / totalValue * 100) : 0;
-    const color = colors[idx];
-    // Choose pct color based on ranking
-    const pctColor = pct >= 30 ? 'var(--green)' : pct >= 15 ? 'var(--blue)' : 'var(--text2)';
-    const el = document.createElement('div');
-    el.className = 'hm-pie-legend-item';
-    el.innerHTML = `
-      ${tickerBadgeHtml(item.ticker, color, 'hm-pie-legend-badge')}
-      <div class="hm-pie-legend-info">
-        <div class="hm-pie-legend-ticker">${item.ticker}</div>
-        <div class="hm-pie-legend-name">${item.name}</div>
-      </div>
-      <div class="hm-pie-legend-right">
-        <div class="hm-pie-legend-val">$${Math.round(val).toLocaleString()}</div>
-        <div class="hm-pie-legend-pct" style="color:${pctColor};">${pct.toFixed(1)}%</div>
-      </div>
-    `;
-    legendEl.appendChild(el);
   });
 }
 
@@ -854,88 +574,97 @@ function renderTable(fcItems) {
   const tbody = document.getElementById('incomeTableBody');
   tbody.innerHTML = '';
   let totalKrw = 0;
+  _fbIdx = 0;
+  const colors = {};
+  ITEMS.forEach(i => { colors[i.ticker] = tickerColor(i.ticker); });
 
   ITEMS.forEach(item => {
     const mUsd = getMonthlyNet(item);
-    const mKrw = mUsd * 1e6 * fxRate;
-    const sharesM = (item.latest?.shares || 1);
-    const pct = item.shares_owned / (sharesM * 1e6);
+    const mKrw = mUsd*1e6*fxRate;
     totalKrw += mKrw;
-    const bgColor = tickerColor(item.ticker);
-
+    const color = colors[item.ticker];
     const fcUsd = getForecastMonthlyNet(item);
-    const fcKrw = fcUsd !== null ? fcUsd * 1e6 * fxRate : null;
-    const fcCell = fcKrw !== null
-      ? `<span class="hm-forecast-val">${fmtKRWraw(fcKrw)}</span><br><span class="hm-forecast-sub">${item.forecast?.label || ''}</span>`
-      : `<span style="color:var(--text2);">—</span>`;
+    const fcKrw = fcUsd!==null ? fcUsd*1e6*fxRate : null;
+
+    let fcCell = `<span style="color:var(--text2);">—</span>`;
+    let growthCell = `<span style="color:var(--text2);">—</span>`;
+    if (fcKrw!==null) {
+      fcCell = `<div class="hm-fc-val">${fmtKRWraw(fcKrw)}</div><div class="hm-fc-sub">${item.forecast?.label||''}</div>`;
+      if (mUsd>0) {
+        const g=(fcUsd-mUsd)/mUsd*100, pos=g>=0;
+        growthCell = `<span style="font-size:11px;font-weight:700;padding:3px 9px;border-radius:99px;background:${pos?'rgba(16,185,129,0.1)':'rgba(239,68,68,0.08)'};color:${pos?'#10b981':'#ef4444'};">${pos?'+':''}${g.toFixed(1)}%</span>`;
+      }
+    }
 
     const tr = document.createElement('tr');
     tr.innerHTML = `
       <td>
-        <div class="hm-ticker-cell">
-          ${tickerBadgeHtml(item.ticker, bgColor, 'hm-ticker-badge')}
-          <div>
-            <div class="hm-ticker-name">${item.ticker}</div>
-            <div class="hm-ticker-company">${item.name}</div>
-          </div>
+        <div class="hm-tick-cell">
+          ${tickerBadge(item.ticker, color, 'hm-tick-badge')}
+          <div><div class="hm-tick-name">${item.ticker}</div><div class="hm-tick-company">${item.name}</div></div>
         </div>
       </td>
       <td class="hm-mono">${item.shares_owned.toLocaleString()}</td>
-      <td class="hm-mono"><div>${fmtKRWraw(item.shares_owned*item.current_price*fxRate)}</div><div style="font-size:10px;color:var(--text2);">$${Math.round(item.shares_owned*item.current_price).toLocaleString()}</div></td>
-      <td class="hm-income-val">${fmtKRWraw(mKrw)}</td>
+      <td class="hm-mono">
+        <div>${fmtKRWraw(item.shares_owned*item.current_price*fxRate)}</div>
+        <div style="font-size:10px;color:var(--text2);">$${Math.round(item.shares_owned*item.current_price).toLocaleString()}</div>
+      </td>
+      <td class="hm-income-val hm-mono">${fmtKRWraw(mKrw)}</td>
       <td>${fcCell}</td>
+      <td>${growthCell}</td>
     `;
     tbody.appendChild(tr);
   });
 
+  const totalFcKrw = fcItems.reduce((s,i)=>s+getForecastMonthlyNet(i)*1e6*fxRate, 0);
+  let totalGrowth = `<span style="color:var(--text2);">—</span>`;
+  if (fcItems.length>0 && totalKrw>0) {
+    const g=(totalFcKrw-totalKrw)/totalKrw*100, pos=g>=0;
+    totalGrowth = `<span style="font-size:11px;font-weight:700;padding:3px 9px;border-radius:99px;background:${pos?'rgba(16,185,129,0.1)':'rgba(239,68,68,0.08)'};color:${pos?'#10b981':'#ef4444'};">${pos?'+':''}${g.toFixed(1)}%</span>`;
+  }
   const totalTr = document.createElement('tr');
   totalTr.className = 'total-row';
-  const totalFcKrw = fcItems.reduce((s,i) => s + getForecastMonthlyNet(i)*1e6*fxRate, 0);
   totalTr.innerHTML = `
     <td colspan="3"><span class="hm-total-label">합계</span></td>
-    <td class="hm-total-income">${fmtKRWraw(totalKrw)}/월</td>
-    <td class="hm-total-forecast">${fcItems.length > 0 ? fmtKRWraw(totalFcKrw)+'/월' : '—'}</td>
+    <td class="hm-total-income hm-mono">${fmtKRWraw(totalKrw)}/월</td>
+    <td class="hm-total-forecast hm-mono">${fcItems.length>0?fmtKRWraw(totalFcKrw)+'/월':'—'}</td>
+    <td>${totalGrowth}</td>
   `;
   tbody.appendChild(totalTr);
 }
 
 function doRefresh() {
   document.getElementById('refreshBtn').style.display = 'none';
-  document.getElementById('refreshSpinner').style.display = '';
-  document.getElementById('refreshText').textContent = '데이터 갱신 중… 완료 후 자동으로 새로고침됩니다';
-  Promise.all(STALE.map(t => fetch(`/api/stock/${t}`).catch(() => null)))
-    .then(() => location.reload());
+  document.getElementById('refreshSpinner').style.display = 'block';
+  setText('refreshText', '데이터 갱신 중… 완료 후 자동 새로고침됩니다');
+  Promise.all(STALE.map(t=>fetch(`/api/stock/${t}`).catch(()=>null)))
+    .then(()=>location.reload());
 }
 
 function forceRefreshPrices() {
   const btn  = document.getElementById('forceRefreshBtn');
   const icon = document.getElementById('forceRefreshIcon');
-  btn.disabled = true;
-  btn.style.opacity = '0.6';
-  icon.style.animation = 'spin 0.8s linear infinite';
-  const overlay = document.getElementById('priceLoadingOverlay');
-  overlay.style.display = 'flex';
+  btn.disabled = true; btn.style.opacity = '0.55';
+  icon.style.animation = 'hmSpin 0.8s linear infinite';
+  document.getElementById('priceLoadingOverlay').style.display = 'flex';
   fetch('/api/force-refresh-prices')
-    .then(() => location.reload())
-    .catch(() => {
-      overlay.style.display = 'none';
-      btn.disabled = false;
-      btn.style.opacity = '';
-      icon.style.animation = '';
+    .then(()=>location.reload())
+    .catch(()=>{
+      document.getElementById('priceLoadingOverlay').style.display = 'none';
+      btn.disabled = false; btn.style.opacity = ''; icon.style.animation = '';
     });
 }
 
-document.addEventListener('DOMContentLoaded', () => {
+document.addEventListener('DOMContentLoaded', ()=>{
   if (NEEDS_REFRESH) {
-    const overlay = document.getElementById('priceLoadingOverlay');
-    overlay.style.display = 'flex';
-    fetch('/api/refresh-prices')
-      .then(() => location.reload())
-      .catch(() => { overlay.style.display = 'none'; });
+    document.getElementById('priceLoadingOverlay').style.display = 'flex';
+    fetch('/api/refresh-prices').then(()=>location.reload()).catch(()=>{
+      document.getElementById('priceLoadingOverlay').style.display = 'none';
+    });
     return;
   }
-  if (typeof ITEMS !== 'undefined' && ITEMS.length > 0) renderAll();
-  if (typeof STALE !== 'undefined' && STALE.length > 0) {
+  if (typeof ITEMS!=='undefined' && ITEMS.length>0) renderAll();
+  if (typeof STALE!=='undefined' && STALE.length>0) {
     document.getElementById('refreshBanner').style.display = 'flex';
   }
 });

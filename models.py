@@ -119,21 +119,6 @@ class Cheongyak(Base):
     created_at    = Column(DateTime, default=datetime.utcnow)
 
 
-class Rule40Ticker(Base):
-    """Rule of 40 관심 종목 목록 + 캐시된 지표"""
-    __tablename__ = "rule40_tickers"
-
-    ticker         = Column(String(20), primary_key=True)
-    name           = Column(String(200), default='')
-    revenue_growth = Column(Float)   # YoY 매출 성장률 (%)
-    profit_margin  = Column(Float)   # 순이익률 (%)
-    score          = Column(Float)   # growth + margin
-    color          = Column(String(10), default='#667eea')
-    is_sample      = Column(Boolean, default=False)  # 예시 기업 여부
-    fetched_at     = Column(DateTime)
-    display_order  = Column(Integer, default=0)
-
-
 class KrStock(Base):
     """국내 주식 정보 캐시"""
     __tablename__ = "kr_stocks"
@@ -162,21 +147,6 @@ class KrPortfolio(Base):
     updated_at    = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
 
     stock = relationship("KrStock", back_populates="kr_portfolio")
-
-
-class KrRule40Ticker(Base):
-    """국내 Rule of 40 관심 종목 목록 + 캐시된 지표"""
-    __tablename__ = "kr_rule40_tickers"
-
-    ticker         = Column(String(20), primary_key=True)   # e.g. "035420.KS"
-    name           = Column(String(200), default='')
-    revenue_growth = Column(Float)   # YoY 매출 성장률 (%)
-    profit_margin  = Column(Float)   # 순이익률 (%)
-    score          = Column(Float)   # growth + margin
-    color          = Column(String(10), default='#667eea')
-    is_sample      = Column(Boolean, default=False)
-    fetched_at     = Column(DateTime)
-    display_order  = Column(Integer, default=0)
 
 
 class KrDailySnapshot(Base):

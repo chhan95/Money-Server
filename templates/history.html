@@ -1,25 +1,23 @@
 {% extends "base.html" %}
-{% block title %}Money — 히스토리{% endblock %}
+{% block title %}Money — 투자 히스토리{% endblock %}
 {% block content %}
 
 <!-- ── 로딩 오버레이 ── -->
 <div id="priceLoadingOverlay" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.75);z-index:9999;flex-direction:column;align-items:center;justify-content:center;gap:20px;">
-  <div style="width:48px;height:48px;border:4px solid rgba(255,255,255,0.15);border-top-color:#667eea;border-radius:50%;animation:spin 0.8s linear infinite;"></div>
+  <div style="width:48px;height:48px;border:4px solid rgba(255,255,255,0.15);border-top-color:#667eea;border-radius:50%;animation:hSpin 0.8s linear infinite;"></div>
   <div style="color:#fff;font-size:16px;font-weight:700;">현재가 업데이트 중...</div>
 </div>
-<style>@keyframes spin{to{transform:rotate(360deg)}}</style>
 
 <style>
-/* ── Design Tokens (홈/마일스톤과 동일) ── */
+@keyframes hSpin { to { transform: rotate(360deg); } }
+
 :root {
   --ms-gradient: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-  --glass: rgba(255,255,255,0.03);
   --glass-border: var(--border);
-  --shadow-sm: 0 1px 3px rgba(0,0,0,0.08);
-  --shadow-md: 0 4px 16px rgba(0,0,0,0.12);
-  --shadow-lg: 0 8px 32px rgba(0,0,0,0.18);
-  --shadow-glow: 0 0 40px rgba(102,126,234,0.15);
   --ease-out: cubic-bezier(0.16, 1, 0.3, 1);
+  --shadow-sm: 0 1px 3px rgba(0,0,0,0.07);
+  --shadow-md: 0 4px 16px rgba(0,0,0,0.11);
+  --shadow-lg: 0 8px 32px rgba(0,0,0,0.18);
   --r-xl: 16px;
   --r-2xl: 20px;
   --green: #10b981;
@@ -28,202 +26,125 @@
   --red: #ef4444;
 }
 
-/* ── Page Header ── */
-.hist-page-header {
-  text-align: center;
-  padding: 32px 0 24px;
+/* ── Header ── */
+.hs-header {
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 28px 0 20px; gap: 12px;
 }
-.hist-page-header h1 {
-  font-size: 28px;
-  font-weight: 800;
-  letter-spacing: -0.5px;
+.hs-header-left h1 {
+  font-size: 22px; font-weight: 800; letter-spacing: -0.4px;
   background: var(--ms-gradient);
-  -webkit-background-clip: text;
-  -webkit-text-fill-color: transparent;
-  background-clip: text;
-  margin-bottom: 6px;
-}
-.hist-page-header p {
-  font-size: 14px;
-  color: var(--text2);
-  font-weight: 400;
-}
-
-/* ── Empty State ── */
-.hist-empty {
-  text-align: center;
-  padding: 60px 24px;
-  background: var(--bg);
-  border: 1px solid var(--glass-border);
-  border-radius: var(--r-xl);
-}
-.hist-empty .icon { font-size: 48px; margin-bottom: 14px; opacity: 0.3; }
-.hist-empty .title {
-  font-weight: 700; font-size: 15px;
-  color: var(--text); margin-bottom: 6px;
-}
-.hist-empty .msg {
-  font-size: 13px; color: var(--text2);
-}
-
-/* ── Hero Card ── */
-.hist-hero {
-  background: var(--ms-gradient);
-  border-radius: var(--r-2xl);
-  padding: 28px 32px;
-  color: white;
-  position: relative;
-  overflow: hidden;
-  box-shadow: var(--shadow-glow), var(--shadow-lg);
-  margin-bottom: 20px;
-}
-.hist-hero::before {
-  content: '';
-  position: absolute;
-  top: -60%; right: -15%;
-  width: 280px; height: 280px;
-  background: radial-gradient(circle, rgba(255,255,255,0.1) 0%, transparent 70%);
-  pointer-events: none;
-}
-.hist-hero::after {
-  content: '';
-  position: absolute;
-  bottom: -40%; left: -8%;
-  width: 180px; height: 180px;
-  background: radial-gradient(circle, rgba(255,255,255,0.06) 0%, transparent 70%);
-  pointer-events: none;
-}
-.hist-hero-top {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  margin-bottom: 8px;
-  position: relative; z-index: 1;
-}
-.hist-hero-label {
-  font-size: 13px; font-weight: 500;
-  opacity: 0.7; text-transform: uppercase; letter-spacing: 1.5px;
-}
-.hist-hero-badge {
-  font-size: 12px; font-weight: 600; opacity: 0.9;
-  padding: 4px 12px;
-  background: rgba(255,255,255,0.15);
-  border-radius: 99px;
-}
-.hist-hero-value {
-  font-size: 36px; font-weight: 800; letter-spacing: -1px;
-  position: relative; z-index: 1;
+  -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text;
   margin-bottom: 2px;
 }
-.hist-hero-sub {
-  font-size: 14px; opacity: 0.65; position: relative; z-index: 1;
+.hs-header-left p { font-size: 12px; color: var(--text2); }
+.hs-header-badge {
+  padding: 6px 14px; border-radius: 99px;
+  background: rgba(102,126,234,0.08); border: 1px solid rgba(102,126,234,0.2);
+  color: var(--blue); font-size: 12px; font-weight: 700;
+  white-space: nowrap;
 }
 
-/* ── Summary Row ── */
-.hist-summary-row {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 12px;
-  margin-bottom: 20px;
+/* ── Summary Cards ── */
+.hs-summary {
+  display: grid; grid-template-columns: repeat(2, 1fr);
+  gap: 12px; margin-bottom: 20px;
 }
-@media (max-width: 500px) { .hist-summary-row { grid-template-columns: 1fr; } }
+@media (max-width: 440px) { .hs-summary { grid-template-columns: 1fr; } }
 
-.hist-stat-card {
-  background: var(--bg);
-  border: 1px solid var(--glass-border);
-  border-radius: var(--r-xl);
-  padding: 20px 22px;
-  transition: all 0.3s var(--ease-out);
-  position: relative;
-  overflow: hidden;
+.hs-sum-card {
+  background: var(--bg); border: 1px solid var(--glass-border);
+  border-radius: var(--r-xl); padding: 18px 20px;
+  position: relative; overflow: hidden;
+  transition: box-shadow 0.2s var(--ease-out);
 }
-.hist-stat-card:hover {
-  transform: translateY(-2px);
-  box-shadow: var(--shadow-md);
-  border-color: rgba(255,255,255,0.1);
+.hs-sum-card:hover { box-shadow: var(--shadow-md); }
+.hs-sum-card::before {
+  content: ''; position: absolute; left: 0; top: 0; bottom: 0;
+  width: 3px; border-radius: 3px 0 0 3px;
 }
-.hist-stat-card::before {
-  content: '';
-  position: absolute; left: 0; top: 0; bottom: 0;
-  width: 4px; border-radius: 4px 0 0 4px;
-}
-.hist-stat-card.green::before { background: var(--green); }
-.hist-stat-card.red::before { background: var(--red); }
-.hist-stat-card.amber::before { background: var(--amber); }
-.hist-stat-card.blue::before { background: var(--blue); }
+.hs-sum-card.blue::before   { background: var(--blue); }
+.hs-sum-card.green::before  { background: var(--green); }
 
-.hist-stat-label {
-  font-size: 12px; font-weight: 500; color: var(--text2);
-  margin-bottom: 8px;
-  display: flex; align-items: center; gap: 8px;
+.hs-sum-label {
+  font-size: 10px; font-weight: 700; color: var(--text2);
+  text-transform: uppercase; letter-spacing: 0.7px; margin-bottom: 8px;
 }
-.hist-stat-label .dot {
-  width: 8px; height: 8px; border-radius: 50%;
+.hs-sum-value {
+  font-size: 20px; font-weight: 800; letter-spacing: -0.4px;
+  font-variant-numeric: tabular-nums; line-height: 1.2;
 }
-.hist-stat-value {
-  font-size: 24px; font-weight: 800;
-  letter-spacing: -0.5px;
-  font-variant-numeric: tabular-nums;
+.hs-sum-sub {
+  font-size: 10px; color: var(--text2); margin-top: 3px;
 }
 
 /* ── Chart Cards ── */
-.hist-chart-card {
-  background: var(--bg);
-  border: 1px solid var(--glass-border);
-  border-radius: var(--r-xl);
-  padding: 24px;
-  margin-bottom: 20px;
-  transition: all 0.3s var(--ease-out);
-}
-.hist-chart-card:hover { box-shadow: var(--shadow-sm); }
-
-.hist-chart-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
+.hs-chart-card {
+  background: var(--bg); border: 1px solid var(--glass-border);
+  border-radius: var(--r-xl); padding: 22px 24px;
   margin-bottom: 16px;
-  flex-wrap: wrap;
-  gap: 8px;
+  transition: box-shadow 0.2s var(--ease-out);
 }
-.hist-chart-title {
-  font-size: 15px; font-weight: 700; color: var(--text);
-}
-.hist-chart-value {
-  font-size: 16px; font-weight: 800;
-  font-variant-numeric: tabular-nums;
-}
-.hist-chart-wrap {
-  position: relative;
-  width: 100%;
-}
+.hs-chart-card:hover { box-shadow: var(--shadow-sm); }
 
-/* Legend */
-.hist-legend {
-  display: flex; gap: 14px;
+.hs-chart-header {
+  display: flex; justify-content: space-between; align-items: flex-start;
+  margin-bottom: 16px; flex-wrap: wrap; gap: 8px;
 }
-.hist-legend-item {
-  display: flex; align-items: center; gap: 5px;
-  font-size: 11px; color: var(--text2); font-weight: 500;
+.hs-chart-title {
+  font-size: 14px; font-weight: 700; color: var(--text); margin-bottom: 2px;
 }
-.hist-legend-dot {
-  width: 10px; height: 10px; border-radius: 3px;
+.hs-chart-subtitle { font-size: 11px; color: var(--text2); }
+.hs-chart-current {
+  font-size: 18px; font-weight: 800;
+  letter-spacing: -0.4px; font-variant-numeric: tabular-nums;
+  text-align: right;
 }
+.hs-chart-current-sub { font-size: 10px; color: var(--text2); text-align: right; margin-top: 1px; }
 
-/* ── Responsive ── */
-@media (max-width: 600px) {
-  .hist-hero { padding: 24px 20px; }
-  .hist-hero-value { font-size: 28px; }
-  .hist-chart-card { padding: 18px; }
+.hs-chart-wrap { position: relative; width: 100%; }
+
+
+/* ── Empty State ── */
+.hs-empty {
+  text-align: center; padding: 64px 24px;
+  background: var(--bg); border: 1px solid var(--glass-border);
+  border-radius: var(--r-xl); margin-bottom: 16px;
+  color: var(--text2);
 }
+.hs-empty .icon { font-size: 48px; margin-bottom: 14px; opacity: 0.25; display: block; }
+.hs-empty .title { font-size: 15px; font-weight: 700; color: var(--text); margin-bottom: 6px; }
+.hs-empty .msg { font-size: 13px; }
+
 </style>
 
 
 <!-- ══════════════════════════════════════
-     PAGE HEADER
+     HEADER
 ══════════════════════════════════════ -->
-<div class="hist-page-header">
-  <h1>투자 히스토리</h1>
-  <p id="historyNote">매일 홈 화면 접속 시 자동 저장됩니다</p>
+<div class="hs-header">
+  <div class="hs-header-left">
+    <h1>투자 히스토리</h1>
+    <p>홈 화면 접속 시 매일 자동 저장</p>
+  </div>
+  <span class="hs-header-badge" id="dataBadge" style="display:none;"></span>
+</div>
+
+
+<!-- ══════════════════════════════════════
+     SUMMARY
+══════════════════════════════════════ -->
+<div class="hs-summary" id="summaryRow" style="display:none;">
+  <div class="hs-sum-card blue">
+    <div class="hs-sum-label">포트폴리오 평가액</div>
+    <div class="hs-sum-value" id="sum-total">—</div>
+    <div class="hs-sum-sub"   id="sum-total-chg">최신 스냅샷</div>
+  </div>
+  <div class="hs-sum-card green">
+    <div class="hs-sum-label">평가이익</div>
+    <div class="hs-sum-value" id="sum-gain">—</div>
+    <div class="hs-sum-sub"   id="sum-gain-chg">미실현 손익</div>
+  </div>
 </div>
 
 
@@ -231,8 +152,8 @@
      EMPTY STATE
 ══════════════════════════════════════ -->
 <div id="noDataMsg" style="display:none;">
-  <div class="hist-empty">
-    <div class="icon">📭</div>
+  <div class="hs-empty">
+    <span class="icon">📭</span>
     <div class="title">아직 데이터가 없습니다</div>
     <div class="msg">홈 화면을 방문하면 오늘부터 데이터가 쌓이기 시작합니다</div>
   </div>
@@ -240,50 +161,45 @@
 
 
 <!-- ══════════════════════════════════════
-     MAIN CONTENT
+     CHARTS
 ══════════════════════════════════════ -->
 <div id="chartsWrap" style="display:none;">
 
-  <!-- Chart 1: 포트폴리오 평가액 -->
-  <div class="hist-chart-card">
-    <div class="hist-chart-header">
-      <span class="hist-chart-title">포트폴리오 평가액</span>
-      <span class="hist-chart-value" style="color:var(--blue);" id="val-total"></span>
-    </div>
-    <div class="hist-chart-wrap">
-      <canvas id="chart-total" height="90"></canvas>
-    </div>
-  </div>
-
-  <!-- Chart 2: 평가이익 -->
-  <div class="hist-chart-card">
-    <div class="hist-chart-header">
-      <span class="hist-chart-title">평가이익 추이</span>
-      <span class="hist-chart-value" id="val-gain2">—</span>
-    </div>
-    <div class="hist-chart-wrap">
-      <canvas id="chart-gain" height="90"></canvas>
-    </div>
-  </div>
-
-  <!-- Chart 3: 월 손익 통합 -->
-  <div class="hist-chart-card">
-    <div class="hist-chart-header">
-      <span class="hist-chart-title">지분비례 월 손익</span>
-      <div style="display:flex;align-items:center;gap:12px;flex-wrap:wrap;">
-        <span id="fx-rate-badge" style="font-size:11px;color:var(--text2);padding:3px 8px;background:var(--bg2);border-radius:6px;border:1px solid var(--border);">환율 —</span>
-        <div class="hist-legend">
-          <span class="hist-legend-item"><span class="hist-legend-dot" style="background:rgba(102,126,234,0.7);"></span>매출</span>
-          <span class="hist-legend-item"><span class="hist-legend-dot" style="background:rgba(245,158,11,0.7);"></span>순이익</span>
-        </div>
+  <!-- 포트폴리오 평가액 (full width) -->
+  <div class="hs-chart-card">
+    <div class="hs-chart-header">
+      <div class="hs-chart-header-left">
+        <div class="hs-chart-title">포트폴리오 평가액 추이</div>
+        <div class="hs-chart-subtitle">원화 환산 총 평가액</div>
+      </div>
+      <div>
+        <div class="hs-chart-current" style="color:var(--blue);" id="val-total"></div>
+        <div class="hs-chart-current-sub" id="val-total-chg"></div>
       </div>
     </div>
-    <div class="hist-chart-wrap">
-      <canvas id="chart-income" height="100"></canvas>
+    <div class="hs-chart-wrap">
+      <canvas id="chart-total" height="80"></canvas>
     </div>
   </div>
 
-</div>
+  <!-- 평가이익 (full width) -->
+  <div class="hs-chart-card">
+    <div class="hs-chart-header">
+      <div>
+        <div class="hs-chart-title">평가이익 추이</div>
+        <div class="hs-chart-subtitle">미실현 손익 (USD)</div>
+      </div>
+      <div>
+        <div class="hs-chart-current" id="val-gain2">—</div>
+        <div class="hs-chart-current-sub">현재 미실현</div>
+      </div>
+    </div>
+    <div class="hs-chart-wrap">
+      <canvas id="chart-gain" height="80"></canvas>
+    </div>
+  </div>
+
+</div><!-- /chartsWrap -->
 
 
 <!-- ══════════════════════════════════════
@@ -304,7 +220,9 @@ function fmtUSD(v) {
   if (a >= 1e3) return sign + '$' + (a/1e3).toFixed(2) + 'K';
   return sign + '$' + a.toFixed(2);
 }
-function gainColor(v) { return v >= 0 ? '#10B981' : '#EF4444'; }
+function gainColor(v) { return v >= 0 ? '#10b981' : '#ef4444'; }
+function setText(id, v) { const el = document.getElementById(id); if (el) el.textContent = v; }
+function setColor(id, c) { const el = document.getElementById(id); if (el) el.style.color = c; }
 
 function baseOptions() {
   const tickColor = getComputedStyle(document.documentElement).getPropertyValue('--text2').trim() || '#a8b3c0';
@@ -327,9 +245,7 @@ function baseOptions() {
         grid: { display: false },
         border: { display: false },
         ticks: {
-          font: { size: 10 },
-          color: tickColor,
-          maxTicksLimit: 12,
+          font: { size: 10 }, color: tickColor, maxTicksLimit: 12,
           callback: function(val) {
             const lbl = this.getLabelForValue(val);
             return lbl ? lbl.slice(2) : '';
@@ -337,13 +253,9 @@ function baseOptions() {
         }
       },
       y: {
-        grid: { color: 'rgba(128,128,128,0.1)', drawBorder: false },
+        grid: { color: 'rgba(128,128,128,0.08)', drawBorder: false },
         border: { display: false },
-        ticks: {
-          font: { size: 10 },
-          color: tickColor,
-          callback: v => fmtW(v),
-        }
+        ticks: { font: { size: 10 }, color: tickColor, callback: v => fmtW(v) }
       }
     }
   };
@@ -355,11 +267,16 @@ function makeDataset(data, color, fill = true) {
     borderColor: color,
     backgroundColor: fill ? color + '18' : 'transparent',
     borderWidth: 2,
-    pointRadius: data.length <= 12 ? 3 : 0,
+    pointRadius: data.length <= 15 ? 3 : 0,
     pointHoverRadius: 5,
     fill,
     tension: 0.35,
   };
+}
+
+function pctChange(first, last) {
+  if (!first || first === 0) return null;
+  return (last - first) / Math.abs(first) * 100;
 }
 
 const NEEDS_REFRESH = {{ needs_refresh | safe }};
@@ -368,41 +285,61 @@ function loadHistory() {
   fetch('/api/history')
   .then(r => r.json())
   .then(resp => {
-    const data      = resp.items ?? resp;            // 구형 배열 fallback
-    const latestFx  = resp.latestFxRate ?? null;
+    const data = resp.items ?? resp;
 
     if (!data || data.length === 0) {
       document.getElementById('noDataMsg').style.display = '';
       return;
     }
+
     document.getElementById('chartsWrap').style.display = '';
+    document.getElementById('summaryRow').style.display = '';
 
-    if (latestFx) {
-      document.getElementById('fx-rate-badge').textContent =
-        '최근 저장 환율 ₩' + Math.round(latestFx).toLocaleString();
-    }
+    // 배지
+    const badge = document.getElementById('dataBadge');
+    badge.textContent = data.length + '개월 기록';
+    badge.style.display = '';
 
-    const months  = data.map(d => d.month);
-    const total   = data.map(d => d.totalValueKrw);
-    const revenue = data.map(d => d.monthlyRevenueKrw);
-    const net     = data.map(d => d.monthlyNetKrw);
-    const gain    = data.map(d => d.unrealizedGainUsd);
+    // 헤더 노트
+    const noteEl = document.querySelector('.hs-header-left p');
+    if (noteEl) noteEl.textContent = data.length + '개월 데이터 기록됨 · 홈 접속 시 자동 저장';
+
+    const months = data.map(d => d.month);
+    const total  = data.map(d => d.totalValueKrw);
+    const gain   = data.map(d => d.unrealizedGainUsd);
+    const first   = data[0];
     const last    = data[data.length - 1];
 
-    if (data.length === 1) {
-      document.getElementById('historyNote').textContent =
-        '데이터 1개월 — 매일 홈 접속 시 자동으로 쌓입니다';
-    } else {
-      document.getElementById('historyNote').textContent =
-        data.length + '개월 데이터 기록됨';
+    // Summary cards
+    setText('sum-total', fmtW(last.totalValueKrw));
+    const totalChg = pctChange(first.totalValueKrw, last.totalValueKrw);
+    if (totalChg !== null && data.length > 1) {
+      const el = document.getElementById('sum-total-chg');
+      el.textContent = (totalChg >= 0 ? '+' : '') + totalChg.toFixed(1) + '% vs 최초';
+      el.style.color = gainColor(totalChg);
     }
 
-    /* Chart header values */
-    document.getElementById('val-total').textContent = fmtW(last.totalValueKrw);
+    const gainVal = document.getElementById('sum-gain');
+    gainVal.textContent = fmtUSD(last.unrealizedGainUsd);
+    gainVal.style.color = gainColor(last.unrealizedGainUsd);
+    const gainChg = pctChange(first.unrealizedGainUsd, last.unrealizedGainUsd);
+    if (gainChg !== null && data.length > 1) {
+      const el = document.getElementById('sum-gain-chg');
+      el.textContent = (gainChg >= 0 ? '+' : '') + gainChg.toFixed(1) + '% vs 최초';
+      el.style.color = gainColor(gainChg);
+    }
 
-    const gain2El = document.getElementById('val-gain2');
-    gain2El.textContent = fmtUSD(last.unrealizedGainUsd);
-    gain2El.style.color = gainColor(last.unrealizedGainUsd);
+    // Chart header values
+    setText('val-total', fmtW(last.totalValueKrw));
+    if (totalChg !== null && data.length > 1) {
+      const el = document.getElementById('val-total-chg');
+      el.textContent = (totalChg >= 0 ? '+' : '') + totalChg.toFixed(1) + '% (전체 기간)';
+      el.style.color = gainColor(totalChg);
+    }
+
+    const g2El = document.getElementById('val-gain2');
+    g2El.textContent = fmtUSD(last.unrealizedGainUsd);
+    g2El.style.color = gainColor(last.unrealizedGainUsd);
 
     const ctx = id => document.getElementById(id).getContext('2d');
 
@@ -415,34 +352,17 @@ function loadHistory() {
 
     /* Chart 2: 평가이익 */
     const gainOpts = baseOptions();
-    gainOpts.plugins.tooltip.callbacks.label = ctx2 => ' ' + fmtUSD(ctx2.parsed.y);
+    gainOpts.plugins.tooltip.callbacks.label = c => ' ' + fmtUSD(c.parsed.y);
     gainOpts.scales.y.ticks.callback = v => fmtUSD(v);
     new Chart(ctx('chart-gain'), {
       type: 'line',
       data: { labels: months, datasets: [{
-        ...makeDataset(gain, '#10B981'),
-        segment: { borderColor: ctx2 => gainColor(ctx2.p1.parsed.y) }
+        ...makeDataset(gain, '#10b981'),
+        segment: { borderColor: c => gainColor(c.p1.parsed.y) }
       }]},
       options: gainOpts,
     });
 
-    /* Chart 3: 통합 손익 */
-    const fxRates = data.map(d => d.fxRate || 0);
-    const incomeOpts = baseOptions();
-    const _origLabel = incomeOpts.plugins.tooltip.callbacks.label;
-    incomeOpts.plugins.tooltip.callbacks.afterBody = (items) => {
-      const idx = items[0]?.dataIndex;
-      const fx  = fxRates[idx];
-      return fx > 0 ? [`환율 ₩${Math.round(fx).toLocaleString()}`] : [];
-    };
-    new Chart(ctx('chart-income'), {
-      type: 'line',
-      data: { labels: months, datasets: [
-        makeDataset(revenue, '#667eea', false),
-        makeDataset(net,     '#F59E0B', false),
-      ]},
-      options: incomeOpts,
-    });
   })
   .catch(() => {
     document.getElementById('noDataMsg').style.display = '';

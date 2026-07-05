@@ -131,9 +131,3 @@ def create_tables():
             conn.commit()
         except Exception:
             pass
-        # rule40_tickers is_sample 컬럼 추가
-        try:
-            conn.execute(text("ALTER TABLE rule40_tickers ADD COLUMN is_sample BOOLEAN DEFAULT 0"))
-            conn.commit()
-        except Exception:
-            pass

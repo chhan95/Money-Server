@@ -259,15 +259,14 @@
   width: 4px;
   border-radius: 4px 0 0 4px;
 }
-.ms-card[data-cat="education"]::before       { background: #6366f1; }
-.ms-card[data-cat="career_start"]::before     { background: #0ea5e9; }
-.ms-card[data-cat="economic_growth"]::before  { background: #f59e0b; }
-.ms-card[data-cat="asset_expansion"]::before  { background: #10b981; }
-.ms-card[data-cat="stability"]::before        { background: #ec4899; }
-.ms-card[data-cat="freedom"]::before          { background: #8b5cf6; }
-.ms-card[data-cat="completion"]::before       { background: #f97316; }
-.ms-card[data-cat="retrospective"]::before    { background: #64748b; }
-.ms-card[data-cat=""]::before                 { background: var(--glass-border); }
+.ms-card[data-cat="edu"]::before    { background: #5b8c7b; }
+.ms-card[data-cat="career"]::before { background: #c0794a; }
+.ms-card[data-cat="rel"]::before    { background: #c2607a; }
+.ms-card[data-cat="travel"]::before { background: #5a7d9a; }
+.ms-card[data-cat="invest"]::before { background: #6366f1; }
+.ms-card[data-cat="health"]::before { background: #7a9d54; }
+.ms-card[data-cat="etc"]::before    { background: #948a7d; }
+.ms-card[data-cat=""]::before       { background: var(--glass-border); }
 
 .ms-card .pulse-dot {
   width: 10px;
@@ -550,6 +549,36 @@
 }
 .form-field input::placeholder { color: var(--text2); opacity: 0.5; }
 
+/* ── Category Chip Picker ── */
+.cat-pick {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+  margin-top: 4px;
+}
+.cat-chip {
+  font-size: 12px;
+  padding: 6px 12px;
+  border-radius: 999px;
+  cursor: pointer;
+  border: 1.5px solid var(--glass-border);
+  background: var(--bg2);
+  color: var(--text2);
+  transition: all 0.18s;
+  user-select: none;
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  white-space: nowrap;
+}
+.cat-chip .cdot {
+  width: 8px; height: 8px; border-radius: 50%;
+}
+.cat-chip.sel {
+  color: var(--text);
+  font-weight: 600;
+}
+
 /* ── Empty State ── */
 .ms-empty {
   text-align: center;
@@ -580,135 +609,114 @@
 </div>
 
 
-<!-- ══════════════════════════════════════
-     HERO — 달성률
-══════════════════════════════════════ -->
-<div class="ms-hero">
-  <div class="ms-hero-top">
-    <span class="ms-hero-label">ACHIEVEMENT</span>
-    <span class="ms-hero-stats" id="statsText">로딩 중...</span>
-  </div>
-  <div class="ms-hero-bar-track">
-    <div class="ms-hero-bar-fill" id="progressBar"></div>
-  </div>
-  <div class="ms-hero-pct" id="heroPct">0<span>%</span></div>
-</div>
-
 
 <!-- ══════════════════════════════════════
-     TOOLBAR
+     인라인 추가 폼
 ══════════════════════════════════════ -->
-<div class="ms-toolbar">
-  <div class="ms-tabs">
-    <button id="pgBtn0" class="ms-tab active" onclick="showPg(0)">진행 중</button>
-    <button id="pgBtn1" class="ms-tab"        onclick="showPg(1)">달성 완료</button>
-    <button id="pgBtn2" class="ms-tab"        onclick="showPg(2)">연도별</button>
+<div class="ms-section-card" id="addFormCard" style="margin-bottom:24px;">
+  <div style="display:flex;align-items:center;justify-content:space-between;cursor:pointer;margin-bottom:0;" id="addFormToggle">
+    <span style="font-size:15px;font-weight:700;">+ 새 마일스톤 기록</span>
+    <span id="addFormChev" style="color:var(--text2);font-size:13px;transition:transform .25s;">▾</span>
   </div>
-  <div style="display:flex;gap:8px;">
-    <button class="btn-soft" style="padding:8px 14px;" onclick="openImportModal()">CSV 가져오기</button>
-    <button class="btn-gradient" style="padding:8px 16px;" onclick="openModal(null)">+ 추가</button>
-  </div>
-</div>
-
-
-<!-- ══════════════════════════════════════
-     TAB 0 — 진행 중
-══════════════════════════════════════ -->
-<div id="pg0">
-  <div id="listInProgress" style="display:flex;flex-direction:column;gap:12px;"></div>
-  <div id="emptyInProgress" style="display:none;">
-    <div class="ms-empty"><div class="icon">🎯</div><div class="msg">진행 중인 마일스톤이 없습니다.</div></div>
-  </div>
-</div>
-
-
-<!-- ══════════════════════════════════════
-     TAB 1 — 달성 완료
-══════════════════════════════════════ -->
-<div id="pg1" style="display:none;">
-  <div id="listCompleted" style="display:flex;flex-direction:column;gap:10px;"></div>
-  <div id="emptyCompleted" style="display:none;">
-    <div class="ms-empty"><div class="icon">🏆</div><div class="msg">달성 완료된 마일스톤이 없습니다.</div></div>
-  </div>
-</div>
-
-
-<!-- ══════════════════════════════════════
-     TAB 2 — 연도별
-══════════════════════════════════════ -->
-<div id="pg2" style="display:none;">
-  <div id="yearlyView"></div>
-</div>
-
-
-<!-- ══════════════════════════════════════
-     입력 모달
-══════════════════════════════════════ -->
-<div id="modal" class="modal-overlay">
-  <div class="modal-box">
-    <button onclick="closeModal()" class="modal-close">✕</button>
-    <h2 class="modal-title" id="modalTitle">마일스톤 추가</h2>
-
+  <div id="addFormBody" style="display:none;margin-top:20px;padding-top:20px;border-top:1px solid var(--glass-border);">
     <div class="form-field">
       <label>제목</label>
-      <input id="mTitle" placeholder="예: 순자산 5억 만들기">
+      <input id="mTitle" placeholder="예: 첫 직장 입사">
     </div>
-    <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;">
+
+    <div class="form-field">
+      <label>카테고리</label>
+      <div class="cat-pick" id="mCatPick"></div>
+    </div>
+
+    <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px;">
       <div class="form-field">
         <label>상태</label>
         <select id="mStatus">
-          <option value="in_progress">진행 중</option>
           <option value="completed">달성 완료</option>
+          <option value="in_progress">진행 중</option>
+          <option value="planned">예정</option>
         </select>
       </div>
       <div class="form-field">
-        <label>카테고리</label>
-        <select id="mCategory">
-          <option value="">— 미분류 —</option>
-          <option value="education">🎓 성장 &amp; 학습</option>
-          <option value="career_start">💼 사회 진출</option>
-          <option value="economic_growth">💰 경제적 성장</option>
-          <option value="asset_expansion">📊 자산 확장</option>
-          <option value="stability">🏡 안정화</option>
-          <option value="freedom">🧘‍♂️ 자유 추구</option>
-          <option value="completion">👑 완성 &amp; 영향력</option>
-          <option value="retrospective">🧓 회고 &amp; 유산</option>
+        <label>연도</label>
+        <input id="mYear" type="number" placeholder="2025" min="1900" max="2100">
+      </div>
+      <div class="form-field">
+        <label>월 (선택)</label>
+        <select id="mMonth">
+          <option value="">—</option>
         </select>
       </div>
     </div>
+
     <div class="form-field">
-      <label id="mDateLabel">날짜 (YYYY-MM-DD)</label>
-      <input id="mDate" type="text" placeholder="2026-12-31">
-    </div>
-    <div class="form-field" style="margin-bottom:24px;">
       <label>메모 (선택)</label>
-      <input id="mNote" placeholder="특이사항">
+      <input id="mNote" placeholder="그때의 기분, 의미, 함께한 사람들…">
     </div>
 
-    <div style="display:flex;gap:10px;justify-content:flex-end;">
-      <button class="btn-soft" onclick="closeModal()">취소</button>
-      <button class="btn-gradient" id="modalSaveBtn" onclick="saveItem()">저장</button>
+    <div style="display:flex;gap:10px;justify-content:flex-end;margin-top:4px;">
+      <button class="btn-soft" id="mCancelBtn" style="display:none;" onclick="resetForm()">취소</button>
+      <button class="btn-gradient" id="modalSaveBtn" onclick="saveItem()">기록하기</button>
     </div>
     <input type="hidden" id="mEditId" value="">
   </div>
 </div>
 
 
-<!-- ── CSV 모달 ── -->
-<div id="importModal" class="modal-overlay">
-  <div class="modal-box" style="max-width:460px;">
-    <button onclick="closeImportModal()" class="modal-close">✕</button>
-    <h2 class="modal-title">CSV 가져오기</h2>
-    <p style="font-size:13px;color:var(--text2);margin-bottom:20px;">노션에서 내보낸 마일스톤 CSV 파일을 선택하세요.</p>
+<!-- ══════════════════════════════════════
+     연도별
+══════════════════════════════════════ -->
+<div id="yearlyView"></div>
+
+
+<!-- ── 수정 모달 (수정 시에만 사용) ── -->
+<div id="modal" class="modal-overlay">
+  <div class="modal-box">
+    <button onclick="closeModal()" class="modal-close">✕</button>
+    <h2 class="modal-title">마일스톤 수정</h2>
+
     <div class="form-field">
-      <label>CSV 파일 선택</label>
-      <input type="file" id="csvInput" accept=".csv">
+      <label>제목</label>
+      <input id="eTitle" placeholder="예: 첫 직장 입사">
     </div>
-    <div id="csvPreview" style="font-size:12px;color:var(--text2);margin-bottom:20px;display:none;"></div>
+
+    <div class="form-field">
+      <label>카테고리</label>
+      <div class="cat-pick" id="eCatPick"></div>
+    </div>
+
+    <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px;">
+      <div class="form-field">
+        <label>상태</label>
+        <select id="eStatus">
+          <option value="completed">달성 완료</option>
+          <option value="in_progress">진행 중</option>
+          <option value="planned">예정</option>
+        </select>
+      </div>
+      <div class="form-field">
+        <label>연도</label>
+        <input id="eYear" type="number" placeholder="2025" min="1900" max="2100">
+      </div>
+      <div class="form-field">
+        <label>월 (선택)</label>
+        <select id="eMonth">
+          <option value="">—</option>
+        </select>
+      </div>
+    </div>
+
+    <div class="form-field" style="margin-bottom:24px;">
+      <label>메모 (선택)</label>
+      <input id="eNote" placeholder="그때의 기분, 의미, 함께한 사람들…">
+    </div>
+
     <div style="display:flex;gap:10px;justify-content:flex-end;">
-      <button class="btn-soft" onclick="closeImportModal()">취소</button>
-      <button class="btn-gradient" id="importBtn" onclick="submitImport()">가져오기</button>
+      <button class="btn-soft" onclick="closeModal()">취소</button>
+      <button class="btn-gradient" id="editSaveBtn" onclick="saveEdit()">저장</button>
     </div>
+    <input type="hidden" id="eEditId" value="">
   </div>
 </div>
 
@@ -718,19 +726,19 @@
 ══════════════════════════════════════ -->
 <script>
 let items = [];
-let csvContent = null;
-let currentPg = 0;
 
-const CAT = {
-  education:       { label: '🎓 성장 & 학습',    color: '#6366f1' },
-  career_start:    { label: '💼 사회 진출',       color: '#0ea5e9' },
-  economic_growth: { label: '💰 경제적 성장',     color: '#f59e0b' },
-  asset_expansion: { label: '📊 자산 확장',       color: '#10b981' },
-  stability:       { label: '🏡 안정화',          color: '#ec4899' },
-  freedom:         { label: '🧘‍♂️ 자유 추구',    color: '#8b5cf6' },
-  completion:      { label: '👑 완성 & 영향력',   color: '#f97316' },
-  retrospective:   { label: '🧓 회고 & 유산',     color: '#64748b' },
-};
+const CATS = [
+  { id: 'edu',    label: '학업/교육',  color: '#5b8c7b' },
+  { id: 'career', label: '커리어/일',  color: '#c0794a' },
+  { id: 'invest', label: '투자/자산',  color: '#6366f1' },
+  { id: 'rel',    label: '관계/가족',  color: '#c2607a' },
+  { id: 'travel', label: '여행/경험',  color: '#5a7d9a' },
+  { id: 'health', label: '건강/성장',  color: '#7a9d54' },
+  { id: 'etc',    label: '기타',       color: '#948a7d' },
+];
+const CAT = Object.fromEntries(CATS.map(c => [c.id, { label: c.label, color: c.color }]));
+let selectedCat = 'career';
+let editSelectedCat = 'career';
 
 function catBadge(cat) {
   const c = CAT[cat];
@@ -741,91 +749,40 @@ function catColor(cat) {
   return CAT[cat]?.color || '#64748b';
 }
 
-function showPg(idx) {
-  currentPg = idx;
-  [0,1,2].forEach(i => {
-    document.getElementById('pg'+i).style.display = i===idx ? '' : 'none';
-    document.getElementById('pgBtn'+i).classList.toggle('active', i===idx);
-  });
-  if (idx === 2) renderYearly();
-}
-
 async function load() {
   const res = await fetch('/api/milestones');
   items = await res.json();
-  renderStats();
-  renderInProgress();
-  renderCompleted();
-  if (currentPg === 2) renderYearly();
+
+  // 예정 항목 중 날짜가 오늘 이전이면 달성 완료로 자동 전환
+  const today = new Date(); today.setHours(0,0,0,0);
+  const toComplete = items.filter(d => {
+    if (d.status !== 'planned' || !d.date) return false;
+    return new Date(d.date) <= today;
+  });
+  if (toComplete.length) {
+    await Promise.all(toComplete.map(d =>
+      fetch('/api/milestones', {
+        method: 'POST', headers: {'Content-Type': 'application/json'},
+        body: JSON.stringify({ id: d.id, title: d.title, status: 'completed',
+          category: d.category, date: d.date, note: d.note }),
+      })
+    ));
+    const res2 = await fetch('/api/milestones');
+    items = await res2.json();
+  }
+
+  renderYearly();
 }
 
-// ── 달성률 ──
-function renderStats() {
-  const total = items.length;
-  const done  = items.filter(d => d.status === 'completed').length;
-  const pct   = total ? Math.round(done/total*100) : 0;
-  document.getElementById('statsText').textContent   = `${done} / ${total} 달성`;
-  document.getElementById('progressBar').style.width = pct + '%';
-  document.getElementById('heroPct').innerHTML        = `${pct}<span>%</span>`;
-}
-
-// ── TAB 0: 진행 중 ──
-function renderInProgress() {
-  const inProgress = items.filter(d => d.status === 'in_progress');
-  document.getElementById('emptyInProgress').style.display = inProgress.length ? 'none' : '';
-  document.getElementById('listInProgress').innerHTML = inProgress.map(d => `
-    <div class="ms-card" data-cat="${d.category||''}">
-      <div style="display:flex;gap:14px;flex:1;min-width:0;align-items:center;">
-        <div style="width:10px;height:10px;border-radius:50%;background:${catColor(d.category)};flex-shrink:0;"></div>
-        <div style="flex:1;min-width:0;">
-          <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-bottom:2px;">
-            <span class="title">${d.title}</span>
-            ${catBadge(d.category)}
-          </div>
-          ${d.date || d.note ? `<div class="meta">${d.date ? '📅 목표일: '+d.date : ''}${d.date && d.note ? ' · ' : ''}${d.note ? d.note : ''}</div>` : ''}
-        </div>
-      </div>
-      <div class="actions">
-        <button class="btn-icon-sm" onclick="openModal(${d.id})" title="수정">✏️</button>
-        <button class="btn-icon-sm danger" onclick="deleteItem(${d.id},'${esc(d.title)}')" title="삭제">🗑</button>
-      </div>
-    </div>`).join('');
-}
-
-// ── TAB 1: 달성 완료 ──
-function renderCompleted() {
-  const completed = items.filter(d => d.status === 'completed').sort((a,b) => (b.date||'').localeCompare(a.date||''));
-  document.getElementById('emptyCompleted').style.display = completed.length ? 'none' : '';
-  document.getElementById('listCompleted').innerHTML = completed.map(d => `
-    <div class="ms-done-card">
-      <div style="display:flex;align-items:center;gap:14px;flex:1;min-width:0;">
-        <div class="check">✓</div>
-        <div style="flex:1;min-width:0;">
-          <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;">
-            <span class="title">${d.title}</span>
-            ${catBadge(d.category)}
-          </div>
-          <div class="meta">${d.date ? d.date+(d.note?' · ':'') : ''}${d.note||''}</div>
-        </div>
-      </div>
-      <div class="actions">
-        <button class="btn-icon-sm" onclick="openModal(${d.id})" title="수정">✏️</button>
-        <button class="btn-icon-sm danger" onclick="deleteItem(${d.id},'${esc(d.title)}')" title="삭제">🗑</button>
-      </div>
-    </div>`).join('');
-}
-
-// ── TAB 2: 연도별 ──
+// ── 연도별 ──
 function renderYearly() {
-  const completed = items.filter(d => d.status === 'completed');
-
-  if (!completed.length) {
-    document.getElementById('yearlyView').innerHTML = '<div class="ms-empty"><div class="icon">📅</div><div class="msg">달성 완료된 항목이 없습니다.</div></div>';
+  if (!items.length) {
+    document.getElementById('yearlyView').innerHTML = '<div class="ms-empty"><div class="icon">📅</div><div class="msg">마일스톤이 없습니다.</div></div>';
     return;
   }
 
   const byYear = {};
-  completed.forEach(d => {
+  items.forEach(d => {
     const y = d.date ? d.date.slice(0,4) : '날짜 미지정';
     if (!byYear[y]) byYear[y] = [];
     byYear[y].push(d);
@@ -840,27 +797,33 @@ function renderYearly() {
   let html = '';
   years.forEach(year => {
     const list = byYear[year].sort((a,b) => (b.date||'').localeCompare(a.date||''));
+    const doneCount = list.filter(d => d.status === 'completed').length;
+    const countLabel = doneCount === list.length
+      ? `${list.length}개 달성`
+      : `${doneCount}/${list.length}개 달성`;
     html += `
     <div class="ms-section-card">
       <div class="ms-year-header">
         <span class="ms-year-badge">${year}</span>
-        <span class="ms-year-count">${list.length}개 달성</span>
+        <span class="ms-year-count">${countLabel}</span>
         <div class="ms-year-line"></div>
       </div>
       <div class="ms-timeline">
         ${list.map(d => `
         <div class="ms-tl-item">
           <div class="ms-tl-content">
-            <div style="width:10px;height:10px;border-radius:50%;background:${catColor(d.category)};flex-shrink:0;margin-right:4px;"></div>
+            ${statusDot(d)}
             <div style="flex:1;min-width:0;">
               <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;">
-                <span class="title">${d.title}</span>
+                <span class="title" style="${d.status!=='completed'?'opacity:0.75;':''}">${d.title}</span>
                 ${catBadge(d.category)}
+                ${statusBadge(d.status)}
               </div>
-              <div class="meta">${d.date ? d.date : ''}${d.date && d.note ? ' · ' : ''}${d.note || ''}</div>
+              <div class="meta">${d.date ? (d.status==='completed'?'':'목표: ')+fmtDate(d.date) : ''}${d.date && d.note ? ' · ' : ''}${d.note || ''}</div>
             </div>
             <div class="actions">
               <button class="btn-icon-sm" onclick="openModal(${d.id})" title="수정">✏️</button>
+              <button class="btn-icon-sm danger" onclick="deleteItem(${d.id},'${esc(d.title)}')" title="삭제">🗑</button>
             </div>
           </div>
         </div>`).join('')}
@@ -873,28 +836,90 @@ function renderYearly() {
 
 function esc(s) { return (s||'').replace(/'/g,"\\'"); }
 
-// ── 모달 ──
-document.getElementById('mStatus').addEventListener('change', function() {
-  document.getElementById('mDateLabel').textContent =
-    this.value === 'completed' ? '완료일 (YYYY-MM-DD)' : '목표일 (YYYY-MM-DD, 선택)';
+const STATUS_STYLE = {
+  completed:   { dot: '#10b981', border: false,  badge: null },
+  in_progress: { dot: '#f59e0b', border: true,   badge: { bg: 'rgba(245,158,11,0.12)', color: '#f59e0b', label: '진행 중' } },
+  planned:     { dot: '#64748b', border: true,   badge: { bg: 'rgba(100,116,139,0.12)', color: '#94a3b8', label: '예정' } },
+};
+function statusDot(d) {
+  const s = STATUS_STYLE[d.status] || STATUS_STYLE.planned;
+  const style = s.border
+    ? `border:2px solid ${s.dot};background:transparent;`
+    : `background:${s.dot};`;
+  return `<div style="width:10px;height:10px;border-radius:50%;${style}flex-shrink:0;margin-right:4px;"></div>`;
+}
+function statusBadge(status) {
+  const s = STATUS_STYLE[status];
+  if (!s || !s.badge) return '';
+  return `<span style="font-size:10px;padding:1px 6px;border-radius:99px;background:${s.badge.bg};color:${s.badge.color};">${s.badge.label}</span>`;
+}
+
+function fmtDate(d) {
+  if (!d) return '';
+  const parts = d.split('-');
+  if (parts.length >= 2 && parts[2] === '01') return parts[0] + '-' + parts[1];
+  return d;
+}
+
+// ── 카테고리 칩 빌더 (범용) ──
+function buildChips(wrapId, getCat, setCat) {
+  const wrap = document.getElementById(wrapId);
+  wrap.innerHTML = '';
+  CATS.forEach(c => {
+    const sel = c.id === getCat();
+    const el = document.createElement('div');
+    el.className = 'cat-chip' + (sel ? ' sel' : '');
+    if (sel) { el.style.borderColor = c.color; el.style.background = c.color + '20'; el.style.color = c.color; }
+    el.innerHTML = `<span class="cdot" style="background:${c.color}"></span>${c.label}`;
+    el.onclick = () => { setCat(c.id); buildChips(wrapId, getCat, setCat); };
+    wrap.appendChild(el);
+  });
+}
+function buildCatChips()  { buildChips('mCatPick', () => selectedCat,     v => { selectedCat = v; }); }
+function buildEditChips() { buildChips('eCatPick', () => editSelectedCat, v => { editSelectedCat = v; }); }
+
+// ── 월 select 초기화 ──
+['mMonth','eMonth'].forEach(id => {
+  const s = document.getElementById(id);
+  for (let m = 1; m <= 12; m++) {
+    const o = document.createElement('option');
+    o.value = m; o.textContent = m + '월'; s.appendChild(o);
+  }
 });
 
-function openModal(id) {
-  const d = id ? items.find(x => x.id === id) : null;
-  document.getElementById('modalTitle').textContent = d ? '마일스톤 수정' : '마일스톤 추가';
-  document.getElementById('mEditId').value    = id || '';
-  document.getElementById('mTitle').value     = d ? d.title    : '';
-  document.getElementById('mStatus').value    = d ? d.status   : 'in_progress';
-  document.getElementById('mCategory').value  = d ? d.category : '';
-  document.getElementById('mDate').value      = d ? d.date     : '';
-  document.getElementById('mNote').value      = d ? d.note     : '';
-  document.getElementById('mDateLabel').textContent =
-    (d && d.status==='completed') ? '완료일 (YYYY-MM-DD)' : '목표일 (YYYY-MM-DD, 선택)';
-  document.getElementById('modal').style.display = 'block';
+// ── 인라인 추가 폼 토글 ──
+document.getElementById('addFormToggle').onclick = () => {
+  const body = document.getElementById('addFormBody');
+  const chev = document.getElementById('addFormChev');
+  const open = body.style.display === 'none';
+  body.style.display = open ? '' : 'none';
+  chev.style.transform = open ? 'rotate(180deg)' : '';
+};
+
+function resetForm() {
+  document.getElementById('mTitle').value  = '';
+  document.getElementById('mYear').value   = '';
+  document.getElementById('mMonth').value  = '';
+  document.getElementById('mNote').value   = '';
+  document.getElementById('mStatus').value = 'completed';
+  document.getElementById('mEditId').value = '';
+  document.getElementById('mCancelBtn').style.display = 'none';
+  document.getElementById('modalSaveBtn').textContent = '기록하기';
+  selectedCat = 'career';
+  buildCatChips();
 }
-function closeModal() { document.getElementById('modal').style.display = 'none'; }
 
 async function saveItem() {
+  const title = document.getElementById('mTitle').value.trim();
+  const year  = document.getElementById('mYear').value.trim();
+  if (!title) { alert('제목을 입력해주세요.'); document.getElementById('mTitle').focus(); return; }
+
+  let date = '';
+  if (year) {
+    const month = document.getElementById('mMonth').value;
+    date = month ? `${year}-${String(month).padStart(2,'0')}-01` : `${year}-01-01`;
+  }
+
   const btn = document.getElementById('modalSaveBtn');
   btn.disabled = true;
   try {
@@ -902,11 +927,65 @@ async function saveItem() {
       method:'POST', headers:{'Content-Type':'application/json'},
       body: JSON.stringify({
         id:       document.getElementById('mEditId').value || null,
-        title:    document.getElementById('mTitle').value.trim(),
+        title,
         status:   document.getElementById('mStatus').value,
-        category: document.getElementById('mCategory').value,
-        date:     document.getElementById('mDate').value.trim(),
+        category: selectedCat,
+        date,
         note:     document.getElementById('mNote').value.trim(),
+      }),
+    });
+    if (!res.ok) { const e = await res.json(); alert(e.detail||'저장 실패'); return; }
+    resetForm();
+    // 폼 닫기
+    document.getElementById('addFormBody').style.display = 'none';
+    document.getElementById('addFormChev').style.transform = '';
+    await load();
+  } finally { btn.disabled = false; }
+}
+
+// ── 수정 모달 ──
+function openModal(id) {
+  const d = items.find(x => x.id === id);
+  if (!d) return;
+  document.getElementById('eEditId').value = id;
+  document.getElementById('eTitle').value  = d.title  || '';
+  document.getElementById('eStatus').value = d.status || 'completed';
+  document.getElementById('eNote').value   = d.note   || '';
+  if (d.date) {
+    const parts = d.date.split('-');
+    document.getElementById('eYear').value  = parts[0] || '';
+    document.getElementById('eMonth').value = parts[1] ? parseInt(parts[1], 10) : '';
+  } else {
+    document.getElementById('eYear').value  = '';
+    document.getElementById('eMonth').value = '';
+  }
+  editSelectedCat = d.category || 'career';
+  buildEditChips();
+  document.getElementById('modal').style.display = 'block';
+}
+function closeModal() { document.getElementById('modal').style.display = 'none'; }
+
+async function saveEdit() {
+  const title = document.getElementById('eTitle').value.trim();
+  const year  = document.getElementById('eYear').value.trim();
+  if (!title) { alert('제목을 입력해주세요.'); return; }
+  let date = '';
+  if (year) {
+    const month = document.getElementById('eMonth').value;
+    date = month ? `${year}-${String(month).padStart(2,'0')}-01` : `${year}-01-01`;
+  }
+  const btn = document.getElementById('editSaveBtn');
+  btn.disabled = true;
+  try {
+    const res = await fetch('/api/milestones', {
+      method:'POST', headers:{'Content-Type':'application/json'},
+      body: JSON.stringify({
+        id:       document.getElementById('eEditId').value,
+        title,
+        status:   document.getElementById('eStatus').value,
+        category: editSelectedCat,
+        date,
+        note:     document.getElementById('eNote').value.trim(),
       }),
     });
     if (!res.ok) { const e = await res.json(); alert(e.detail||'저장 실패'); return; }
@@ -921,52 +1000,11 @@ async function deleteItem(id, title) {
   await load();
 }
 
-// ── CSV ──
-function openImportModal() {
-  csvContent = null;
-  document.getElementById('csvInput').value = '';
-  document.getElementById('csvPreview').style.display = 'none';
-  document.getElementById('importModal').style.display = 'block';
-}
-function closeImportModal() { document.getElementById('importModal').style.display = 'none'; }
-
-document.getElementById('csvInput').addEventListener('change', function() {
-  const file = this.files[0]; if (!file) return;
-  const reader = new FileReader();
-  reader.onload = e => {
-    csvContent = e.target.result;
-    const lines = csvContent.split('\n').filter(l=>l.trim());
-    const p = document.getElementById('csvPreview');
-    p.textContent = `${lines.length-1}행 감지됨`;
-    p.style.display = 'block';
-  };
-  reader.readAsText(file, 'UTF-8');
+document.getElementById('modal').addEventListener('click', function(e) {
+  if (e.target === this) this.style.display = 'none';
 });
 
-async function submitImport() {
-  if (!csvContent) { alert('파일을 선택해주세요.'); return; }
-  const btn = document.getElementById('importBtn');
-  btn.disabled = true; btn.textContent = '가져오는 중...';
-  try {
-    const res = await fetch('/api/milestones/import-csv', {
-      method:'POST', headers:{'Content-Type':'application/json'},
-      body: JSON.stringify({csv: csvContent}),
-    });
-    const data = await res.json();
-    alert(`${data.imported}건 가져오기 완료`);
-    closeImportModal();
-    await load();
-  } catch(e) { alert('실패: '+e.message);
-  } finally { btn.disabled=false; btn.textContent='가져오기'; }
-}
-
-['modal','importModal'].forEach(id => {
-  document.getElementById(id).addEventListener('click', function(e) {
-    if (e.target === this) this.style.display = 'none';
-  });
-});
-
-showPg(0);
+buildCatChips();
 load();
 </script>
 {% endblock %}
