@@ -158,6 +158,45 @@
 .hm-legend-item { display: flex; align-items: center; gap: 5px; font-size: 10px; color: var(--text2); }
 .hm-legend-dot  { width: 10px; height: 10px; border-radius: 3px; }
 
+/* ══ Sector allocation ══ */
+.hm-sector-card {
+  background: var(--bg); border: 1px solid var(--glass-border);
+  border-radius: var(--r-xl); padding: 20px 22px;
+  margin-bottom: 16px;
+  box-shadow: var(--shadow-sm);
+}
+.hm-sector-header {
+  display: flex; align-items: flex-start; justify-content: space-between;
+  margin-bottom: 16px;
+}
+.hm-sector-list { display: flex; flex-direction: column; gap: 10px; }
+.hm-sector-empty { font-size: 12px; color: var(--text2); padding: 8px 0; }
+.hm-sector-row {
+  display: grid; grid-template-columns: 100px 1fr 52px;
+  align-items: center; gap: 10px;
+}
+.hm-sector-name {
+  font-size: 12px; font-weight: 600; color: var(--text);
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+}
+.hm-sector-bar-wrap {
+  position: relative; height: 8px; border-radius: 99px;
+  background: rgba(0,0,0,0.05);
+}
+[data-theme="dark"] .hm-sector-bar-wrap { background: rgba(255,255,255,0.07); }
+.hm-sector-bar-fill {
+  height: 100%; border-radius: 99px;
+  transition: width 0.6s cubic-bezier(0.16,1,0.3,1);
+}
+.hm-sector-pct {
+  font-size: 12px; font-weight: 700; text-align: right; color: var(--text);
+}
+.hm-sector-tickers {
+  grid-column: 2 / -1;
+  font-size: 10px; color: var(--text2);
+  margin-top: -4px;
+}
+
 /* ══ FX badge ══ */
 .hm-fx-strip {
   display: flex; align-items: center; justify-content: space-between;
@@ -348,6 +387,22 @@
 
 
 <!-- ══════════════════════════════════════
+     SECTOR ALLOCATION
+══════════════════════════════════════ -->
+<div class="hm-sector-card" id="sectorSection">
+  <div class="hm-sector-header">
+    <div>
+      <div class="hm-card-title">섹터 비중</div>
+      <div class="hm-card-sub">평가액 기준 · 업종별 비중</div>
+    </div>
+  </div>
+  <div class="hm-sector-list" id="sectorList">
+    <div class="hm-sector-empty">데이터 로딩 중…</div>
+  </div>
+</div>
+
+
+<!-- ══════════════════════════════════════
      FX STRIP
 ══════════════════════════════════════ -->
 <div class="hm-fx-strip">
@@ -393,6 +448,7 @@
 const ITEMS         = {{ items_json | safe }};
 const STALE         = {{ stale_tickers | safe }};
 const NEEDS_REFRESH = {{ needs_refresh | safe }};
+const SECTOR_ALLOC  = {{ sector_alloc | safe }};
 let fxRate = {{ fx_default|int }};
 let pieChart = null;
 let portfolioBarChart = null;
@@ -474,6 +530,7 @@ function renderAll() {
 
   renderPie(totalValue);
   renderBarChart();
+  renderSector();
   renderTable(fcItems);
 }
 
@@ -568,6 +625,42 @@ function renderBarChart() {
       },
     },
   });
+}
+
+const SECTOR_PALETTE = [
+  '#667eea','#10b981','#f59e0b','#ec4899','#0ea5e9',
+  '#8b5cf6','#f97316','#6366f1','#14b8a6','#ef4444',
+  '#22d3ee','#a3e635','#fb7185','#fbbf24','#34d399',
+];
+
+function renderSector() {
+  const el = document.getElementById('sectorList');
+  if (!el) return;
+  if (!SECTOR_ALLOC || SECTOR_ALLOC.length === 0) {
+    el.innerHTML = '<div class="hm-sector-empty">섹터 정보가 없습니다. 데이터 갱신 후 표시됩니다.</div>';
+    return;
+  }
+  const hasUnknown = SECTOR_ALLOC.some(s => s.name === '기타' && s.tickers.length === ITEMS.length);
+  if (hasUnknown) {
+    el.innerHTML = '<div class="hm-sector-empty">섹터 정보 로딩 중… 데이터 갱신 후 표시됩니다.</div>';
+    return;
+  }
+  el.innerHTML = SECTOR_ALLOC.map((s, i) => {
+    const color = SECTOR_PALETTE[i % SECTOR_PALETTE.length];
+    return `<div>
+      <div class="hm-sector-row">
+        <div class="hm-sector-name" title="${s.name}">${s.name}</div>
+        <div class="hm-sector-bar-wrap">
+          <div class="hm-sector-bar-fill" style="width:${s.pct}%;background:${color};"></div>
+        </div>
+        <div class="hm-sector-pct" style="color:${color};">${s.pct}%</div>
+      </div>
+      <div class="hm-sector-row" style="grid-template-columns:100px 1fr 52px;">
+        <div></div>
+        <div class="hm-sector-tickers">${s.tickers.join(' · ')}</div>
+      </div>
+    </div>`;
+  }).join('');
 }
 
 function renderTable(fcItems) {

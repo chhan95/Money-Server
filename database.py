@@ -131,3 +131,9 @@ def create_tables():
             conn.commit()
         except Exception:
             pass
+        # stocks sector 컬럼 추가
+        try:
+            conn.execute(text("ALTER TABLE stocks ADD COLUMN sector VARCHAR(100)"))
+            conn.commit()
+        except Exception:
+            pass

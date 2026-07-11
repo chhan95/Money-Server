@@ -94,6 +94,8 @@ def get_or_refresh(ticker: str, db: Session) -> models.Stock | None:
         stock.trailing_roe       = data.get("trailing_roe")
         stock.trailing_eps       = data.get("trailing_eps")
         stock.fin_currency       = data.get("fin_currency", "USD")
+        if data.get("sector"):
+            stock.sector         = data["sector"]
         stock.fetched_at         = _now()
 
         # 기존 연도 데이터 교체
@@ -176,6 +178,7 @@ def stock_to_dict(stock: models.Stock) -> dict:
         "pbRatio":        stock.pb_ratio,
         "trailingRoe":    stock.trailing_roe,
         "trailingEps":    stock.trailing_eps,
+        "sector":         stock.sector or "",
     }
 
 
@@ -375,6 +378,7 @@ def page_home(request: Request, db: Session = Depends(get_db)):
                 "fiscal_data":   sd["fiscalData"],
                 "year_keys":     sd["yearKeys"],
                 "forecast_keys": sd.get("forecastKeys", []),
+                "sector":        sd.get("sector", ""),
             })
         else:
             # 아직 데이터 없음 — 플레이스홀더 (갱신 후 reload)
@@ -391,6 +395,7 @@ def page_home(request: Request, db: Session = Depends(get_db)):
                 "fiscal_data":   {},
                 "year_keys":     [],
                 "forecast_keys": [],
+                "sector":        "",
             })
 
     try:
@@ -399,6 +404,62 @@ def page_home(request: Request, db: Session = Depends(get_db)):
         fx_rate = 1380.0
 
     items.sort(key=lambda x: x["shares_owned"] * x["current_price"], reverse=True)
+
+    # ── 섹터 비중 계산 ────────────────────────────────────────
+    _SECTOR_KO = {
+        "Semiconductors":                        "반도체",
+        "Software—Application":                  "소프트웨어",
+        "Software—Infrastructure":               "소프트웨어",
+        "Software - Application":                "소프트웨어",
+        "Software - Infrastructure":             "소프트웨어",
+        "Internet Content & Information":        "인터넷/플랫폼",
+        "Internet Retail":                       "이커머스",
+        "Consumer Electronics":                  "가전/하드웨어",
+        "Electronic Components":                 "전자부품",
+        "Drug Manufacturers—General":            "제약",
+        "Drug Manufacturers—Specialty & Generic":"제약",
+        "Drug Manufacturers - General":          "제약",
+        "Biotechnology":                         "바이오테크",
+        "Medical Devices":                       "의료기기",
+        "Healthcare Plans":                      "헬스케어 서비스",
+        "Diagnostics & Research":                "진단/연구",
+        "Technology":                            "기술/IT",
+        "Healthcare":                            "헬스케어",
+        "Financial Services":                    "금융",
+        "Banks—Diversified":                     "은행",
+        "Banks—Regional":                        "은행",
+        "Asset Management":                      "자산운용",
+        "Insurance":                             "보험",
+        "Communication Services":                "통신/미디어",
+        "Telecom Services":                      "통신",
+        "Aerospace & Defense":                   "방산",
+        "Auto Manufacturers":                    "자동차",
+        "Oil & Gas Integrated":                  "에너지",
+        "Oil & Gas E&P":                         "에너지",
+        "Utilities—Regulated Electric":          "유틸리티",
+        "Industrials":                           "산업재",
+        "Consumer Cyclical":                     "소비재",
+        "Consumer Defensive":                    "필수소비재",
+        "Basic Materials":                       "소재",
+        "Real Estate":                           "부동산",
+    }
+    _bucket: dict = {}
+    for it in items:
+        raw = it.get("sector") or ""
+        label = _SECTOR_KO.get(raw) or (raw if raw else "기타")
+        val = it["shares_owned"] * it["current_price"]
+        if label not in _bucket:
+            _bucket[label] = {"value": 0.0, "tickers": []}
+        _bucket[label]["value"]   += val
+        _bucket[label]["tickers"].append(it["ticker"])
+    total_val = sum(b["value"] for b in _bucket.values()) or 1.0
+    sector_alloc = sorted(
+        [{"name": k, "value": round(v["value"], 2),
+          "tickers": v["tickers"],
+          "pct": round(v["value"] / total_val * 100, 1)}
+         for k, v in _bucket.items()],
+        key=lambda x: x["value"], reverse=True,
+    )
 
     # 오늘 스냅샷 저장 (최신 가격 기준)
     try:
@@ -413,6 +474,7 @@ def page_home(request: Request, db: Session = Depends(get_db)):
         "has_items":      len(portfolio) > 0,
         "stale_tickers":  json.dumps(stale_tickers),
         "needs_refresh":  json.dumps(needs_refresh),
+        "sector_alloc":   json.dumps(sector_alloc, ensure_ascii=False),
         "active":         "home",
     })
     resp.headers["Cache-Control"] = "no-store"

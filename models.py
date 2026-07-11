@@ -21,6 +21,7 @@ class Stock(Base):
     trailing_roe        = Column(Float)                # TTM ROE
     trailing_eps        = Column(Float)                # TTM EPS
     fin_currency        = Column(String(10))               # 재무제표 통화 (e.g. "USD", "TWD")
+    sector              = Column(String(100))              # 업종 (yfinance industry)
     fetched_at          = Column(DateTime)
 
     fiscal_years = relationship(

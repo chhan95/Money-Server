@@ -82,6 +82,7 @@ def fetch_stock(ticker: str) -> dict | None:
         pb_ratio       = info.get("priceToBook")                  # TTM P/B
         trailing_roe   = info.get("returnOnEquity")               # TTM ROE
         trailing_eps   = info.get("trailingEps")                  # TTM EPS
+        sector         = info.get("industry") or info.get("sector") or ""
 
         # 재무제표 가져오기 (income_stmt 우선, financials 폴백)
         fin: pd.DataFrame | None = None
@@ -224,6 +225,7 @@ def fetch_stock(ticker: str) -> dict | None:
             "pb_ratio":      float(pb_ratio)     if pb_ratio     is not None else None,
             "trailing_roe":  float(trailing_roe) if trailing_roe is not None else None,
             "trailing_eps":  float(trailing_eps) if trailing_eps is not None else None,
+            "sector":        sector,
             "years":         years,
             "forecasts":     forecasts,
         }
