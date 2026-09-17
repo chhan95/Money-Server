@@ -1,0 +1,149 @@
+{
+  "_README": "기업별 정성 분석 노트. 티커로 조회되며 코드에 종목이 하드코딩되어 있지 않다. written_at이 없는 노트는 화면에 표시되지 않는다. 숫자(시장점유율·매출비중 등)는 출처 없이 적지 않는다. 새 보유 종목은 같은 형식으로 추가하면 된다.",
+
+  "NVDA": {
+    "written_at": "2026-09-13",
+    "author": "Claude 초안 — 사용자 검증 필요",
+    "business_one_liner": "데이터센터용 GPU 가속기와 CUDA 소프트웨어 생태계를 결합해 AI 학습·추론 인프라 수요를 흡수하는 팹리스 반도체 설계 기업",
+    "revenue_sources": ["데이터센터 (가속 컴퓨팅·네트워킹)", "게이밍 GPU", "프로페셔널 비주얼라이제이션", "자동차·로보틱스"],
+    "moat": {
+      "factors": [
+        {"type": "IP / Technology", "rating": "strong", "evidence": "GPU 아키텍처와 고대역 인터커넥트·네트워킹을 함께 설계하는 역량"},
+        {"type": "Ecosystem", "rating": "strong", "evidence": "CUDA와 그 위에 축적된 라이브러리·개발자 생태계"},
+        {"type": "Switching Cost", "rating": "strong", "evidence": "CUDA 기반으로 작성된 코드와 워크플로를 다른 플랫폼으로 옮기는 비용"},
+        {"type": "Scale Advantage", "rating": "moderate", "evidence": "파운드리·첨단 패키징 물량을 선제적으로 확보할 수 있는 규모"},
+        {"type": "Pricing Power", "rating": "moderate", "evidence": "공급 부족 국면에서 높은 매출총이익률 유지 (대시보드 수익성 추이로 확인)"}
+      ]
+    },
+    "growth_duration": {"level": "Medium", "rationale": ["AI 인프라 투자 사이클의 지속 기간에 크게 의존", "하이퍼스케일러 자체 설계 칩(ASIC)의 대체 속도가 변수", "추론 수요 확대는 기간 연장 요인"]},
+    "risks": {
+      "growth_deceleration": {"level": "high", "note": "대형 고객의 AI 설비투자 속도 조절 시 매출 성장률 급변 가능"},
+      "competition": {"level": "medium", "note": "AMD 등 GPU 경쟁사와 고객사 자체 ASIC"},
+      "customer_concentration": {"level": "high", "note": "소수 하이퍼스케일러에 데이터센터 매출이 집중"},
+      "regulatory": {"level": "medium", "note": "미국의 첨단 반도체 수출 규제"},
+      "cyclicality": {"level": "medium", "note": "반도체 재고·투자 사이클"},
+      "technology_disruption": {"level": "medium", "note": "추론 특화 칩 등 아키텍처 변화"}
+    },
+    "key_risks": ["AI 인프라 투자 사이클 의존도", "고객 집중도", "경쟁사·자체 ASIC의 추격"]
+  },
+
+  "TSM": {
+    "written_at": "2026-09-13",
+    "author": "Claude 초안 — 사용자 검증 필요",
+    "business_one_liner": "선단 공정 양산 역량과 첨단 패키징을 바탕으로 주요 칩 설계 기업의 생산을 수탁하는 순수 파운드리 기업",
+    "revenue_sources": ["선단 공정 웨이퍼 (고성능 컴퓨팅·스마트폰)", "첨단 패키징", "특수 공정"],
+    "moat": {
+      "factors": [
+        {"type": "IP / Technology", "rating": "strong", "evidence": "선단 공정의 수율과 대량 양산 노하우"},
+        {"type": "Scale Advantage", "rating": "strong", "evidence": "경쟁사가 따라가기 어려운 대규모 설비투자 규모"},
+        {"type": "Switching Cost", "rating": "strong", "evidence": "칩 설계를 특정 공정에 맞춰 최적화하기 때문에 파운드리 변경 시 재설계 비용 발생"},
+        {"type": "Ecosystem", "rating": "moderate", "evidence": "설계자산·EDA 파트너와 연결된 설계 지원 생태계"},
+        {"type": "Cost Advantage", "rating": "moderate", "evidence": "규모와 가동률에서 오는 단위 원가 우위"}
+      ]
+    },
+    "growth_duration": {"level": "High", "rationale": ["AI·고성능 컴퓨팅 칩의 선단 공정 수요는 설계사 경쟁과 무관하게 수혜", "공정 미세화가 계속되는 한 기술 격차가 유지되는 구조"]},
+    "risks": {
+      "regulatory": {"level": "high", "note": "대만 지정학 리스크와 미·중 반도체 규제"},
+      "cyclicality": {"level": "medium", "note": "반도체 수요 사이클과 가동률 변동"},
+      "customer_concentration": {"level": "medium", "note": "소수 대형 설계 고객 비중이 큼"},
+      "capital_allocation": {"level": "medium", "note": "해외 공장 확장에 따른 비용 부담과 설비투자 회수 기간"},
+      "competition": {"level": "low", "note": "선단 공정에서 추격 중인 경쟁 파운드리"}
+    },
+    "key_risks": ["대만 지정학 리스크", "반도체 사이클과 대규모 설비투자 부담", "고객 집중도"]
+  },
+
+  "AVGO": {
+    "written_at": "2026-09-13",
+    "author": "Claude 초안 — 사용자 검증 필요",
+    "business_one_liner": "맞춤형 AI 가속기(ASIC)·네트워킹 반도체와 인수로 확장한 인프라 소프트웨어를 함께 보유한 기업",
+    "revenue_sources": ["반도체 솔루션 (맞춤형 AI ASIC·네트워킹·무선)", "인프라 소프트웨어 (VMware 등)"],
+    "moat": {
+      "factors": [
+        {"type": "IP / Technology", "rating": "strong", "evidence": "고속 네트워킹·SerDes·RF 설계 역량"},
+        {"type": "Switching Cost", "rating": "strong", "evidence": "기업 인프라 소프트웨어와 설계 채택(디자인 윈) 교체의 높은 비용"},
+        {"type": "Scale Advantage", "rating": "moderate", "evidence": "다수 제품군을 묶은 대형 고객 대응 규모"},
+        {"type": "Pricing Power", "rating": "moderate", "evidence": "소프트웨어 번들·구독 전환 가격 정책 (고객 반발은 리스크)"}
+      ]
+    },
+    "growth_duration": {"level": "Medium", "rationale": ["맞춤형 AI 칩 수요는 성장 요인", "인수 중심 성장 전략이라 유기적 성장 지속성은 추가 확인 필요"]},
+    "risks": {
+      "capital_allocation": {"level": "high", "note": "대형 인수로 투하자본이 커져 증분 자본효율이 낮아짐 (대시보드 증분 ROIC로 확인)"},
+      "customer_concentration": {"level": "high", "note": "맞춤형 AI ASIC 매출이 소수 대형 고객에 집중"},
+      "competition": {"level": "medium", "note": "소프트웨어 가격 정책에 따른 고객 이탈·대체 가능성"},
+      "cyclicality": {"level": "medium", "note": "비AI 반도체 부문의 경기 민감도"}
+    },
+    "key_risks": ["대형 인수에 따른 부채와 자본효율 저하", "소수 고객 의존도", "소프트웨어 가격 정책에 대한 고객 반발"]
+  },
+
+  "GOOGL": {
+    "written_at": "2026-09-13",
+    "author": "Claude 초안 — 사용자 검증 필요",
+    "business_one_liner": "검색·유튜브 광고로 창출한 현금을 클라우드와 AI 인프라에 재투자하는 광고·클라우드 플랫폼 기업",
+    "revenue_sources": ["검색 광고", "유튜브 광고", "구글 클라우드", "구독·플랫폼·하드웨어"],
+    "moat": {
+      "factors": [
+        {"type": "Network Effect", "rating": "strong", "evidence": "이용자와 광고주가 서로를 끌어들이는 검색·유튜브 양면 시장"},
+        {"type": "Distribution", "rating": "strong", "evidence": "Android·Chrome 등 기본 검색 진입점 확보"},
+        {"type": "Brand", "rating": "strong", "evidence": "검색 행위 자체를 대표하는 브랜드 인지도"},
+        {"type": "Scale Advantage", "rating": "strong", "evidence": "전 세계 규모의 데이터센터·AI 인프라"},
+        {"type": "IP / Technology", "rating": "moderate", "evidence": "자체 AI 모델과 TPU 등 자체 설계 칩"}
+      ]
+    },
+    "growth_duration": {"level": "Medium", "rationale": ["클라우드와 AI는 성장 연장 요인", "생성형 AI가 검색 행태를 바꿀 경우 핵심 광고 사업의 성장 기간이 단축될 수 있음"]},
+    "risks": {
+      "regulatory": {"level": "high", "note": "반독점 소송과 기본 검색 계약에 대한 규제"},
+      "technology_disruption": {"level": "high", "note": "생성형 AI 기반 검색 대체"},
+      "capital_allocation": {"level": "medium", "note": "AI 인프라 설비투자 급증 (대시보드 증분 ROIC 하락으로 확인)"},
+      "competition": {"level": "medium", "note": "클라우드 시장의 대형 경쟁사"},
+      "cyclicality": {"level": "low", "note": "광고 경기 민감도"}
+    },
+    "key_risks": ["반독점 규제", "생성형 AI의 검색 대체 가능성", "AI 설비투자 급증에 따른 자본효율 저하"]
+  },
+
+  "MSFT": {
+    "written_at": "2026-09-13",
+    "author": "Claude 초안 — 사용자 검증 필요",
+    "business_one_liner": "기업용 생산성 소프트웨어와 Azure 클라우드를 결합해 높은 전환비용 위에서 반복 매출을 쌓는 소프트웨어·클라우드 기업",
+    "revenue_sources": ["클라우드 (Azure 등)", "생산성·비즈니스 프로세스 (Microsoft 365·LinkedIn)", "개인 컴퓨팅 (Windows·게이밍·검색)"],
+    "moat": {
+      "factors": [
+        {"type": "Switching Cost", "rating": "strong", "evidence": "Microsoft 365·Azure에 묶인 기업 업무 흐름과 데이터"},
+        {"type": "Ecosystem", "rating": "strong", "evidence": "Windows·Office·Azure·개발도구가 연결된 제품 생태계"},
+        {"type": "Distribution", "rating": "strong", "evidence": "기업 고객 영업망과 번들 판매"},
+        {"type": "Scale Advantage", "rating": "strong", "evidence": "전 세계 데이터센터 인프라"},
+        {"type": "Network Effect", "rating": "moderate", "evidence": "Teams·LinkedIn 사용자 네트워크"}
+      ]
+    },
+    "growth_duration": {"level": "High", "rationale": ["구독형 반복 매출과 높은 전환비용", "AI 기능이 기존 고객 기반 위에서 판매되는 구조"]},
+    "risks": {
+      "capital_allocation": {"level": "medium", "note": "AI 데이터센터 설비투자의 회수 불확실성"},
+      "competition": {"level": "medium", "note": "클라우드 시장 대형 경쟁사"},
+      "regulatory": {"level": "medium", "note": "번들링·클라우드 라이선스 관련 규제"},
+      "technology_disruption": {"level": "low", "note": "AI 에이전트 등장에 따른 소프트웨어 좌석(seat) 모델 변화"}
+    },
+    "key_risks": ["AI 인프라 투자 회수 불확실성", "클라우드 경쟁", "번들링 관련 규제"]
+  },
+
+  "LLY": {
+    "written_at": "2026-09-13",
+    "author": "Claude 초안 — 사용자 검증 필요",
+    "business_one_liner": "당뇨·비만 치료제를 중심으로 특허로 보호되는 신약 포트폴리오를 보유하고 생산능력을 빠르게 확장 중인 제약 기업",
+    "revenue_sources": ["대사질환 (당뇨·비만 치료제)", "종양", "면역", "신경과학"],
+    "moat": {
+      "factors": [
+        {"type": "IP / Technology", "rating": "strong", "evidence": "특허로 보호되는 신약과 후속 파이프라인"},
+        {"type": "Regulatory Advantage", "rating": "moderate", "evidence": "임상·허가 절차가 만드는 진입 장벽"},
+        {"type": "Scale Advantage", "rating": "moderate", "evidence": "대규모 제조 설비 증설로 공급 능력 확보"},
+        {"type": "Brand", "rating": "moderate", "evidence": "처방의 신뢰도가 쌓인 대형 제약사 브랜드"}
+      ]
+    },
+    "growth_duration": {"level": "Medium", "rationale": ["비만·당뇨 치료제 시장 확대는 성장 연장 요인", "특허 존속 기간과 경쟁 신약 출시 속도가 성장 기간을 결정"]},
+    "risks": {
+      "competition": {"level": "high", "note": "비만 치료제 시장 경쟁 확대와 가격 인하 압력"},
+      "regulatory": {"level": "high", "note": "약가 규제와 정부 약가 협상"},
+      "customer_concentration": {"level": "medium", "note": "특정 제품군에 매출이 집중 (고객이 아닌 제품 집중)"},
+      "technology_disruption": {"level": "medium", "note": "경구용 등 차세대 치료제 등장"}
+    },
+    "key_risks": ["비만 치료제 경쟁 심화와 가격 인하 압력", "약가 규제", "소수 제품군 의존도"]
+  }
+}

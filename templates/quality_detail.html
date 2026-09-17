@@ -1,0 +1,494 @@
+{% extends "base.html" %}
+{% block title %}Money — {{ ticker }} 관통실적{% endblock %}
+{% block content %}
+
+<style>
+:root {
+  --q-grad: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  --q-blue: #667eea; --q-green: #10b981; --q-amber: #f59e0b; --q-red: #ef4444; --q-gray: #94a3b8;
+  --q-r: 14px;
+}
+.page-wrap { max-width: none !important; padding-left: 20px; padding-right: 20px; }
+.d-wrap { max-width: 1380px; margin: 0 auto; }
+.d-back { font-size: 12px; color: var(--text2); text-decoration: none; }
+.d-back:hover { color: var(--q-blue); }
+
+.d-snap { display: grid; grid-template-columns: 1.4fr 1fr; gap: 14px; margin: 8px 0 12px; }
+@media (max-width: 900px) { .d-snap { grid-template-columns: 1fr; } }
+.d-title { font-size: 28px; font-weight: 800; letter-spacing: -.6px; }
+.d-title small { font-size: 15px; color: var(--text2); font-weight: 700; margin-left: 6px; }
+.d-tags { display: flex; flex-wrap: wrap; gap: 6px; margin: 8px 0; }
+.d-tag { font-size: 11px; font-weight: 700; padding: 3px 9px; border-radius: 99px; background: var(--bg2); border: 1px solid var(--border); color: var(--text2); }
+.d-line { font-size: 13.5px; line-height: 1.8; margin-top: 8px; }
+.d-note {
+  border: 1px dashed var(--border); border-radius: 10px; padding: 10px 13px; margin-top: 10px;
+  background: rgba(102,126,234,.04); font-size: 12.5px; line-height: 1.75;
+}
+.d-note-badge { font-size: 9.5px; font-weight: 800; letter-spacing: .4px; text-transform: uppercase; color: var(--q-blue); background: rgba(102,126,234,.12); padding: 2px 7px; border-radius: 5px; margin-right: 6px; }
+.d-src { font-size: 10px; color: var(--text2); }
+
+.q-card { background: var(--bg); border: 1px solid var(--border); border-radius: var(--q-r); padding: 15px 17px; }
+.q-card-title { font-size: 13px; font-weight: 800; }
+.q-card-sub { font-size: 10.5px; color: var(--text2); line-height: 1.6; }
+.q-card-head { display: flex; justify-content: space-between; gap: 10px; flex-wrap: wrap; align-items: baseline; margin-bottom: 10px; }
+.q-sec { font-size: 11.5px; font-weight: 800; text-transform: uppercase; letter-spacing: .6px; color: var(--text2); margin: 26px 0 10px; }
+.q-grid2 { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+.q-grid3 { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; }
+@media (max-width: 1100px) { .q-grid3 { grid-template-columns: 1fr 1fr; } }
+@media (max-width: 820px) { .q-grid2, .q-grid3 { grid-template-columns: 1fr; } }
+.q-chart { position: relative; height: 250px; }
+
+.d-kv { display: grid; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); gap: 8px; }
+.d-kv div { background: var(--bg2); border-radius: 10px; padding: 9px 11px; }
+.d-kv span { display: block; font-size: 10px; color: var(--text2); font-weight: 700; text-transform: uppercase; letter-spacing: .35px; margin-bottom: 3px; }
+.d-kv b { font-size: 15px; font-variant-numeric: tabular-nums; }
+
+.d-scores { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; }
+@media (max-width: 700px) { .d-scores { grid-template-columns: 1fr; } }
+.d-score { border: 1px solid var(--border); border-radius: 12px; padding: 12px 14px; background: var(--bg); }
+.d-score-l { font-size: 10.5px; font-weight: 700; color: var(--text2); text-transform: uppercase; letter-spacing: .4px; }
+.d-score-v { font-size: 30px; font-weight: 800; letter-spacing: -.8px; font-variant-numeric: tabular-nums; }
+.d-score-s { font-size: 10.5px; color: var(--text2); line-height: 1.55; }
+.d-subs { display: grid; grid-template-columns: repeat(auto-fit, minmax(170px, 1fr)); gap: 8px; margin-top: 10px; }
+.d-sub { border: 1px solid var(--border); border-radius: 10px; padding: 9px 11px; }
+.d-sub-top { display: flex; justify-content: space-between; align-items: baseline; }
+.d-sub-l { font-size: 11.5px; font-weight: 700; }
+.d-sub-v { font-size: 17px; font-weight: 800; }
+.d-bar { height: 4px; border-radius: 3px; background: var(--border2); margin-top: 6px; overflow: hidden; }
+.d-bar span { display: block; height: 100%; background: var(--q-grad); }
+
+.d-flow { display: flex; flex-wrap: wrap; gap: 6px; align-items: stretch; }
+.d-flow-step { flex: 1 1 120px; border: 1px solid var(--border); border-radius: 10px; padding: 9px 10px; background: var(--bg); }
+.d-flow-step span { display: block; font-size: 10px; color: var(--text2); font-weight: 700; margin-bottom: 3px; }
+.d-flow-step b { font-size: 15px; font-variant-numeric: tabular-nums; }
+.d-flow-arrow { align-self: center; color: var(--text2); font-size: 13px; }
+
+.q-mini { width: 100%; border-collapse: collapse; font-size: 12px; }
+.q-mini th { font-size: 10px; color: var(--text2); text-transform: uppercase; letter-spacing: .35px; text-align: right; padding: 6px 8px; border-bottom: 1px solid var(--border); font-weight: 700; white-space: nowrap; }
+.q-mini td { padding: 7px 8px; text-align: right; border-bottom: 1px solid var(--border2); font-variant-numeric: tabular-nums; }
+.q-mini th:first-child, .q-mini td:first-child { text-align: left; }
+.q-mini td.wrap { white-space: normal; text-align: left; color: var(--text2); font-size: 11px; line-height: 1.55; }
+.q-mini tr:last-child td { border-bottom: none; }
+.q-na { color: var(--text2); opacity: .6; font-style: italic; font-size: 11px; }
+.q-neg { color: var(--q-red); }
+.q-pos { color: var(--q-green); }
+.q-basis { font-size: 9.5px; font-weight: 800; padding: 1px 6px; border-radius: 5px; margin-left: 4px; }
+.q-basis.Reported { background: rgba(148,163,184,.2); color: var(--text2); }
+.q-basis.Calculated { background: rgba(102,126,234,.15); color: var(--q-blue); }
+.q-basis.Estimate { background: rgba(245,158,11,.15); color: var(--q-amber); }
+.d-callout { font-size: 12.5px; line-height: 1.75; border-left: 3px solid var(--q-blue); padding: 8px 12px; background: var(--bg2); border-radius: 0 8px 8px 0; margin-bottom: 10px; }
+.d-stars { font-size: 20px; letter-spacing: 2px; color: var(--q-amber); }
+.d-level { font-size: 10px; font-weight: 800; padding: 2px 7px; border-radius: 99px; text-transform: uppercase; }
+.d-level.high { background: rgba(239,68,68,.12); color: var(--q-red); }
+.d-level.medium { background: rgba(245,158,11,.14); color: var(--q-amber); }
+.d-level.low { background: rgba(16,185,129,.12); color: var(--q-green); }
+.d-summary { font-size: 12px; line-height: 1.7; color: var(--text2); max-height: 110px; overflow: hidden; position: relative; }
+.d-summary.open { max-height: none; }
+.q-empty { text-align: center; padding: 30px 12px; color: var(--text2); font-size: 12px; }
+</style>
+
+<div class="d-wrap">
+  <a class="d-back" href="/quality">← Portfolio Business Quality Dashboard</a>
+  <div id="dRoot"></div>
+</div>
+
+<script>
+const D = {{ detail_json | safe }};
+const c = D.company;
+const charts = {};
+
+function esc(s) { return String(s ?? '').replace(/&/g,'&amp;').replace(/"/g,'&quot;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
+function isNum(v) { return typeof v === 'number' && isFinite(v); }
+const pct = v => (v * 100).toFixed(1) + '%';
+function money(v, cur) {
+  if (!isNum(v)) return 'N/A';
+  const a = Math.abs(v), s = v < 0 ? '-' : '', sym = cur === 'USD' ? '$' : (cur ? cur + ' ' : '');
+  if (a >= 1e12) return s + sym + (a / 1e12).toFixed(2) + 'T';
+  if (a >= 1e9) return s + sym + (a / 1e9).toFixed(2) + 'B';
+  if (a >= 1e6) return s + sym + (a / 1e6).toFixed(1) + 'M';
+  return s + sym + a.toFixed(2);
+}
+function tip(r) {
+  if (!r) return '';
+  const p = [];
+  if (r.period) p.push(r.period);
+  if (r.period_type && r.period_type !== 'FY' && r.period_type !== r.period) p.push(r.period_type);
+  if (r.basis) p.push(r.basis);
+  if (r.src) p.push(r.src);
+  if (r.as_of) p.push('기준 ' + r.as_of);
+  if (r.formula) p.push('산식: ' + r.formula);
+  return esc(p.join(' · '));
+}
+const naSpan = reason => `<span class="q-na" title="${esc(reason || '데이터 없음')}">N/A</span>`;
+function pctOf(r) { return (!r || !isNum(r.v)) ? naSpan(r && r.na) : `<span class="${r.v < 0 ? 'q-neg' : ''}" title="${tip(r)}">${pct(r.v)}</span>`; }
+function numOf(r, d = 2, suffix = '') { return (!r || !isNum(r.v)) ? naSpan(r && r.na) : `<span title="${tip(r)}">${r.v.toFixed(d)}${suffix}</span>`; }
+function moneyOf(r, cur) { return (!r || !isNum(r.v)) ? naSpan(r && r.na) : `<span title="${tip(r)}">${money(r.v, cur)}</span>`; }
+const basisBadge = b => b ? `<span class="q-basis ${esc(b)}">${esc(b)}</span>` : '';
+function theme() {
+  const dark = document.documentElement.getAttribute('data-theme') === 'dark';
+  const css = v => getComputedStyle(document.documentElement).getPropertyValue(v).trim();
+  return { grid: dark ? 'rgba(255,255,255,.07)' : 'rgba(0,0,0,.07)', tick: css('--text2') || '#6b7280', tip: 'rgba(18,22,34,.95)' };
+}
+const S = c.series || [];
+const L = S.map(y => 'FY' + y.fy);
+const sv = (field) => S.map(y => (y[field] && isNum(y[field].v)) ? y[field].v : null);
+
+/* ════════ 렌더 ════════ */
+function section(title, html) { return `<div class="q-sec">${title}</div>${html}`; }
+
+function snapshot() {
+  const n = c.note;
+  const ed = c.earnings_dates || {};
+  const summary = c.summary
+    ? `<div class="q-card" style="margin-top:10px;"><div class="q-card-head"><div class="q-card-title">주요 사업 (기업 프로필 원문)</div>
+        <span class="d-src">출처: Yahoo Finance 기업 프로필 · 영문 원문</span></div>
+        <div class="d-summary" id="dSummary">${esc(c.summary)}</div>
+        <button class="d-back" style="background:none;border:none;cursor:pointer;margin-top:6px;" onclick="document.getElementById('dSummary').classList.toggle('open')">전체 보기 / 접기</button></div>`
+    : '';
+  const noteBlock = n
+    ? `<div class="d-note"><span class="d-note-badge">분석 노트</span>${esc(n.business_one_liner || '')}
+        ${(n.revenue_sources || []).length ? `<div style="margin-top:6px;"><b>핵심 수익원</b> · ${n.revenue_sources.map(esc).join(' · ')}</div>` : ''}
+        <div class="d-src" style="margin-top:4px;">작성일 ${esc(n.written_at)} · ${esc(n.author || '')} — 공시 데이터가 아닌 작성자 해석입니다</div></div>`
+    : `<div class="d-note"><span class="d-note-badge">분석 노트</span>이 기업의 분석 노트가 아직 작성되지 않았습니다.
+        <div class="d-src" style="margin-top:4px;">data/company_notes.json에 티커 기준으로 추가하면 사업 설명·경쟁우위·리스크가 표시됩니다.</div></div>`;
+  const ol = c.one_liner || {};
+
+  return `<div class="d-snap">
+    <div class="q-card">
+      <div class="d-title">${esc(c.name)}<small>${esc(c.ticker)}</small></div>
+      <div class="d-tags">
+        ${c.sector ? `<span class="d-tag">${esc(c.sector)}</span>` : ''}
+        ${c.industry ? `<span class="d-tag">${esc(c.industry)}</span>` : ''}
+        ${c.country ? `<span class="d-tag">${esc(c.country)}</span>` : ''}
+        ${c.exchange ? `<span class="d-tag">${esc(c.exchange)}</span>` : ''}
+        ${D.is_held ? '<span class="d-tag" style="color:var(--q-green);">보유 중</span>' : '<span class="d-tag" style="color:var(--q-amber);">과거 보유 · 상대 비교는 단독 기준</span>'}
+        ${c.stale ? '<span class="d-tag" style="color:var(--q-amber);">캐시 갱신 필요</span>' : ''}
+      </div>
+      <div class="d-line"><b>관통실적 한 줄 평가</b><br>${esc(ol.data_part || '')}
+        ${ol.note_part ? `<br><span style="color:var(--text2);">${esc(ol.note_part)}</span> <span class="d-src">(${esc(ol.note_source || '')})</span>` : ''}</div>
+      ${noteBlock}
+    </div>
+    <div class="q-card">
+      <div class="d-kv">
+        <div><span>현재 주가</span><b>${moneyOf(c.price, c.quote_currency)}</b></div>
+        <div><span>시가총액</span><b>${moneyOf(c.market_cap, c.quote_currency)}</b></div>
+        <div><span>최근 실적 발표</span><b>${esc(ed.last || 'N/A')}</b></div>
+        <div><span>다음 실적 발표</span><b>${esc(ed.next || 'N/A')}</b></div>
+        <div><span>재무제표 통화</span><b>${esc(c.currency || 'N/A')}</b></div>
+        <div><span>보유 평가액</span><b>${c.holding && isNum(c.holding.value) ? money(c.holding.value, c.holding.currency) : 'N/A'}</b></div>
+      </div>
+      <div class="d-src" style="margin-top:8px;">수집 ${esc(c.fetched_at || 'N/A')} UTC · 출처 Yahoo Finance (yfinance)
+        ${(c.missing || []).length ? ` · 수집 실패 항목: ${c.missing.map(esc).join(', ')}` : ''}</div>
+      ${c.currency && c.quote_currency && c.currency !== c.quote_currency
+        ? `<div class="d-src" style="margin-top:4px;color:var(--q-amber);">재무제표(${esc(c.currency)})와 주가(${esc(c.quote_currency)}) 통화가 달라 금액 지표는 각 통화로 표시하며, 두 통화를 섞는 지표는 N/A로 둡니다.</div>` : ''}
+    </div>
+  </div>${summary}`;
+}
+
+function scores() {
+  const sc = c.scores, g = sc.groups;
+  const big = (label, v, na, sub) => `<div class="d-score"><div class="d-score-l">${label}</div>
+    <div class="d-score-v">${isNum(v) ? v.toFixed(1) : 'N/A'}</div><div class="d-score-s">${isNum(v) ? sub : esc(na || '')}</div></div>`;
+  const subs = ['growth', 'profitability', 'capital_efficiency', 'moat', 'financial_health'].map(k => {
+    const s = g[k];
+    return `<div class="d-sub" title="${esc(s.from.join(' + '))}${s.excluded.length ? ' · 제외: ' + s.excluded.join(', ') : ''}">
+      <div class="d-sub-top"><span class="d-sub-l">${esc(s.label)}${k === 'moat' ? ' <span class="d-src">(정량)</span>' : ''}</span>
+      <span class="d-sub-v">${isNum(s.score) ? s.score.toFixed(1) : 'N/A'}</span></div>
+      <div class="d-bar"><span style="width:${isNum(s.score) ? s.score : 0}%"></span></div></div>`;
+  }).join('');
+  const comps = Object.values(c.engine.subs).map(s => `<tr><td>${esc(s.label)}</td><td>${s.weight}</td>
+      <td>${isNum(s.score) ? s.score.toFixed(1) : naSpan('총점에서 제외')}</td>
+      <td class="wrap">${(s.components || []).map(k => `${esc(k.name)} ${k.raw === null || k.raw === undefined ? 'N/A' : (k.unit === '%' ? k.raw.toFixed(1) + '%' : k.unit === 'pp' ? k.raw.toFixed(1) + 'pp' : k.unit === 'x' ? k.raw.toFixed(2) + 'x' : Math.round(k.raw))} → ${k.score === null || k.score === undefined ? '제외' : Math.round(k.score) + '점'}`).join(' · ')}</td></tr>`).join('');
+
+  return section('Score — 좋은 기업과 좋은 주식을 분리', `
+    <div class="d-scores">
+      ${big('Business Quality', sc.business_quality.score, sc.business_quality.na, `기업 자체의 질 · 커버리지 ${sc.business_quality.coverage}%`)}
+      ${big('Valuation', sc.valuation.score, sc.valuation.na, '현재 가격의 매력도 (높을수록 매력)')}
+      ${big('Investment Attractiveness', sc.attractiveness.score, sc.attractiveness.na, esc(sc.attractiveness.formula))}
+    </div>
+    <div class="d-callout" style="margin-top:10px;"><b>판정: ${esc(c.qp_label || 'N/A')}</b> — 보유 기업 중앙값
+      (Quality ${isNum(D.medians.business_quality) ? D.medians.business_quality.toFixed(1) : 'N/A'}, Valuation ${isNum(D.medians.valuation) ? D.medians.valuation.toFixed(1) : 'N/A'}) 대비 상대 위치입니다.
+      리서치 터미널 Investment Score: ${isNum(sc.investment_score) ? sc.investment_score : 'N/A'}</div>
+    <div class="d-subs">${subs}</div>
+    <details style="margin-top:10px;"><summary class="q-card-sub" style="cursor:pointer;">점수 계산 근거 (엔진 8개 항목 원점수·구성요소)</summary>
+      <div style="overflow-x:auto;margin-top:8px;"><table class="q-mini"><thead><tr><th>항목</th><th>가중</th><th>점수</th><th>구성요소 (원값 → 점수)</th></tr></thead><tbody>${comps}</tbody></table></div>
+    </details>`);
+}
+
+function flow() {
+  const fy = (c.period && c.period.FY) || {};
+  const k = c.compounding || {};
+  const step = (label, html) => `<div class="d-flow-step"><span>${label}</span><b>${html}</b></div>`;
+  const a = '<div class="d-flow-arrow">→</div>';
+  const moat = c.moat_note ? '★'.repeat(c.moat_note.stars) : (isNum(c.scores.groups.moat.score) ? c.scores.groups.moat.score.toFixed(0) + ' (정량)' : 'N/A');
+  return section('관통 흐름', `<div class="d-flow">
+    ${step('매출 성장 (FY)', pctOf(fy.rev_growth))}${a}${step('EPS 성장 (FY)', pctOf(fy.eps_growth))}${a}
+    ${step('영업이익률', pctOf(fy.operating_margin))}${a}${step('FCF Margin', pctOf(fy.fcf_margin))}${a}
+    ${step('ROIC', pctOf(c.roic))}${a}${step('재투자율', pctOf(c.reinvestment))}${a}
+    ${step('경쟁우위', moat)}${a}${step('내재 성장률', pctOf(k.implied_growth))}
+  </div>`);
+}
+
+function growth() {
+  const w = c.windows;
+  const row = (label, key, cur) => `<tr><td><b>${label}</b></td>${['1Y', '3Y', '5Y', '10Y'].map(p => `<td>${pctOf(w[key][p])}</td>`).join('')}</tr>`;
+  const r3 = c.rev_cagr3, e3 = c.eps_cagr3;
+  let lev = 'Revenue CAGR 또는 EPS CAGR(3Y)이 없어 비교할 수 없습니다.';
+  if (r3 && e3 && isNum(r3.v) && isNum(e3.v)) {
+    lev = e3.v > r3.v
+      ? `EPS가 매출보다 빠르게 성장 (EPS CAGR ${pct(e3.v)} > Revenue CAGR ${pct(r3.v)}, ${esc(r3.period)}) — 이익률 개선·자사주 감소 등 영업 레버리지 신호`
+      : `EPS 성장이 매출 성장에 못 미침 (EPS CAGR ${pct(e3.v)} ≤ Revenue CAGR ${pct(r3.v)}, ${esc(r3.period)}) — 마진 압박·희석 여부 확인 필요`;
+  }
+  return section('성장성', `
+    <div class="d-callout">${lev}</div>
+    <div class="q-grid3">
+      <div class="q-card"><div class="q-card-title">Revenue · YoY</div><div class="q-card-sub">${esc(c.currency)} · 막대 = 매출, 선 = YoY</div><div class="q-chart"><canvas id="chRev"></canvas></div></div>
+      <div class="q-card"><div class="q-card-title">EPS · YoY</div><div class="q-card-sub">${esc(c.currency)} / 주 (Diluted EPS)</div><div class="q-chart"><canvas id="chEps"></canvas></div></div>
+      <div class="q-card"><div class="q-card-title">Free Cash Flow · FCF Margin</div><div class="q-card-sub">${esc(c.currency)} · 선 = FCF Margin</div><div class="q-chart"><canvas id="chFcf"></canvas></div></div>
+    </div>
+    <div class="q-card" style="margin-top:12px;overflow-x:auto;">
+      <div class="q-card-head"><div class="q-card-title">기간별 성장률</div>
+        <div class="q-card-sub">yfinance 연간 재무는 최대 5개 회계연도 — 5Y CAGR(6개 연도 필요)·10Y는 N/A, 추정으로 채우지 않음</div></div>
+      <table class="q-mini"><thead><tr><th></th><th>1Y (YoY)</th><th>3Y CAGR</th><th>5Y CAGR</th><th>10Y CAGR</th></tr></thead>
+        <tbody>${row('Revenue', 'revenue')}${row('EPS', 'eps')}${row('FCF', 'fcf')}</tbody></table>
+    </div>`);
+}
+
+function profitability() {
+  const p = c.period;
+  const cols = ['TTM', 'FY', 'FY-1', 'FY-3', 'FY-5'];
+  const row = (label, key) => `<tr><td><b>${label}</b></td>${cols.map(k => `<td>${key === 'roic' && k === 'FY' ? pctOf(c.roic) : pctOf((p[k] || {})[key])}</td>`).join('')}</tr>`;
+  const w = c.wacc || {}, d = w.detail || {};
+  const waccTxt = isNum(w.v)
+    ? `WACC <b>${pct(w.v)}</b> <span class="q-basis Estimate">Estimate</span> · 무위험수익률 ${pct(d.rf)} (${esc(d.rf_src)}) · 베타 ${isNum(d.beta) ? d.beta.toFixed(2) : 'N/A'} · 시장위험프리미엄 ${pct(d.erp)} (가정) · 세전 타인자본비용 ${pct(d.kd)} (가정)`
+    : `WACC ${naSpan(w.na)} — ${esc(w.na || '')}`;
+  const sp = c.roic_spread;
+  return section('수익성 · ROIC', `
+    <div class="d-callout">ROIC는 기업이 영업에 투입한 자본으로 얼마나 높은 세후 영업수익을 창출하는지를 보여주는 핵심 자본효율성 지표입니다.
+      <div class="d-src" style="margin-top:4px;">산식: NOPAT ÷ (총부채 + 자기자본 − 현금 − 단기투자), 기말 기준 · NOPAT = 영업이익 × (1 − 실효세율)</div></div>
+    <div class="q-grid3">
+      <div class="q-card"><div class="q-card-title">ROIC vs WACC</div>
+        <div class="d-kv" style="margin-top:8px;">
+          <div><span>ROIC (최근 FY)</span><b>${pctOf(c.roic)}</b></div>
+          <div><span>WACC (추정)</span><b>${pctOf(w)}</b></div>
+          <div><span>Spread</span><b class="${sp && isNum(sp.v) ? (sp.v >= 0 ? 'q-pos' : 'q-neg') : ''}">${sp && isNum(sp.v) ? (sp.v >= 0 ? '+' : '') + (sp.v * 100).toFixed(1) + '%p' : naSpan(sp && sp.na)}</b></div>
+          <div><span>ROIC (yfinance IC)</span><b>${pctOf(c.roic_yf)}</b></div>
+        </div>
+        <div class="q-card-sub" style="margin-top:8px;">${waccTxt}</div></div>
+      <div class="q-card"><div class="q-card-title">ROIC · ROE · ROA 추이</div><div class="q-chart"><canvas id="chRoic"></canvas></div></div>
+      <div class="q-card"><div class="q-card-title">이익률 추이</div><div class="q-chart"><canvas id="chMargin"></canvas></div></div>
+    </div>
+    <div class="q-card" style="margin-top:12px;overflow-x:auto;">
+      <div class="q-card-head"><div class="q-card-title">기간 비교 — 추세와 지속성</div>
+        <div class="q-card-sub">TTM ROIC는 투하자본이 연간 기준이라 산출하지 않음 · 해당 연도 데이터가 없으면 N/A</div></div>
+      <table class="q-mini"><thead><tr><th></th>${cols.map(k => `<th>${k}</th>`).join('')}</tr></thead><tbody>
+        ${row('Gross Margin', 'gross_margin')}${row('Operating Margin', 'operating_margin')}${row('Net Margin', 'net_margin')}
+        ${row('FCF Margin', 'fcf_margin')}${row('ROE', 'roe')}${row('ROIC', 'roic')}${row('ROA', 'roa')}
+        ${row('FCF Conversion (FCF÷순이익)', 'fcf_conversion')}${row('매출 성장', 'rev_growth')}${row('EPS 성장', 'eps_growth')}
+      </tbody></table>
+    </div>`);
+}
+
+function allocation() {
+  const a = c.capital_allocation, cur = a.currency, cm = a.cumulative || {}, sh = a.fcf_share || {};
+  const line = (label, key, isUse) => `<tr><td>${label}</td><td>${money(cm[key], cur)}</td>
+    <td>${isUse ? (isNum(sh[key]) ? `<span class="${sh[key] > 1 ? 'q-neg' : ''}">${pct(sh[key])}</span>` : naSpan('FCF 누적이 0 이하 또는 값 없음')) : ''}</td></tr>`;
+  return section('자본 배분 — FCF는 어디로 흘러가는가', `
+    <div class="q-grid2">
+      <div class="q-card"><div class="q-card-title">연도별 자본 배분</div><div class="q-card-sub">${esc(cur)} · 막대 = 사용액, 선 = FCF</div>
+        <div class="q-chart" style="height:280px;"><canvas id="chAlloc"></canvas></div></div>
+      <div class="q-card">
+        <div class="q-card-head"><div class="q-card-title">누적 흐름 (${esc(a.window)})</div><span class="q-basis Reported">Reported</span></div>
+        <table class="q-mini"><thead><tr><th>항목</th><th>누적</th><th>FCF 대비</th></tr></thead><tbody>
+          <tr><td colspan="3" class="wrap"><b>FCF 이전 영업 재투자</b></td></tr>
+          ${line('영업현금흐름', 'ocf')}${line('Capital Expenditure', 'capex')}${line('R&D (비용 처리)', 'rnd')}
+          <tr><td><b>Free Cash Flow</b></td><td><b>${money(cm.fcf, cur)}</b></td><td></td></tr>
+          <tr><td colspan="3" class="wrap"><b>FCF 사용처</b></td></tr>
+          ${line('M&A (사업 인수)', 'acquisitions', true)}${line('자사주 매입', 'buyback', true)}
+          ${line('배당', 'dividends', true)}${line('부채 상환', 'debt_repayment', true)}
+          ${line('현금 증감', 'change_in_cash')}
+        </tbody></table>
+        <div class="q-card-sub" style="margin-top:8px;">${esc(a.note)}</div>
+      </div>
+    </div>`);
+}
+
+function reinvestment() {
+  const k = c.compounding || {}, n = c.note, gd = n && n.growth_duration;
+  const inc = c.incremental_roic || {}, det = inc.detail || {};
+  return section('재투자 · Compounding Engine', `
+    <div class="q-grid2">
+      <div class="q-card">
+        <div class="q-card-title" style="margin-bottom:8px;">ROIC × Reinvestment Rate × Growth Duration</div>
+        <div class="d-flow">
+          <div class="d-flow-step"><span>ROIC</span><b>${pctOf(k.roic)}</b></div><div class="d-flow-arrow">×</div>
+          <div class="d-flow-step"><span>재투자율</span><b>${pctOf(k.reinvestment)}</b></div><div class="d-flow-arrow">=</div>
+          <div class="d-flow-step"><span>내재 성장률</span><b>${pctOf(k.implied_growth)}</b></div><div class="d-flow-arrow">×</div>
+          <div class="d-flow-step"><span>Growth Duration</span><b>${gd ? esc(gd.level) : naSpan('분석 노트 미작성')}</b></div>
+        </div>
+        <div class="d-callout" style="margin-top:10px;">${esc(k.text || '')}<div class="d-src">기준: ${esc(k.bar || '')} · 재투자율 중앙값 ${isNum(k.reinvest_median) ? pct(k.reinvest_median) : 'N/A'}</div></div>
+        <div class="q-card-sub">${esc(k.reinvestment_formula || '')}<br>내재 성장률 = ROIC × 재투자율 (단순 모형 — 실제 성장률 예측이 아님)</div>
+        ${gd ? `<div class="d-note"><span class="d-note-badge">분석 노트</span><b>Growth Duration: ${esc(gd.level)}</b>
+          <ul style="margin:6px 0 0 18px;">${(gd.rationale || []).map(r => `<li>${esc(r)}</li>`).join('')}</ul>
+          <div class="d-src">작성일 ${esc(n.written_at)} · 정성 평가</div></div>` : ''}
+      </div>
+      <div class="q-card">
+        <div class="q-card-title" style="margin-bottom:8px;">증분 ROIC — 추가로 투입한 자본의 수익률</div>
+        <div class="d-kv">
+          <div><span>증분 ROIC</span><b>${pctOf(inc)}</b></div>
+          <div><span>WACC (추정)</span><b>${pctOf(c.wacc)}</b></div>
+          <div><span>ΔNOPAT</span><b>${isNum(det.d_nopat) ? money(det.d_nopat, c.currency) : 'N/A'}</b></div>
+          <div><span>Δ투하자본</span><b>${isNum(det.d_ic) ? money(det.d_ic, c.currency) : 'N/A'}</b></div>
+        </div>
+        <div class="q-card-sub" style="margin-top:8px;">${esc(inc.src || inc.na || '')}
+          ${isNum(inc.v) && isNum((c.wacc || {}).v) && inc.v < c.wacc.v ? '<br><b style="color:var(--q-amber);">⚠ 증분 ROIC가 WACC 추정치보다 낮습니다 — 최근 추가 투입 자본의 효율 확인 필요</b>' : ''}</div>
+      </div>
+    </div>`);
+}
+
+function moat() {
+  const m = c.moat_note, g = c.scores.groups.moat;
+  const eng = c.engine.subs.moat_proxy || {};
+  const quant = `<div class="q-card"><div class="q-card-title">정량 프록시 (재무 데이터)</div>
+    <div class="d-score-v" style="margin:6px 0;">${isNum(g.score) ? g.score.toFixed(1) : 'N/A'}</div>
+    <div class="q-card-sub">${(eng.components || []).map(k => `${esc(k.name)}: ${k.raw === null || k.raw === undefined ? 'N/A' : (k.unit === 'pp' ? k.raw.toFixed(1) + 'pp' : k.raw.toFixed(1) + (k.unit === '%' ? '%' : ''))}`).join('<br>')}</div>
+    <div class="q-card-sub" style="margin-top:8px;">높은 ROIC의 지속 기간과 매출총이익률의 수준·안정성으로만 계산한 값입니다. 경쟁우위의 원인을 설명하지는 않습니다.</div></div>`;
+  const qual = m
+    ? `<div class="q-card"><div class="q-card-head"><div class="q-card-title">경쟁우위 분석 <span class="d-note-badge">분석 노트</span></div>
+        <span class="d-stars" title="${esc(m.rule)}">${'★'.repeat(m.stars)}<span style="opacity:.25;">${'★'.repeat(5 - m.stars)}</span></span></div>
+        <table class="q-mini"><thead><tr><th>요인</th><th>강도</th><th style="text-align:left;">근거</th></tr></thead><tbody>
+        ${m.factors.map(f => `<tr><td><b>${esc(f.type)}</b></td><td><span class="d-level ${f.rating === 'strong' ? 'low' : 'medium'}">${esc(f.rating)}</span></td><td class="wrap">${esc(f.evidence)}</td></tr>`).join('')}
+        </tbody></table>
+        <div class="d-src" style="margin-top:6px;">별점 규칙: ${esc(m.rule)} · 작성일 ${esc(m.written_at)} · ${esc(m.author)}</div></div>`
+    : `<div class="q-card"><div class="q-card-title">경쟁우위 분석</div><div class="q-empty">분석 노트가 없어 정성 평가와 별점을 표시하지 않습니다.<br>근거 없는 별점은 만들지 않습니다.</div></div>`;
+  return section('경쟁우위 · Moat', `<div class="q-grid2">${qual}${quant}</div>`);
+}
+
+function risks() {
+  const n = c.note, flags = c.risk_flags || [];
+  const LABEL = { valuation: 'Valuation Risk', growth_deceleration: 'Growth Deceleration', competition: 'Competition',
+    customer_concentration: 'Customer Concentration', regulatory: 'Regulatory Risk', cyclicality: 'Cyclicality',
+    balance_sheet: 'Balance Sheet Risk', technology_disruption: 'Technology Disruption', capital_allocation: 'Capital Allocation Risk' };
+  const noteRisks = (n && n.risks) || {};
+  const rows = Object.keys(LABEL).map(k => {
+    const r = noteRisks[k], f = flags.filter(x => x.key === k);
+    return `<tr><td><b>${LABEL[k]}</b></td>
+      <td>${r ? `<span class="d-level ${esc(r.level)}">${esc(r.level)}</span>` : naSpan('노트 미작성')}</td>
+      <td class="wrap">${r ? esc(r.note) : ''}</td>
+      <td class="wrap">${f.length ? f.map(x => '⚠ ' + esc(x.text)).join('<br>') : '<span class="q-na">해당 신호 없음</span>'}</td></tr>`;
+  }).join('');
+  const top = n && n.key_risks
+    ? `<ol style="margin:0 0 0 18px;line-height:1.9;font-size:13px;">${n.key_risks.slice(0, 3).map(r => `<li><b>${esc(r)}</b></li>`).join('')}</ol>
+       <div class="d-src" style="margin-top:4px;">분석 노트 · 작성일 ${esc(n.written_at)}</div>`
+    : '<div class="q-empty">분석 노트가 없어 핵심 리스크를 선정하지 않았습니다. 오른쪽 데이터 신호를 참고하세요.</div>';
+  return section('리스크', `
+    <div class="q-grid2" style="grid-template-columns:1fr 2fr;">
+      <div class="q-card"><div class="q-card-title" style="margin-bottom:8px;">Key Risks</div>${top}</div>
+      <div class="q-card" style="overflow-x:auto;"><table class="q-mini"><thead><tr><th>항목</th><th>수준 (노트)</th><th style="text-align:left;">노트 설명</th><th style="text-align:left;">데이터 신호</th></tr></thead><tbody>${rows}</tbody></table>
+        <div class="d-src" style="margin-top:6px;">수준·설명은 작성자 분석 노트, 데이터 신호는 재무 데이터에서 자동 탐지한 조건입니다 (투자 판단이 아닌 관찰 목록).</div></div>
+    </div>`);
+}
+
+function valuation() {
+  const v = c.valuation_metrics || {};
+  const eh = c.earnings_history || [];
+  const mh = v.mult_vs_hist || {}, det = mh.detail || {};
+  const ehRows = eh.length ? eh.map(e => {
+    const beat = isNum(e.eps_actual) && isNum(e.eps_est) ? (e.eps_actual >= e.eps_est ? '<span class="q-pos">Beat</span>' : '<span class="q-neg">Miss</span>') : naSpan('컨센서스 없음');
+    return `<tr><td>${esc(e.q)}</td><td>${isNum(e.eps_actual) ? e.eps_actual.toFixed(2) : 'N/A'}</td><td>${isNum(e.eps_est) ? e.eps_est.toFixed(2) : 'N/A'}</td>
+      <td>${isNum(e.surprise_pct) ? pct(e.surprise_pct) : 'N/A'}</td><td>${beat}</td></tr>`;
+  }).join('') : `<tr><td colspan="5" class="q-empty">실적 서프라이즈 데이터 없음</td></tr>`;
+  return section('밸류에이션 · 실적 발표', `
+    <div class="q-grid2">
+      <div class="q-card">
+        <div class="q-card-head"><div class="q-card-title">밸류에이션 지표</div><span class="q-card-sub">Valuation Score ${isNum(c.scores.valuation.score) ? c.scores.valuation.score.toFixed(1) : 'N/A'}</span></div>
+        <div class="d-kv">
+          <div><span>P/E (TTM)</span><b>${numOf(v.trailing_pe, 1, 'x')}</b></div>
+          <div><span>Forward P/E</span><b>${numOf(v.forward_pe, 1, 'x')}</b></div>
+          <div><span>PEG</span><b>${numOf(v.peg, 2)}</b></div>
+          <div><span>EV/EBITDA</span><b>${numOf(v.ev_ebitda, 1, 'x')}</b></div>
+          <div><span>P/S</span><b>${numOf(v.ps_ttm, 1, 'x')}</b></div>
+          <div><span>FCF Yield</span><b>${pctOf(v.fcf_yield)}</b></div>
+        </div>
+        <div class="q-card-sub" style="margin-top:8px;">현재 멀티플 ÷ 5년 평균: ${numOf(mh, 2, 'x')}
+          ${isNum(det.current) ? ` (${esc(det.metric)} 현재 ${det.current.toFixed(1)} vs 평균 ${det.avg.toFixed(1)})` : ''}
+          <br>${esc(mh.src || '')} — 근사치입니다.</div>
+        <div class="d-callout" style="margin-top:10px;">좋은 기업과 좋은 주식은 다릅니다. Business Quality ${isNum(c.scores.business_quality.score) ? c.scores.business_quality.score.toFixed(1) : 'N/A'} ·
+          Valuation ${isNum(c.scores.valuation.score) ? c.scores.valuation.score.toFixed(1) : 'N/A'} → <b>${esc(c.qp_label || 'N/A')}</b></div>
+      </div>
+      <div class="q-card" style="overflow-x:auto;">
+        <div class="q-card-head"><div class="q-card-title">최근 실적 — EPS Actual vs Consensus</div><span class="q-card-sub">최근 발표 ${esc((c.earnings_dates || {}).last || 'N/A')}</span></div>
+        <table class="q-mini"><thead><tr><th>분기</th><th>Actual</th><th>Consensus</th><th>Surprise</th><th></th></tr></thead><tbody>${ehRows}</tbody></table>
+        <div class="q-card-sub" style="margin-top:6px;">매출 컨센서스와 회사 가이던스는 yfinance에서 제공되지 않아 표시하지 않습니다.</div>
+      </div>
+    </div>`);
+}
+
+/* ════════ 차트 ════════ */
+function mk(id, cfg) {
+  const cv = document.getElementById(id);
+  if (!cv) return;
+  if (charts[id]) charts[id].destroy();
+  charts[id] = new Chart(cv.getContext('2d'), cfg);
+}
+function baseOpts(yFmt, y2Fmt) {
+  const t = theme();
+  const o = {
+    responsive: true, maintainAspectRatio: false, interaction: { mode: 'index', intersect: false },
+    plugins: { legend: { position: 'bottom', labels: { color: t.tick, boxWidth: 10, font: { size: 10 } } },
+      tooltip: { backgroundColor: t.tip, padding: 9, cornerRadius: 8 } },
+    scales: {
+      x: { ticks: { color: t.tick, font: { size: 10 } }, grid: { display: false }, border: { display: false } },
+      y: { ticks: { color: t.tick, font: { size: 10 }, callback: yFmt }, grid: { color: t.grid }, border: { display: false } },
+    },
+  };
+  if (y2Fmt) o.scales.y2 = { position: 'right', ticks: { color: t.tick, font: { size: 10 }, callback: y2Fmt }, grid: { display: false }, border: { display: false } };
+  return o;
+}
+const shortMoney = v => money(v, c.currency === 'USD' ? 'USD' : '');
+const pctTick = v => (v * 100).toFixed(0) + '%';
+
+function drawCharts() {
+  if (!S.length) return;
+  const t = theme();
+  const bar = (label, data, color) => ({ type: 'bar', label, data, backgroundColor: color + 'aa', borderRadius: 4, yAxisID: 'y' });
+  const lineDs = (label, data, color, axis = 'y2', dash) => ({ type: 'line', label, data, borderColor: color, backgroundColor: color, pointRadius: 3, tension: .3, spanGaps: false, yAxisID: axis, borderDash: dash || [] });
+
+  mk('chRev', { data: { labels: L, datasets: [bar('매출', sv('revenue'), '#667eea'), lineDs('YoY', sv('rev_growth'), '#f59e0b')] }, options: baseOpts(shortMoney, pctTick) });
+  mk('chEps', { data: { labels: L, datasets: [bar('EPS', sv('eps'), '#10b981'), lineDs('YoY', sv('eps_growth'), '#f59e0b')] }, options: baseOpts(v => v.toFixed(2), pctTick) });
+  mk('chFcf', { data: { labels: L, datasets: [bar('FCF', sv('fcf'), '#22d3ee'), lineDs('FCF Margin', sv('fcf_margin'), '#a78bfa')] }, options: baseOpts(shortMoney, pctTick) });
+
+  const roicByFy = {}; (c.roic_series || []).forEach(r => { roicByFy[r.fy] = r.roic; });
+  const roicData = S.map(y => isNum(roicByFy[y.fy]) ? roicByFy[y.fy] : null);
+  const roicDs = [lineDs('ROIC', roicData, '#667eea', 'y'), lineDs('ROE', sv('roe'), '#10b981', 'y'), lineDs('ROA', sv('roa'), '#94a3b8', 'y')];
+  if (c.wacc && isNum(c.wacc.v)) roicDs.push(lineDs('WACC (추정)', S.map(() => c.wacc.v), '#ef4444', 'y', [5, 4]));
+  mk('chRoic', { data: { labels: L, datasets: roicDs }, options: baseOpts(pctTick) });
+
+  mk('chMargin', { data: { labels: L, datasets: [
+    lineDs('Gross', sv('gross_margin'), '#667eea', 'y'), lineDs('Operating', sv('operating_margin'), '#10b981', 'y'),
+    lineDs('Net', sv('net_margin'), '#f59e0b', 'y'), lineDs('FCF', sv('fcf_margin'), '#a78bfa', 'y') ] }, options: baseOpts(pctTick) });
+
+  const rows = (c.capital_allocation || {}).rows || [];
+  const col = k => rows.map(r => isNum(r[k]) ? r[k] : null);
+  const stack = (label, k, color) => ({ type: 'bar', label, data: col(k), backgroundColor: color + 'bb', stack: 'use', yAxisID: 'y', borderRadius: 2 });
+  const ao = baseOpts(shortMoney);
+  ao.scales.x.stacked = true; ao.scales.y.stacked = true;
+  mk('chAlloc', { data: { labels: rows.map(r => 'FY' + r.fy), datasets: [
+    stack('CAPEX', 'capex', '#94a3b8'), stack('M&A', 'acquisitions', '#f472b6'), stack('자사주 매입', 'buyback', '#667eea'),
+    stack('배당', 'dividends', '#10b981'), stack('부채 상환', 'debt_repayment', '#f59e0b'),
+    { type: 'line', label: 'FCF', data: col('fcf'), borderColor: '#ef4444', backgroundColor: '#ef4444', pointRadius: 3, yAxisID: 'y', stack: 'fcf' } ] }, options: ao });
+}
+
+document.getElementById('dRoot').innerHTML =
+  snapshot() + scores() + flow() + growth() + profitability() + allocation() + reinvestment() + moat() + risks() + valuation() +
+  `<div class="q-sec">데이터 기준</div><div class="q-card q-card-sub" style="line-height:1.8;">
+    출처: Yahoo Finance (yfinance) · 수집 ${esc(c.fetched_at || 'N/A')} UTC · 재무제표 통화 ${esc(c.currency || 'N/A')} ·
+    <span class="q-basis Reported">Reported</span> 공시 재무 값 · <span class="q-basis Calculated">Calculated</span> 공시 값으로 계산 ·
+    <span class="q-basis Estimate">Estimate</span> 가정 포함 추정치 (셀에 마우스를 올리면 기간·산식 표시)<br>
+    분석 노트는 공시 데이터가 아닌 작성자 해석이며 작성일이 없는 노트는 표시하지 않습니다. SEC 공시 원문 연동은 아직 구현되지 않았습니다.
+  </div>`;
+drawCharts();
+const themeBtn = document.getElementById('themeToggle');
+if (themeBtn) themeBtn.addEventListener('click', () => setTimeout(drawCharts, 60));
+</script>
+{% endblock %}

@@ -1,14 +1,14 @@
-from fastapi import FastAPI, Depends, HTTPException, Request, Form
+from fastapi import FastAPI, Depends, HTTPException, Request, Form, UploadFile, File
 from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
 from fastapi.responses import HTMLResponse, RedirectResponse, JSONResponse
 from sqlalchemy.orm import Session
 from datetime import datetime, timedelta, timezone, date
 from typing import Optional
-import json, logging
+import json, logging, uuid
 from pathlib import Path
 
-import models, database, fetcher
+import models, database, fetcher, analytics, scoring, quality
 from database import get_db
 
 logging.basicConfig(level=logging.INFO)
@@ -20,6 +20,9 @@ database.create_tables()
 app = FastAPI(title="💰 Money Dashboard", docs_url="/docs")
 app.mount("/static", StaticFiles(directory="static"), name="static")
 app.mount("/resources", StaticFiles(directory="resources"), name="resources")
+
+MILESTONE_UPLOAD_DIR = Path("resources") / "milestones"
+MILESTONE_UPLOAD_DIR.mkdir(parents=True, exist_ok=True)
 templates = Jinja2Templates(directory="templates")
 
 CACHE_HOURS = 24
@@ -407,41 +410,91 @@ def page_home(request: Request, db: Session = Depends(get_db)):
 
     # ── 섹터 비중 계산 ────────────────────────────────────────
     _SECTOR_KO = {
-        "Semiconductors":                        "반도체",
-        "Software—Application":                  "소프트웨어",
-        "Software—Infrastructure":               "소프트웨어",
-        "Software - Application":                "소프트웨어",
-        "Software - Infrastructure":             "소프트웨어",
-        "Internet Content & Information":        "인터넷/플랫폼",
-        "Internet Retail":                       "이커머스",
-        "Consumer Electronics":                  "가전/하드웨어",
-        "Electronic Components":                 "전자부품",
-        "Drug Manufacturers—General":            "제약",
-        "Drug Manufacturers—Specialty & Generic":"제약",
-        "Drug Manufacturers - General":          "제약",
-        "Biotechnology":                         "바이오테크",
-        "Medical Devices":                       "의료기기",
-        "Healthcare Plans":                      "헬스케어 서비스",
-        "Diagnostics & Research":                "진단/연구",
-        "Technology":                            "기술/IT",
-        "Healthcare":                            "헬스케어",
-        "Financial Services":                    "금융",
-        "Banks—Diversified":                     "은행",
-        "Banks—Regional":                        "은행",
-        "Asset Management":                      "자산운용",
-        "Insurance":                             "보험",
-        "Communication Services":                "통신/미디어",
-        "Telecom Services":                      "통신",
-        "Aerospace & Defense":                   "방산",
-        "Auto Manufacturers":                    "자동차",
-        "Oil & Gas Integrated":                  "에너지",
-        "Oil & Gas E&P":                         "에너지",
-        "Utilities—Regulated Electric":          "유틸리티",
-        "Industrials":                           "산업재",
-        "Consumer Cyclical":                     "소비재",
-        "Consumer Defensive":                    "필수소비재",
-        "Basic Materials":                       "소재",
-        "Real Estate":                           "부동산",
+        # ── 기술/반도체 ──
+        "Semiconductors":                          "반도체",
+        "Semiconductor Equipment & Materials":     "반도체 장비/소재",
+        "Software—Application":                    "소프트웨어",
+        "Software - Application":                  "소프트웨어",
+        "Software—Infrastructure":                 "소프트웨어",
+        "Software - Infrastructure":               "소프트웨어",
+        "Information Technology Services":         "IT서비스",
+        "Computer Hardware":                       "컴퓨터 하드웨어",
+        "Consumer Electronics":                    "가전/하드웨어",
+        "Electronic Components":                   "전자부품",
+        "Communication Equipment":                 "통신장비",
+        "Technology":                              "기술/IT",
+        "information_technology":                  "기술/IT",
+
+        # ── 인터넷/미디어/통신 ──
+        "Internet Content & Information":          "인터넷/플랫폼",
+        "Internet Retail":                         "이커머스",
+        "Advertising Agencies":                    "광고/마케팅",
+        "Entertainment":                           "엔터테인먼트",
+        "Communication Services":                  "통신/미디어",
+        "Telecom Services":                        "통신",
+        "communication_services":                  "통신/미디어",
+
+        # ── 헬스케어 ──
+        "Drug Manufacturers—General":               "제약",
+        "Drug Manufacturers - General":             "제약",
+        "Drug Manufacturers—Specialty & Generic":   "제약",
+        "Drug Manufacturers - Specialty & Generic": "제약",
+        "Biotechnology":                            "바이오테크",
+        "Medical Devices":                          "의료기기",
+        "Medical Instruments & Supplies":           "의료기기",
+        "Healthcare Plans":                         "헬스케어 서비스",
+        "Diagnostics & Research":                   "진단/연구",
+        "Healthcare":                               "헬스케어",
+        "health_care":                              "헬스케어",
+
+        # ── 금융 ──
+        "Financial Services":                      "금융",
+        "Banks—Diversified":                       "은행",
+        "Banks - Diversified":                     "은행",
+        "Banks—Regional":                          "은행",
+        "Banks - Regional":                        "은행",
+        "Asset Management":                        "자산운용",
+        "Capital Markets":                         "자본시장",
+        "Credit Services":                         "여신금융",
+        "Insurance":                               "보험",
+        "financials":                              "금융",
+
+        # ── 산업재/방산/자동차 ──
+        "Aerospace & Defense":                     "방산",
+        "Auto Manufacturers":                      "자동차",
+        "Auto Parts":                              "자동차부품",
+        "Specialty Industrial Machinery":          "산업재",
+        "Industrials":                             "산업재",
+        "industrials":                             "산업재",
+
+        # ── 에너지/유틸리티 ──
+        "Oil & Gas Integrated":                    "에너지",
+        "Oil & Gas E&P":                           "에너지",
+        "Oil & Gas Midstream":                     "에너지",
+        "Oil & Gas Refining & Marketing":          "에너지",
+        "energy":                                  "에너지",
+        "Utilities—Regulated Electric":            "유틸리티",
+        "Utilities - Regulated Electric":          "유틸리티",
+        "utilities":                               "유틸리티",
+
+        # ── 소비재/유통 ──
+        "Consumer Cyclical":                       "소비재",
+        "consumer_discretionary":                  "소비재",
+        "Consumer Defensive":                      "필수소비재",
+        "consumer_staples":                        "필수소비재",
+        "Discount Stores":                         "유통",
+        "Home Improvement Retail":                 "소매유통",
+        "Restaurants":                             "외식",
+        "Household & Personal Products":           "생활용품",
+        "Beverages—Non-Alcoholic":                 "음료",
+        "Beverages - Non-Alcoholic":               "음료",
+        "Packaged Foods":                          "식품",
+
+        # ── 소재/부동산 ──
+        "Basic Materials":                         "소재",
+        "materials":                               "소재",
+        "Real Estate":                             "부동산",
+        "real_estate":                             "부동산",
     }
     _bucket: dict = {}
     for it in items:
@@ -479,31 +532,6 @@ def page_home(request: Request, db: Session = Depends(get_db)):
     })
     resp.headers["Cache-Control"] = "no-store"
     return resp
-
-
-@app.get("/calculator", response_class=HTMLResponse)
-def page_calculator(
-    request: Request,
-    ticker: str = "NVDA",
-    db: Session = Depends(get_db),
-):
-    ticker = ticker.upper()
-    stock = db.query(models.Stock).filter(models.Stock.ticker == ticker).first()
-    stock_dict = stock_to_dict(stock) if (stock and stock.fiscal_years) else None
-
-    try:
-        fx_rate = fetcher.fetch_krw_rate()
-    except Exception:
-        fx_rate = 1380.0
-
-    return templates.TemplateResponse("calculator.html", {
-        "request":    request,
-        "ticker":     ticker,
-        "stock_json": json.dumps(stock_dict, ensure_ascii=False),
-        "fx_default": fx_rate,
-        "is_stale":   json.dumps(_is_stale(stock)),
-        "active":     "calculator",
-    })
 
 
 @app.get("/portfolio", response_class=HTMLResponse)
@@ -620,30 +648,31 @@ def api_kr_history(db: Session = Depends(get_db)):
 # ════════════════════════════════════════════════════════════
 
 @app.get("/api/history")
-def api_history(db: Session = Depends(get_db)):
-    """월별 스냅샷 데이터 반환 (각 월의 마지막 스냅샷 기준).
-    손익 지표(revenue/op/net)는 저장 당시 환율 → 현재 환율로 재환산해 반환.
-    """
+def api_history(granularity: str = "monthly", db: Session = Depends(get_db)):
+    """스냅샷 데이터 반환. granularity=monthly(기본, 각 월 마지막 스냅샷) 또는 daily(전체)."""
     snapshots = (
         db.query(models.DailySnapshot)
         .order_by(models.DailySnapshot.snapshot_date)
         .all()
     )
-    # 월별 마지막 스냅샷만 (덮어쓰기)
-    monthly: dict = {}
-    for s in snapshots:
-        month_key = s.snapshot_date.strftime("%Y-%m")
-        monthly[month_key] = s
+    if granularity == "daily":
+        picked = [(s.snapshot_date.strftime("%Y-%m-%d"), s) for s in snapshots]
+    else:
+        # 월별 마지막 스냅샷만 (덮어쓰기)
+        monthly: dict = {}
+        for s in snapshots:
+            monthly[s.snapshot_date.strftime("%Y-%m")] = s
+        picked = sorted(monthly.items())
 
     result = []
     latest_fx = 0.0
-    for month_key in sorted(monthly.keys()):
-        s = monthly[month_key]
+    for key, s in picked:
         fx = s.fx_rate or 0
         if fx > 0:
             latest_fx = fx
         result.append({
-            "month":              month_key,
+            "month":              key,     # daily 모드에서는 YYYY-MM-DD
+            "date":              s.snapshot_date.strftime("%Y-%m-%d"),
             "totalValueKrw":     s.total_value_krw     or 0,
             "monthlyRevenueKrw": s.monthly_revenue_krw or 0,
             "monthlyOpKrw":      s.monthly_op_krw      or 0,
@@ -652,7 +681,7 @@ def api_history(db: Session = Depends(get_db)):
             "unrealizedGainUsd": s.unrealized_gain_usd or 0,
             "fxRate":            fx,
         })
-    return {"latestFxRate": latest_fx, "items": result}
+    return {"latestFxRate": latest_fx, "snapshotCount": len(snapshots), "items": result}
 
 
 @app.get("/api/stock/{ticker}/quick")
@@ -736,11 +765,14 @@ def portfolio_add(
     shares_owned: float = Form(...),
     avg_price:   float  = Form(0),
     memo:        str    = Form(""),
+    next_url:    str    = Form(""),
     db: Session = Depends(get_db),
 ):
+    # 다른 화면(/quality 등)에서 추가한 경우 그 화면으로 되돌아간다. 외부 URL은 허용하지 않음.
+    dest = next_url if (next_url.startswith("/") and not next_url.startswith("//")) else "/portfolio"
     ticker = ticker.strip().upper()
     if not ticker:
-        return RedirectResponse("/portfolio?error=티커를+입력해주세요", status_code=303)
+        return RedirectResponse(f"{dest}?error=티커를+입력해주세요", status_code=303)
 
     existing = db.query(models.Portfolio).filter(models.Portfolio.ticker == ticker).first()
     is_new = existing is None
@@ -762,16 +794,18 @@ def portfolio_add(
     if stock is None and is_new:
         db.query(models.Portfolio).filter(models.Portfolio.ticker == ticker).delete()
         db.commit()
-        return RedirectResponse(f"/portfolio?error={ticker}+종목을+찾을+수+없습니다", status_code=303)
+        return RedirectResponse(f"{dest}?error={ticker}+종목을+찾을+수+없습니다", status_code=303)
 
-    return RedirectResponse("/portfolio", status_code=303)
+    return RedirectResponse(dest, status_code=303)
 
 
 @app.post("/portfolio/delete/{item_id}")
-def portfolio_delete(item_id: int, db: Session = Depends(get_db)):
+def portfolio_delete(item_id: int, next_url: str = Form(""), db: Session = Depends(get_db)):
+    # 보유 목록에서만 제거한다. stocks의 분석 캐시는 남겨 과거 보유 이력에서 조회 가능.
     db.query(models.Portfolio).filter(models.Portfolio.id == item_id).delete()
     db.commit()
-    return RedirectResponse("/portfolio", status_code=303)
+    dest = next_url if (next_url.startswith("/") and not next_url.startswith("//")) else "/portfolio"
+    return RedirectResponse(dest, status_code=303)
 
 
 # ════════════════════════════════════════════════════════════
@@ -1192,50 +1226,12 @@ def page_milestones(request: Request):
     return templates.TemplateResponse("milestone.html", {"request": request, "active": "milestones"})
 
 
-@app.get("/dupont", response_class=HTMLResponse)
-def page_dupont(request: Request, db: Session = Depends(get_db)):
-    portfolio = db.query(models.Portfolio).all()
-    result = {}
-    for p in portfolio:
-        stock = db.query(models.Stock).filter(models.Stock.ticker == p.ticker).first()
-        fyears = (
-            db.query(models.FiscalYear)
-            .filter(models.FiscalYear.ticker == p.ticker)
-            .order_by(models.FiscalYear.year_key)
-            .all()
-        )
-        rows = []
-        for fy in fyears:
-            if not fy.revenue or not fy.net or not fy.roi or not fy.bvps or not fy.shares:
-                continue
-            assets = fy.net / fy.roi
-            equity = fy.bvps * fy.shares
-            npm = fy.net / fy.revenue
-            at  = fy.revenue / assets
-            em  = assets / equity
-            rows.append({
-                "year": fy.label,
-                "roe": round(fy.roe * 100, 1) if fy.roe else None,
-                "npm": round(npm * 100, 1),
-                "at":  round(at, 3),
-                "em":  round(em, 3),
-            })
-        result[p.ticker] = {
-            "name":  stock.name if stock else p.ticker,
-            "years": rows,
-        }
-    return templates.TemplateResponse("dupont.html", {
-        "request":     request,
-        "active":      "dupont",
-        "dupont_json": json.dumps(result, ensure_ascii=False),
-    })
-
-
 def _milestone_to_dict(m: models.Milestone) -> dict:
     return {
         "id": m.id, "title": m.title, "status": m.status,
         "category": m.category or "", "note": m.note or "",
         "date": m.milestone_date or "", "displayOrder": m.display_order,
+        "image": m.image or "",
     }
 
 
@@ -1265,6 +1261,7 @@ async def api_milestones_save(request: Request, db: Session = Depends(get_db)):
     row.category       = (body.get("category") or "").strip()
     row.note           = (body.get("note") or "").strip()
     row.milestone_date = (body.get("date") or "").strip() or None
+    row.image          = (body.get("image") or "").strip()
     if not row.title:
         raise HTTPException(status_code=400, detail="제목을 입력해주세요.")
     db.commit()
@@ -1277,6 +1274,20 @@ def api_milestones_delete(mid: int, db: Session = Depends(get_db)):
     db.query(models.Milestone).filter(models.Milestone.id == mid).delete()
     db.commit()
     return {"ok": True}
+
+
+@app.post("/api/milestones/upload-image")
+async def api_milestones_upload_image(file: UploadFile = File(...)):
+    ext = Path(file.filename or "").suffix.lower()
+    if ext not in (".jpg", ".jpeg", ".png", ".gif", ".webp"):
+        raise HTTPException(status_code=400, detail="이미지 파일만 업로드할 수 있습니다.")
+    name = f"{uuid.uuid4().hex}{ext}"
+    dest = MILESTONE_UPLOAD_DIR / name
+    data = await file.read()
+    if len(data) > 8 * 1024 * 1024:
+        raise HTTPException(status_code=400, detail="이미지 용량은 8MB 이하로 업로드해주세요.")
+    dest.write_bytes(data)
+    return {"url": f"/resources/milestones/{name}"}
 
 
 @app.post("/api/milestones/import-csv")
@@ -1313,6 +1324,224 @@ async def api_milestones_import(request: Request, db: Session = Depends(get_db))
         count += 1
     db.commit()
     return {"imported": count}
+
+
+# ──────────────────────────────────────────────
+#  리서치 터미널 (/research)
+# ──────────────────────────────────────────────
+# 연간 재무는 분기마다 바뀌므로 24h가 아니라 7일 캐시를 쓴다.
+# /research 페이지는 캐시만 읽고 절대 네트워크를 타지 않는다 (수집은 명시적 버튼).
+ANALYSIS_CACHE_HOURS = 24 * 7
+ANALYSIS_VER = 2   # fetcher.ANALYSIS_VER과 맞춘다
+
+
+def _analysis_stale(stock: models.Stock | None) -> bool:
+    if stock is None or not stock.analysis_json or stock.analysis_fetched_at is None:
+        return True
+    if (stock.analysis_ver or 0) < ANALYSIS_VER:
+        return True
+    return _now() - stock.analysis_fetched_at > timedelta(hours=ANALYSIS_CACHE_HOURS)
+
+
+def refresh_analysis(ticker: str, db: Session) -> bool:
+    """분석 데이터 수집 후 저장. 실패해도 기존 캐시는 보존한다."""
+    ticker = ticker.upper()
+    stock = db.query(models.Stock).filter(models.Stock.ticker == ticker).first()
+    if stock is None:
+        return False
+    payload = fetcher.fetch_analysis(ticker)
+    if payload is None:
+        logger.warning("[%s] 분석 수집 실패 — 기존 캐시 유지", ticker)
+        return False
+    stock.analysis_json       = json.dumps(payload, ensure_ascii=False)
+    stock.analysis_fetched_at = _now()
+    stock.analysis_ver        = ANALYSIS_VER
+    db.commit()
+    return True
+
+
+def _build_research_row(stock: models.Stock) -> dict:
+    """캐시된 분석 데이터 → 화면용 행. 네트워크 호출 없음."""
+    base = {
+        "ticker": stock.ticker,
+        "name":   stock.name or stock.ticker,
+        "price":  stock.current_price or 0,
+    }
+    if not stock.analysis_json:
+        base.update({"has_data": False,
+                     "na_reason": "분석 데이터 미수집 — '데이터 수집'을 눌러주세요"})
+        return base
+    try:
+        payload = json.loads(stock.analysis_json)
+        forecasts = json.loads(stock.forecasts_json or "[]")
+        metrics = analytics.analysis_to_dict(payload, forecasts)
+        score = scoring.score_all(metrics)
+    except Exception as e:
+        logger.error("[%s] 분석 계산 실패: %s", stock.ticker, e, exc_info=True)
+        base.update({"has_data": False, "na_reason": f"분석 계산 실패: {e}"})
+        return base
+
+    base.update({
+        "has_data":   True,
+        "industry":   metrics["industry"],
+        "currency":   metrics["currency"],
+        "as_of":      metrics["as_of"],
+        "stale":      _analysis_stale(stock),
+        "metrics":    metrics,
+        "score":      score,
+    })
+    return base
+
+
+@app.get("/research", response_class=HTMLResponse)
+def page_research(request: Request, db: Session = Depends(get_db)):
+    """보유 종목 비교 화면. 캐시만 읽는다 — 페이지 로드 시 yfinance 호출 없음."""
+    holdings = (db.query(models.Portfolio)
+                  .order_by(models.Portfolio.display_order, models.Portfolio.id).all())
+    rows, uncached = [], []
+    for h in holdings:
+        stock = db.query(models.Stock).filter(models.Stock.ticker == h.ticker).first()
+        if stock is None:
+            continue
+        row = _build_research_row(stock)
+        row["shares_owned"] = h.shares_owned
+        rows.append(row)
+        if not row.get("has_data") or row.get("stale"):
+            uncached.append(h.ticker)
+
+    return templates.TemplateResponse("research.html", {
+        "request":       request,
+        "active":        "research",
+        "research_json": json.dumps(rows, ensure_ascii=False, default=str),
+        "uncached":      json.dumps(uncached),
+        "weights_json":  json.dumps(scoring.WEIGHTS),
+    })
+
+
+@app.post("/api/research/refresh")
+async def api_research_refresh(request: Request, db: Session = Depends(get_db)):
+    """분석 데이터 수집. yfinance 레이트리밋을 피해 순차 처리 + 지연."""
+    import asyncio
+    body = await request.json() if request.headers.get("content-type", "").startswith("application/json") else {}
+    tickers = body.get("tickers")
+    if not tickers:
+        tickers = [h.ticker for h in db.query(models.Portfolio).all()]
+
+    results = {}
+    for i, t in enumerate(tickers):
+        if i:
+            await asyncio.sleep(0.5)
+        try:
+            results[t] = "ok" if refresh_analysis(t, db) else "fail"
+        except Exception as e:
+            logger.error("[%s] refresh 오류: %s", t, e)
+            results[t] = "fail"
+    return {"results": results}
+
+
+# ──────────────────────────────────────────────
+#  Portfolio Business Quality Dashboard (/quality)
+#  - 캐시만 읽는다. 페이지 로드 시 네트워크 호출 없음 (수집은 /api/research/refresh).
+#  - 보유 종목은 portfolio 테이블에서 읽는다. 코드에 종목 하드코딩 없음.
+# ──────────────────────────────────────────────
+NOTES_PATH = Path("data") / "company_notes.json"
+
+
+def _load_notes() -> dict:
+    """정성 분석 노트. 요청마다 읽어서 파일 편집이 새로고침만으로 반영된다."""
+    try:
+        with open(NOTES_PATH, encoding="utf-8") as f:
+            data = json.load(f)
+        return {k.upper(): v for k, v in data.items() if not k.startswith("_")}
+    except FileNotFoundError:
+        return {}
+    except Exception as e:
+        logger.error("분석 노트 로드 실패: %s", e)
+        return {}
+
+
+def _quality_company(stock, holding, notes):
+    """캐시된 분석 데이터 → 기업 뷰모델. 데이터가 없으면 None."""
+    if not stock or not stock.analysis_json:
+        return None
+    payload = json.loads(stock.analysis_json)
+    forecasts = json.loads(stock.forecasts_json or "[]")
+    metrics = analytics.analysis_to_dict(payload, forecasts)
+    score = scoring.score_all(metrics)
+    c = quality.build_company(stock, payload, metrics, score,
+                              notes.get(stock.ticker.upper()), holding)
+    c["stale"] = _analysis_stale(stock)
+    c["payload_ver"] = payload.get("v", 1)
+    return c
+
+
+def _quality_portfolio(db: Session):
+    notes = _load_notes()
+    holdings = (db.query(models.Portfolio)
+                  .order_by(models.Portfolio.display_order, models.Portfolio.id).all())
+    held = {h.ticker for h in holdings}
+    companies, pending = [], []
+    for h in holdings:
+        stock = db.query(models.Stock).filter(models.Stock.ticker == h.ticker).first()
+        c = None
+        try:
+            c = _quality_company(stock, {"shares_owned": h.shares_owned}, notes)
+        except Exception as e:
+            logger.error("[%s] 품질 뷰모델 생성 실패: %s", h.ticker, e, exc_info=True)
+        if c is None:
+            pending.append({"ticker": h.ticker, "id": h.id,
+                            "name": (stock.name if stock else h.ticker)})
+        else:
+            c["holding"]["id"] = h.id
+            companies.append(c)
+    built = quality.build_portfolio(companies)
+    # 과거 보유 종목: 포트폴리오에서 빠졌지만 분석 캐시가 남아 있는 종목
+    history = [{"ticker": s.ticker, "name": s.name,
+                "fetched_at": s.analysis_fetched_at.strftime("%Y-%m-%d") if s.analysis_fetched_at else None}
+               for s in db.query(models.Stock).filter(models.Stock.analysis_json.isnot(None)).all()
+               if s.ticker not in held]
+    return built, pending, history
+
+
+@app.get("/quality", response_class=HTMLResponse)
+def page_quality(request: Request, db: Session = Depends(get_db)):
+    built, pending, history = _quality_portfolio(db)
+    return templates.TemplateResponse("quality.html", {
+        "request": request,
+        "active":  "quality",
+        "quality_json": json.dumps({**built, "pending": pending, "history": history},
+                                   ensure_ascii=False, default=str),
+        "error": request.query_params.get("error", ""),
+    })
+
+
+@app.get("/quality/{ticker}", response_class=HTMLResponse)
+def page_quality_detail(ticker: str, request: Request, db: Session = Depends(get_db)):
+    ticker = ticker.upper()
+    built, _, _ = _quality_portfolio(db)
+    company = next((c for c in built["companies"] if c["ticker"] == ticker), None)
+    is_held = company is not None
+    if company is None:
+        # 과거 보유 종목 — 캐시가 남아 있으면 단독 기준으로 보여준다
+        stock = db.query(models.Stock).filter(models.Stock.ticker == ticker).first()
+        c = _quality_company(stock, None, _load_notes()) if stock else None
+        if c is None:
+            return RedirectResponse(f"/quality?error={ticker}+분석+데이터가+없습니다", status_code=303)
+        company = quality.build_portfolio([c])["companies"][0]
+    peers = [{"ticker": c["ticker"],
+              "bq": c["scores"]["business_quality"]["score"],
+              "val": c["scores"]["valuation"]["score"],
+              "roic": c["roic"]["v"]} for c in built["companies"]]
+    return templates.TemplateResponse("quality_detail.html", {
+        "request": request,
+        "active":  "quality",
+        "ticker":  ticker,
+        "detail_json": json.dumps({
+            "company": company, "is_held": is_held, "peers": peers,
+            "medians": built["medians"], "portfolio_quality": built["portfolio_quality"],
+            "attr_weights": built["attr_weights"],
+        }, ensure_ascii=False, default=str),
+    })
 
 
 @app.get("/api/settings/{key}")

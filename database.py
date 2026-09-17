@@ -137,3 +137,29 @@ def create_tables():
             conn.commit()
         except Exception:
             pass
+        # milestones image 컬럼 추가
+        try:
+            conn.execute(text("ALTER TABLE milestones ADD COLUMN image VARCHAR(300) DEFAULT ''"))
+            conn.commit()
+        except Exception:
+            pass
+        # 리서치 터미널(/research) — 분석용 원본 데이터 캐시
+        for col_def in [
+            "analysis_json TEXT",
+            "analysis_fetched_at DATETIME",
+            "analysis_ver INT DEFAULT 0",
+        ]:
+            try:
+                conn.execute(text(f"ALTER TABLE stocks ADD COLUMN {col_def}"))
+                conn.commit()
+            except Exception:
+                pass
+        # payload 스키마가 바뀌면 ANALYSIS_VER을 올리고 아래 숫자를 맞춰 재수집을 유도한다
+        try:
+            conn.execute(text(
+                "UPDATE stocks SET analysis_fetched_at = NULL "
+                "WHERE analysis_ver IS NULL OR analysis_ver < 2"
+            ))
+            conn.commit()
+        except Exception:
+            pass

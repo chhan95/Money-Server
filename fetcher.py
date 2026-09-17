@@ -235,6 +235,303 @@ def fetch_stock(ticker: str) -> dict | None:
         return None
 
 
+# ══════════════════════════════════════════════════════════════════════
+#  리서치 터미널(/research) 전용 수집
+#  ─ 기존 fetch_stock과 완전히 분리한다. 기존 페이지 동작/성능에 영향 없음.
+#  ─ 원본 행 추출만 담당한다. 파생 계산은 analytics.py.
+#  ─ 값이 없으면 None을 넣고 missing[]에 기록한다. 절대 추정값을 만들지 않는다.
+# ══════════════════════════════════════════════════════════════════════
+
+ANALYSIS_VER = 2   # v2: 자본배분 행·TTM·실적발표일·기업 프로필 추가 (기존 필드는 그대로)
+
+_GROSS_KEYS    = ["Gross Profit", "GrossProfit"]
+_EBITDA_KEYS   = ["EBITDA", "Normalized EBITDA"]
+_TAXRATE_KEYS  = ["Tax Rate For Calcs"]
+_TAXPROV_KEYS  = ["Tax Provision"]
+_PRETAX_KEYS   = ["Pretax Income"]
+_RND_KEYS      = ["Research And Development"]
+_OCF_KEYS      = ["Operating Cash Flow", "Total Cash From Operating Activities"]
+_CAPEX_KEYS    = ["Capital Expenditure", "Capital Expenditures"]
+_FCF_KEYS      = ["Free Cash Flow"]
+_BUYBACK_KEYS  = ["Repurchase Of Capital Stock"]
+_DEBT_KEYS     = ["Total Debt"]
+_CASH_KEYS     = ["Cash And Cash Equivalents", "CashAndCashEquivalents"]
+_STI_KEYS      = ["Other Short Term Investments", "Short Term Investments"]
+_INVCAP_KEYS   = ["Invested Capital"]
+_DIV_KEYS       = ["Cash Dividends Paid", "Common Stock Dividend Paid"]
+_ACQ_KEYS       = ["Purchase Of Business", "Net Business Purchase And Sale"]
+_DEBTREPAY_KEYS = ["Repayment Of Debt"]
+_CHGCASH_KEYS   = ["Changes In Cash"]
+_INTEXP_KEYS    = ["Interest Expense"]
+_DILEPS_KEYS    = ["Diluted EPS"]
+
+
+def _cell(df, keys: list[str], col) -> float | None:
+    """df에서 keys 중 존재하는 행의 col 값을 float로. 없거나 NaN이면 None."""
+    if df is None or col is None:
+        return None
+    row = _get_row(df, keys)
+    if row is None:
+        return None
+    try:
+        v = row.get(col, float("nan"))
+        return float(v) if not pd.isna(v) else None
+    except Exception:
+        return None
+
+
+def _align_bs_col(bs_cols, inc_col):
+    """손익 컬럼에 대응하는 대차대조표 컬럼 찾기.
+    1) 완전 일치 → 2) 45일 이내 최근접 → 3) 같은 연도 → 4) None
+    (회계연도 말일이 손익/대차에서 며칠 어긋나는 경우가 있어 단순 .year 매칭보다 안전)
+    """
+    if inc_col is None or bs_cols is None or len(bs_cols) == 0:
+        return None
+    for c in bs_cols:
+        if c == inc_col:
+            return c
+    best, best_days = None, None
+    for c in bs_cols:
+        try:
+            days = abs((c - inc_col).days)
+        except Exception:
+            continue
+        if best_days is None or days < best_days:
+            best, best_days = c, days
+    if best is not None and best_days is not None and best_days <= 45:
+        return best
+    for c in bs_cols:
+        if getattr(c, "year", None) == getattr(inc_col, "year", None):
+            return c
+    return None
+
+
+def _fetch_risk_free() -> dict | None:
+    """미국 10년물 국채 수익률(^TNX). WACC 참고용 — 실제 시장 데이터."""
+    try:
+        v = yf.Ticker("^TNX").fast_info.last_price
+        if v and v > 0:
+            return {"value": round(float(v) / 100, 5), "src": "^TNX (미국 10년물)",
+                    "as_of": pd.Timestamp.utcnow().strftime("%Y-%m-%d")}
+    except Exception as e:
+        logger.debug("^TNX 조회 실패: %s", e)
+    return None
+
+
+def fetch_analysis(ticker: str) -> dict | None:
+    """리서치 터미널용 원본 데이터 수집 (연 5년치 + TTM + 실적 서프라이즈 + 월별 주가).
+
+    반환 payload는 models.Stock.analysis_json에 그대로 저장된다.
+    실패한 항목은 값 None + missing[]에 항목명 기록.
+    """
+    tk = ticker.upper()
+    missing: list[str] = []
+
+    def safe(label, fn, default=None):
+        try:
+            v = fn()
+            if v is None:
+                missing.append(label)
+            return v
+        except Exception as e:
+            logger.debug("[%s] %s 수집 실패: %s", tk, label, e)
+            missing.append(label)
+            return default
+
+    try:
+        t = yf.Ticker(tk)
+        info = safe("info", lambda: t.info) or {}
+
+        fin_currency   = info.get("financialCurrency") or "USD"
+        quote_currency = info.get("currency") or "USD"
+
+        inc = safe("income_stmt",   lambda: t.income_stmt)
+        bs  = safe("balance_sheet", lambda: t.balance_sheet)
+        cf  = safe("cashflow",      lambda: t.cashflow)
+
+        if inc is None or inc.empty:
+            logger.warning("[%s] 손익계산서 없음 — 분석 수집 중단", tk)
+            return None
+
+        bs_cols = list(bs.columns) if (bs is not None and not bs.empty) else []
+
+        years = []
+        for col in inc.columns[:5]:          # 최신 → 과거 (최대 5년)
+            bcol = _align_bs_col(bs_cols, col)
+            years.append({
+                "fy":      col.year,
+                "end":     col.strftime("%Y-%m-%d"),
+                "inc_col": col.strftime("%Y-%m-%d"),
+                "bs_col":  bcol.strftime("%Y-%m-%d") if bcol is not None else None,
+                # 손익계산서
+                "revenue":          _cell(inc, _REVENUE_KEYS,  col),
+                "gross_profit":     _cell(inc, _GROSS_KEYS,    col),
+                "operating_income": _cell(inc, _OPERATING_KEYS, col),
+                "ebitda":           _cell(inc, _EBITDA_KEYS,   col),
+                "pretax":           _cell(inc, _PRETAX_KEYS,   col),
+                "tax_provision":    _cell(inc, _TAXPROV_KEYS,  col),
+                "tax_rate_calc":    _cell(inc, _TAXRATE_KEYS,  col),
+                "net":              _cell(inc, _NET_KEYS,      col),
+                "rnd":              _cell(inc, _RND_KEYS,      col),
+                "diluted_shares":   _cell(inc, _DIL_SHARES_KEYS, col),
+                "diluted_eps":      _cell(inc, _DILEPS_KEYS,   col),
+                "interest_expense": _cell(inc, _INTEXP_KEYS,   col),
+                # 현금흐름표
+                "ocf":      _cell(cf, _OCF_KEYS,     col),
+                "capex":    _cell(cf, _CAPEX_KEYS,   col),
+                "fcf":      _cell(cf, _FCF_KEYS,     col),
+                "buyback":  _cell(cf, _BUYBACK_KEYS, col),
+                # 자본배분 (현금흐름표 부호 그대로 저장 — 유출은 음수)
+                "dividends_paid": _cell(cf, _DIV_KEYS,       col),
+                "acquisitions":   _cell(cf, _ACQ_KEYS,       col),
+                "debt_repayment": _cell(cf, _DEBTREPAY_KEYS, col),
+                "change_in_cash": _cell(cf, _CHGCASH_KEYS,   col),
+                # 대차대조표 (정렬된 컬럼 사용)
+                "total_debt":          _cell(bs, _DEBT_KEYS,   bcol),
+                "equity":              _cell(bs, _EQUITY_KEYS, bcol),
+                "cash":                _cell(bs, _CASH_KEYS,   bcol),
+                "sti":                 _cell(bs, _STI_KEYS,    bcol),
+                "total_assets":        _cell(bs, _ASSETS_KEYS, bcol),
+                "invested_capital_yf": _cell(bs, _INVCAP_KEYS, bcol),
+            })
+        years.reverse()   # 과거 → 최신 순으로 저장
+
+        # ── 실적 서프라이즈 ──
+        def _earnings_hist():
+            eh = t.earnings_history
+            if eh is None or eh.empty:
+                return None
+            out = []
+            for idx, r in eh.iterrows():
+                def _f(k):
+                    v = r.get(k)
+                    return float(v) if v is not None and not pd.isna(v) else None
+                out.append({
+                    "q":            str(idx)[:10],
+                    "eps_actual":   _f("epsActual"),
+                    "eps_est":      _f("epsEstimate"),
+                    "surprise_pct": _f("surprisePercent"),
+                })
+            return out or None
+        earnings_history = safe("earnings_history", _earnings_hist) or []
+
+        # ── 월별 주가 (밸류에이션 히스토리용) ──
+        def _prices():
+            h = t.history(period="5y", interval="1mo")
+            if h is None or h.empty:
+                return None
+            return [{"d": i.strftime("%Y-%m"), "c": round(float(c), 4)}
+                    for i, c in h["Close"].items() if c and not pd.isna(c)]
+        prices_monthly = safe("prices_monthly", _prices) or []
+
+        # ── TTM (최근 4개 분기 합산, 기간 말일 포함) ──
+        def _ttm():
+            ti = t.ttm_income_stmt
+            if ti is None or ti.empty:
+                return None
+            col = ti.columns[0]
+            tc = t.ttm_cashflow
+            ccol = tc.columns[0] if (tc is not None and not tc.empty) else None
+            return {
+                "period_end":       str(col)[:10],
+                "revenue":          _cell(ti, _REVENUE_KEYS,   col),
+                "gross_profit":     _cell(ti, _GROSS_KEYS,     col),
+                "operating_income": _cell(ti, _OPERATING_KEYS, col),
+                "net":              _cell(ti, _NET_KEYS,       col),
+                "diluted_eps":      _cell(ti, _DILEPS_KEYS,    col),
+                "interest_expense": _cell(ti, _INTEXP_KEYS,    col),
+                "fcf":              _cell(tc, _FCF_KEYS, ccol) if ccol is not None else None,
+                "ocf":              _cell(tc, _OCF_KEYS, ccol) if ccol is not None else None,
+                "cf_period_end":    str(ccol)[:10] if ccol is not None else None,
+            }
+        ttm_income = safe("ttm_income", _ttm)
+
+        # ── 실적 발표일 (최근 발표 / 다음 예정) ──
+        def _edates():
+            out = {"last": None, "next": None}
+            try:
+                cal = t.calendar
+                if isinstance(cal, dict) and cal.get("Earnings Date"):
+                    out["next"] = str(cal["Earnings Date"][0])[:10]
+            except Exception:
+                pass
+            try:
+                ed = t.earnings_dates
+                if ed is not None and not ed.empty:
+                    past = ed[ed.index <= pd.Timestamp.now(tz=ed.index.tz)]
+                    if len(past):
+                        out["last"] = str(past.index.max())[:10]
+            except Exception:
+                pass
+            return out if (out["last"] or out["next"]) else None
+        earnings_dates = safe("earnings_dates", _edates)
+
+        def _inf(k):
+            v = info.get(k)
+            try:
+                return float(v) if v is not None else None
+            except (TypeError, ValueError):
+                return None
+
+        payload = {
+            "v":              ANALYSIS_VER,
+            "ticker":         tk,
+            "fetched_at":     pd.Timestamp.utcnow().strftime("%Y-%m-%d %H:%M"),
+            "fin_currency":   fin_currency,
+            "quote_currency": quote_currency,
+            # sector 컬럼은 industry가 들어있어 모호하므로 payload에는 분리 저장
+            "industry":       info.get("industry") or "",
+            "sector":         info.get("sector") or "",
+            "ttm": {
+                "market_cap":        _inf("marketCap"),
+                "forward_pe":        _inf("forwardPE"),
+                "trailing_pe":       _inf("trailingPE"),
+                "trailing_peg":      _inf("trailingPegRatio"),
+                "ps_ttm":            _inf("priceToSalesTrailing12Months"),
+                "ev":                _inf("enterpriseValue"),
+                "ev_ebitda":         _inf("enterpriseToEbitda"),
+                "ebitda":            _inf("ebitda"),
+                "gross_margins":     _inf("grossMargins"),
+                "operating_margins": _inf("operatingMargins"),
+                "profit_margins":    _inf("profitMargins"),
+                "fcf":               _inf("freeCashflow"),
+                "ocf":               _inf("operatingCashflow"),
+                "total_debt":        _inf("totalDebt"),
+                "total_cash":        _inf("totalCash"),
+                "roe":               _inf("returnOnEquity"),
+                "roa":               _inf("returnOnAssets"),
+                "revenue_growth":    _inf("revenueGrowth"),
+                "earnings_growth":   _inf("earningsGrowth"),
+                "beta":              _inf("beta"),
+                "target_mean_price": _inf("targetMeanPrice"),
+                "num_analysts":      _inf("numberOfAnalystOpinions"),
+                "recommendation":    info.get("recommendationKey") or None,
+            },
+            "years":            years,
+            "earnings_history": earnings_history,
+            "prices_monthly":   prices_monthly,
+            "rf":               _fetch_risk_free(),
+            # ── v2 추가 ──
+            "ttm_income":       ttm_income,
+            "earnings_dates":   earnings_dates,
+            "profile": {
+                "name":      info.get("longName") or info.get("shortName") or tk,
+                "summary":   info.get("longBusinessSummary") or None,   # Yahoo 기업 프로필 원문
+                "country":   info.get("country") or None,
+                "exchange":  info.get("exchange") or None,
+                "website":   info.get("website") or None,
+                "employees": _inf("fullTimeEmployees"),
+                "price":     _inf("currentPrice") or _inf("regularMarketPrice"),
+            },
+            "missing":          sorted(set(missing)),
+        }
+        return payload
+
+    except Exception as e:
+        logger.error("[%s] fetch_analysis 실패: %s", tk, e, exc_info=True)
+        return None
+
+
 def fetch_stock_quick(ticker: str) -> dict | None:
     """
     최신 1개 회계연도만 빠르게 조회.

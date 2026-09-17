@@ -24,6 +24,13 @@ class Stock(Base):
     sector              = Column(String(100))              # 업종 (yfinance industry)
     fetched_at          = Column(DateTime)
 
+    # ── 리서치 터미널(/research) 전용 ──
+    # 연간 재무 5년치 원본 행 + TTM 스칼라 + 실적 서프라이즈 + 월별 주가를 담는 문서.
+    # 기존 fetch_stock 경로와 분리된 별도 캐시 클럭(analysis_fetched_at)을 사용한다.
+    analysis_json       = Column(Text)
+    analysis_fetched_at = Column(DateTime)
+    analysis_ver        = Column(Integer, default=0)   # payload 스키마 버전
+
     fiscal_years = relationship(
         "FiscalYear", back_populates="stock",
         cascade="all, delete-orphan",
@@ -97,6 +104,7 @@ class Milestone(Base):
     note          = Column(String(500), default='')
     milestone_date = Column(String(20))   # 완료일 or 목표일 (YYYY-MM-DD)
     display_order = Column(Integer, default=0)
+    image         = Column(String(300), default='')  # 업로드 이미지 경로
 
 
 class Cheongyak(Base):

@@ -10,374 +10,261 @@
 
 <style>
 @keyframes hSpin { to { transform: rotate(360deg); } }
-
 :root {
   --ms-gradient: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
   --glass-border: var(--border);
-  --ease-out: cubic-bezier(0.16, 1, 0.3, 1);
-  --shadow-sm: 0 1px 3px rgba(0,0,0,0.07);
-  --shadow-md: 0 4px 16px rgba(0,0,0,0.11);
-  --shadow-lg: 0 8px 32px rgba(0,0,0,0.18);
-  --r-xl: 16px;
-  --r-2xl: 20px;
-  --green: #10b981;
-  --amber: #f59e0b;
-  --blue: #667eea;
-  --red: #ef4444;
+  --r-xl: 14px;
+  --green: #10b981; --amber: #f59e0b; --blue: #667eea; --red: #ef4444; --purple: #a78bfa; --cyan: #22d3ee;
 }
+/* 이 페이지에서만 전역 820px 폭 제한을 푼다 */
+.page-wrap { max-width: none !important; padding-left: 20px; padding-right: 20px; }
+.hs-wrap { max-width: 1680px; margin: 0 auto; }
 
 /* ── Header ── */
-.hs-header {
-  display: flex; align-items: center; justify-content: space-between;
-  padding: 28px 0 20px; gap: 12px;
+.hs-header { display: flex; align-items: center; justify-content: space-between; padding: 6px 0 12px; gap: 12px; flex-wrap: wrap; }
+.hs-header h1 {
+  font-size: 22px; font-weight: 800; letter-spacing: -0.4px; margin-bottom: 2px;
+  background: var(--ms-gradient); -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text;
 }
-.hs-header-left h1 {
-  font-size: 22px; font-weight: 800; letter-spacing: -0.4px;
-  background: var(--ms-gradient);
-  -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text;
-  margin-bottom: 2px;
-}
-.hs-header-left p { font-size: 12px; color: var(--text2); }
-.hs-header-badge {
-  padding: 6px 14px; border-radius: 99px;
-  background: rgba(102,126,234,0.08); border: 1px solid rgba(102,126,234,0.2);
-  color: var(--blue); font-size: 12px; font-weight: 700;
-  white-space: nowrap;
-}
+.hs-header p { font-size: 11.5px; color: var(--text2); }
+.hs-controls { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+.hs-seg { display: inline-flex; border: 1px solid var(--border); border-radius: 9px; overflow: hidden; }
+.hs-seg button { background: var(--bg); color: var(--text2); border: none; padding: 6px 12px; font-size: 11.5px; font-weight: 700; cursor: pointer; }
+.hs-seg button.on { background: var(--blue); color: #fff; }
+.hs-badge { padding: 5px 12px; border-radius: 99px; background: rgba(102,126,234,0.08); border: 1px solid rgba(102,126,234,0.2); color: var(--blue); font-size: 11.5px; font-weight: 700; white-space: nowrap; }
 
-/* ── Summary Cards ── */
-.hs-summary {
-  display: grid; grid-template-columns: repeat(2, 1fr);
-  gap: 12px; margin-bottom: 20px;
-}
-@media (max-width: 440px) { .hs-summary { grid-template-columns: 1fr; } }
+/* ── Stat strip ── */
+.hs-stats { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 8px; margin-bottom: 10px; }
+.hs-stat { background: var(--bg); border: 1px solid var(--glass-border); border-radius: 11px; padding: 10px 13px; border-left: 3px solid var(--blue); }
+.hs-stat.green { border-left-color: var(--green); } .hs-stat.amber { border-left-color: var(--amber); }
+.hs-stat.purple { border-left-color: var(--purple); } .hs-stat.cyan { border-left-color: var(--cyan); } .hs-stat.gray { border-left-color: var(--border); }
+.hs-stat-l { font-size: 9.5px; font-weight: 700; color: var(--text2); text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 4px; }
+.hs-stat-v { font-size: 18px; font-weight: 800; letter-spacing: -0.4px; font-variant-numeric: tabular-nums; line-height: 1.15; }
+.hs-stat-s { font-size: 10px; color: var(--text2); margin-top: 3px; font-variant-numeric: tabular-nums; }
 
-.hs-sum-card {
-  background: var(--bg); border: 1px solid var(--glass-border);
-  border-radius: var(--r-xl); padding: 18px 20px;
-  position: relative; overflow: hidden;
-  transition: box-shadow 0.2s var(--ease-out);
-}
-.hs-sum-card:hover { box-shadow: var(--shadow-md); }
-.hs-sum-card::before {
-  content: ''; position: absolute; left: 0; top: 0; bottom: 0;
-  width: 3px; border-radius: 3px 0 0 3px;
-}
-.hs-sum-card.blue::before   { background: var(--blue); }
-.hs-sum-card.green::before  { background: var(--green); }
+/* ── Chart grid ── */
+.hs-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 10px; }
+@media (max-width: 960px) { .hs-grid { grid-template-columns: 1fr; } }
+.hs-card { background: var(--bg); border: 1px solid var(--glass-border); border-radius: var(--r-xl); padding: 12px 14px; }
+.hs-card-head { display: flex; justify-content: space-between; align-items: baseline; gap: 8px; margin-bottom: 6px; }
+.hs-card-title { font-size: 12.5px; font-weight: 800; }
+.hs-card-sub { font-size: 10.5px; color: var(--text2); }
+.hs-card-cur { font-size: 15px; font-weight: 800; font-variant-numeric: tabular-nums; text-align: right; letter-spacing: -0.3px; }
+.hs-card-chg { font-size: 10px; text-align: right; font-variant-numeric: tabular-nums; }
+.hs-chart { position: relative; height: 210px; }
+.hs-legend { display: flex; gap: 10px; flex-wrap: wrap; font-size: 10.5px; color: var(--text2); margin-top: 4px; }
+.hs-legend i { display: inline-block; width: 9px; height: 9px; border-radius: 2px; margin-right: 4px; vertical-align: -1px; }
 
-.hs-sum-label {
-  font-size: 10px; font-weight: 700; color: var(--text2);
-  text-transform: uppercase; letter-spacing: 0.7px; margin-bottom: 8px;
-}
-.hs-sum-value {
-  font-size: 20px; font-weight: 800; letter-spacing: -0.4px;
-  font-variant-numeric: tabular-nums; line-height: 1.2;
-}
-.hs-sum-sub {
-  font-size: 10px; color: var(--text2); margin-top: 3px;
-}
+/* ── Table ── */
+.hs-table-wrap { overflow-x: auto; border: 1px solid var(--glass-border); border-radius: var(--r-xl); background: var(--bg); }
+.hs-table { width: 100%; border-collapse: collapse; font-size: 12px; }
+.hs-table th { position: sticky; top: 0; background: var(--bg2); color: var(--text2); font-size: 9.5px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.35px; padding: 7px 9px; text-align: right; white-space: nowrap; border-bottom: 1px solid var(--border); }
+.hs-table th:first-child, .hs-table td:first-child { text-align: left; position: sticky; left: 0; background: var(--bg); }
+.hs-table th:first-child { background: var(--bg2); }
+.hs-table td { padding: 6px 9px; text-align: right; white-space: nowrap; border-bottom: 1px solid var(--border2); font-variant-numeric: tabular-nums; }
+.hs-table tbody tr:hover td { background: var(--bg2); }
+.hs-table tbody tr:last-child td { border-bottom: none; }
+.hs-d { font-size: 10px; }
+.pos { color: var(--green); } .neg { color: var(--red); } .mut { color: var(--text2); }
 
-/* ── Chart Cards ── */
-.hs-chart-card {
-  background: var(--bg); border: 1px solid var(--glass-border);
-  border-radius: var(--r-xl); padding: 22px 24px;
-  margin-bottom: 16px;
-  transition: box-shadow 0.2s var(--ease-out);
-}
-.hs-chart-card:hover { box-shadow: var(--shadow-sm); }
-
-.hs-chart-header {
-  display: flex; justify-content: space-between; align-items: flex-start;
-  margin-bottom: 16px; flex-wrap: wrap; gap: 8px;
-}
-.hs-chart-title {
-  font-size: 14px; font-weight: 700; color: var(--text); margin-bottom: 2px;
-}
-.hs-chart-subtitle { font-size: 11px; color: var(--text2); }
-.hs-chart-current {
-  font-size: 18px; font-weight: 800;
-  letter-spacing: -0.4px; font-variant-numeric: tabular-nums;
-  text-align: right;
-}
-.hs-chart-current-sub { font-size: 10px; color: var(--text2); text-align: right; margin-top: 1px; }
-
-.hs-chart-wrap { position: relative; width: 100%; }
-
-
-/* ── Empty State ── */
-.hs-empty {
-  text-align: center; padding: 64px 24px;
-  background: var(--bg); border: 1px solid var(--glass-border);
-  border-radius: var(--r-xl); margin-bottom: 16px;
-  color: var(--text2);
-}
-.hs-empty .icon { font-size: 48px; margin-bottom: 14px; opacity: 0.25; display: block; }
-.hs-empty .title { font-size: 15px; font-weight: 700; color: var(--text); margin-bottom: 6px; }
-.hs-empty .msg { font-size: 13px; }
-
+/* ── Empty ── */
+.hs-empty { text-align: center; padding: 56px 24px; background: var(--bg); border: 1px solid var(--glass-border); border-radius: var(--r-xl); color: var(--text2); }
+.hs-empty .icon { font-size: 40px; margin-bottom: 10px; opacity: 0.25; display: block; }
+.hs-empty .title { font-size: 14px; font-weight: 700; color: var(--text); margin-bottom: 4px; }
 </style>
 
-
-<!-- ══════════════════════════════════════
-     HEADER
-══════════════════════════════════════ -->
-<div class="hs-header">
-  <div class="hs-header-left">
-    <h1>투자 히스토리</h1>
-    <p>홈 화면 접속 시 매일 자동 저장</p>
+<div class="hs-wrap">
+  <div class="hs-header">
+    <div>
+      <h1>투자 히스토리</h1>
+      <p id="hsNote">홈 화면 접속 시 매일 자동 저장</p>
+    </div>
+    <div class="hs-controls">
+      <div class="hs-seg" id="hsGran">
+        <button data-g="daily">일별</button>
+        <button data-g="monthly" class="on">월별</button>
+      </div>
+      <span class="hs-badge" id="dataBadge" style="display:none;"></span>
+    </div>
   </div>
-  <span class="hs-header-badge" id="dataBadge" style="display:none;"></span>
+
+  <div id="noDataMsg" style="display:none;">
+    <div class="hs-empty"><span class="icon">📭</span>
+      <div class="title">아직 데이터가 없습니다</div>
+      <div>홈 화면을 방문하면 오늘부터 데이터가 쌓이기 시작합니다</div></div>
+  </div>
+
+  <div id="hsBody" style="display:none;">
+    <div class="hs-stats" id="hsStats"></div>
+
+    <div class="hs-grid">
+      <div class="hs-card">
+        <div class="hs-card-head"><div><div class="hs-card-title">포트폴리오 평가액</div><div class="hs-card-sub">원화 환산 총 평가액</div></div>
+          <div><div class="hs-card-cur" style="color:var(--blue);" id="c1v"></div><div class="hs-card-chg" id="c1c"></div></div></div>
+        <div class="hs-chart"><canvas id="chTotal"></canvas></div>
+      </div>
+      <div class="hs-card">
+        <div class="hs-card-head"><div><div class="hs-card-title">평가이익</div><div class="hs-card-sub">미실현 손익 · 막대 = KRW, 선 = USD</div></div>
+          <div><div class="hs-card-cur" id="c2v"></div><div class="hs-card-chg" id="c2c"></div></div></div>
+        <div class="hs-chart"><canvas id="chGain"></canvas></div>
+      </div>
+      <div class="hs-card">
+        <div class="hs-card-head"><div><div class="hs-card-title">지분 비례 월 소득</div><div class="hs-card-sub">보유 지분만큼의 매출·영업이익·순이익 (월 환산, KRW)</div></div>
+          <div><div class="hs-card-cur" style="color:var(--green);" id="c3v"></div><div class="hs-card-chg" id="c3c"></div></div></div>
+        <div class="hs-chart"><canvas id="chIncome"></canvas></div>
+        <div class="hs-legend"><span><i style="background:var(--blue)"></i>매출</span><span><i style="background:var(--amber)"></i>영업이익</span><span><i style="background:var(--green)"></i>순이익</span></div>
+      </div>
+      <div class="hs-card">
+        <div class="hs-card-head"><div><div class="hs-card-title">적용 환율</div><div class="hs-card-sub">스냅샷 저장 시점 USD/KRW</div></div>
+          <div><div class="hs-card-cur" style="color:var(--purple);" id="c4v"></div><div class="hs-card-chg" id="c4c"></div></div></div>
+        <div class="hs-chart"><canvas id="chFx"></canvas></div>
+      </div>
+    </div>
+
+    <div class="hs-table-wrap"><table class="hs-table" id="hsTable"></table></div>
+    <div class="hs-card-sub" style="margin-top:6px;">전월/전일 변동은 직전 스냅샷 대비. 평가액 변동에는 환율 변화가 포함됩니다.</div>
+  </div>
 </div>
 
-
-<!-- ══════════════════════════════════════
-     SUMMARY
-══════════════════════════════════════ -->
-<div class="hs-summary" id="summaryRow" style="display:none;">
-  <div class="hs-sum-card blue">
-    <div class="hs-sum-label">포트폴리오 평가액</div>
-    <div class="hs-sum-value" id="sum-total">—</div>
-    <div class="hs-sum-sub"   id="sum-total-chg">최신 스냅샷</div>
-  </div>
-  <div class="hs-sum-card green">
-    <div class="hs-sum-label">평가이익</div>
-    <div class="hs-sum-value" id="sum-gain">—</div>
-    <div class="hs-sum-sub"   id="sum-gain-chg">미실현 손익</div>
-  </div>
-</div>
-
-
-<!-- ══════════════════════════════════════
-     EMPTY STATE
-══════════════════════════════════════ -->
-<div id="noDataMsg" style="display:none;">
-  <div class="hs-empty">
-    <span class="icon">📭</span>
-    <div class="title">아직 데이터가 없습니다</div>
-    <div class="msg">홈 화면을 방문하면 오늘부터 데이터가 쌓이기 시작합니다</div>
-  </div>
-</div>
-
-
-<!-- ══════════════════════════════════════
-     CHARTS
-══════════════════════════════════════ -->
-<div id="chartsWrap" style="display:none;">
-
-  <!-- 포트폴리오 평가액 (full width) -->
-  <div class="hs-chart-card">
-    <div class="hs-chart-header">
-      <div class="hs-chart-header-left">
-        <div class="hs-chart-title">포트폴리오 평가액 추이</div>
-        <div class="hs-chart-subtitle">원화 환산 총 평가액</div>
-      </div>
-      <div>
-        <div class="hs-chart-current" style="color:var(--blue);" id="val-total"></div>
-        <div class="hs-chart-current-sub" id="val-total-chg"></div>
-      </div>
-    </div>
-    <div class="hs-chart-wrap">
-      <canvas id="chart-total" height="80"></canvas>
-    </div>
-  </div>
-
-  <!-- 평가이익 (full width) -->
-  <div class="hs-chart-card">
-    <div class="hs-chart-header">
-      <div>
-        <div class="hs-chart-title">평가이익 추이</div>
-        <div class="hs-chart-subtitle">미실현 손익 (USD)</div>
-      </div>
-      <div>
-        <div class="hs-chart-current" id="val-gain2">—</div>
-        <div class="hs-chart-current-sub">현재 미실현</div>
-      </div>
-    </div>
-    <div class="hs-chart-wrap">
-      <canvas id="chart-gain" height="80"></canvas>
-    </div>
-  </div>
-
-</div><!-- /chartsWrap -->
-
-
-<!-- ══════════════════════════════════════
-     SCRIPT
-══════════════════════════════════════ -->
 <script>
+const NEEDS_REFRESH = {{ needs_refresh | safe }};
+let GRAN = 'monthly';
+const charts = {};
+
 function fmtW(w) {
-  const sign = w < 0 ? '-' : '', a = Math.abs(w);
-  if (a >= 1e12) return sign + (a/1e12).toFixed(2) + '조원';
-  if (a >= 1e8)  return sign + (a/1e8 ).toFixed(2) + '억원';
-  if (a >= 1e4)  return sign + Math.round(a/1e4).toLocaleString() + '만원';
-  return sign + Math.round(a).toLocaleString() + '원';
+  const s = w < 0 ? '-' : '', a = Math.abs(w);
+  if (a >= 1e12) return s + (a/1e12).toFixed(2) + '조원';
+  if (a >= 1e8)  return s + (a/1e8).toFixed(2) + '억원';
+  if (a >= 1e4)  return s + Math.round(a/1e4).toLocaleString() + '만원';
+  return s + Math.round(a).toLocaleString() + '원';
 }
 function fmtUSD(v) {
-  const sign = v < 0 ? '-' : '', a = Math.abs(v);
-  if (a >= 1e9) return sign + '$' + (a/1e9).toFixed(2) + 'B';
-  if (a >= 1e6) return sign + '$' + (a/1e6).toFixed(2) + 'M';
-  if (a >= 1e3) return sign + '$' + (a/1e3).toFixed(2) + 'K';
-  return sign + '$' + a.toFixed(2);
+  const s = v < 0 ? '-' : '', a = Math.abs(v);
+  if (a >= 1e6) return s + '$' + (a/1e6).toFixed(2) + 'M';
+  if (a >= 1e3) return s + '$' + (a/1e3).toFixed(1) + 'K';
+  return s + '$' + a.toFixed(0);
 }
-function gainColor(v) { return v >= 0 ? '#10b981' : '#ef4444'; }
-function setText(id, v) { const el = document.getElementById(id); if (el) el.textContent = v; }
-function setColor(id, c) { const el = document.getElementById(id); if (el) el.style.color = c; }
-
-function baseOptions() {
-  const tickColor = getComputedStyle(document.documentElement).getPropertyValue('--text2').trim() || '#a8b3c0';
-  return {
-    responsive: true,
-    maintainAspectRatio: true,
-    interaction: { mode: 'index', intersect: false },
-    plugins: {
-      legend: { display: false },
-      tooltip: {
-        backgroundColor: 'rgba(15,20,35,0.95)',
-        titleColor: '#fff', bodyColor: '#ccc',
-        borderColor: 'rgba(255,255,255,0.08)', borderWidth: 1,
-        cornerRadius: 10, padding: 12,
-        callbacks: { label: ctx => ' ' + fmtW(ctx.parsed.y) },
-      },
-    },
+const sign = v => (v >= 0 ? '+' : '');
+const cls = v => v > 0 ? 'pos' : v < 0 ? 'neg' : 'mut';
+function pct(a, b) { return (!a) ? null : (b - a) / Math.abs(a) * 100; }
+function chgHtml(prev, cur, fmt) {
+  if (prev === undefined || prev === null) return '<span class="mut">—</span>';
+  const d = cur - prev, p = pct(prev, cur);
+  return `<span class="${cls(d)}">${sign(d)}${fmt(d)}${p === null ? '' : ' (' + sign(p) + p.toFixed(1) + '%)'}</span>`;
+}
+function theme() {
+  const dark = document.documentElement.getAttribute('data-theme') === 'dark';
+  const css = v => getComputedStyle(document.documentElement).getPropertyValue(v).trim();
+  return { grid: dark ? 'rgba(255,255,255,.06)' : 'rgba(0,0,0,.06)', tick: css('--text2') || '#6b7280', tip: 'rgba(15,20,35,0.95)' };
+}
+function opts(yFmt, y2Fmt) {
+  const t = theme();
+  const o = {
+    responsive: true, maintainAspectRatio: false, interaction: { mode: 'index', intersect: false },
+    plugins: { legend: { display: false }, tooltip: { backgroundColor: t.tip, padding: 10, cornerRadius: 8, titleFont: { size: 11 }, bodyFont: { size: 11 } } },
     scales: {
-      x: {
-        grid: { display: false },
-        border: { display: false },
-        ticks: {
-          font: { size: 10 }, color: tickColor, maxTicksLimit: 12,
-          callback: function(val) {
-            const lbl = this.getLabelForValue(val);
-            return lbl ? lbl.slice(2) : '';
-          }
-        }
-      },
-      y: {
-        grid: { color: 'rgba(128,128,128,0.08)', drawBorder: false },
-        border: { display: false },
-        ticks: { font: { size: 10 }, color: tickColor, callback: v => fmtW(v) }
-      }
-    }
+      x: { grid: { display: false }, border: { display: false },
+           ticks: { font: { size: 9.5 }, color: t.tick, maxTicksLimit: GRAN === 'daily' ? 10 : 12, maxRotation: 0,
+                    callback: function (v) { const l = this.getLabelForValue(v); return GRAN === 'daily' ? l.slice(5) : l.slice(2); } } },
+      y: { grid: { color: t.grid }, border: { display: false }, ticks: { font: { size: 9.5 }, color: t.tick, maxTicksLimit: 6, callback: yFmt } },
+    },
   };
+  if (y2Fmt) o.scales.y2 = { position: 'right', grid: { display: false }, border: { display: false }, ticks: { font: { size: 9.5 }, color: t.tick, maxTicksLimit: 6, callback: y2Fmt } };
+  return o;
 }
-
-function makeDataset(data, color, fill = true) {
-  return {
-    data,
-    borderColor: color,
-    backgroundColor: fill ? color + '18' : 'transparent',
-    borderWidth: 2,
-    pointRadius: data.length <= 15 ? 3 : 0,
-    pointHoverRadius: 5,
-    fill,
-    tension: 0.35,
-  };
+function line(label, data, color, extra) {
+  const dense = data.length > 20;
+  return { type: 'line', label, data, borderColor: color, backgroundColor: color + '18', borderWidth: 2,
+           pointRadius: dense ? 0 : 2.5, pointHoverRadius: 4, fill: true, tension: 0.3, ...extra };
 }
+function mk(id, cfg) { if (charts[id]) charts[id].destroy(); charts[id] = new Chart(document.getElementById(id).getContext('2d'), cfg); }
 
-function pctChange(first, last) {
-  if (!first || first === 0) return null;
-  return (last - first) / Math.abs(first) * 100;
+let DATA = [], META = {};
+function render() {
+  const d = DATA, n = d.length;
+  if (!n) { document.getElementById('noDataMsg').style.display = ''; document.getElementById('hsBody').style.display = 'none'; return; }
+  document.getElementById('noDataMsg').style.display = 'none';
+  document.getElementById('hsBody').style.display = '';
+  const first = d[0], last = d[n - 1], prev = n > 1 ? d[n - 2] : null;
+  const unit = GRAN === 'daily' ? '일' : '개월';
+  const prevLabel = GRAN === 'daily' ? '전일' : '전월';
+  document.getElementById('dataBadge').style.display = '';
+  document.getElementById('dataBadge').textContent = `${n}${unit} 표시 · 스냅샷 ${META.snapshotCount ?? n}개`;
+  document.getElementById('hsNote').textContent = `${first.date} ~ ${last.date} · 홈 접속 시 자동 저장`;
+
+  // ── stat strip ──
+  const stat = (c, l, v, s) => `<div class="hs-stat ${c}"><div class="hs-stat-l">${l}</div><div class="hs-stat-v">${v}</div><div class="hs-stat-s">${s}</div></div>`;
+  const tc = pct(first.totalValueKrw, last.totalValueKrw);
+  document.getElementById('hsStats').innerHTML = [
+    stat('', '평가액', fmtW(last.totalValueKrw), `${prevLabel} ${chgHtml(prev && prev.totalValueKrw, last.totalValueKrw, fmtW)}`),
+    stat('green', '평가이익 (KRW)', `<span class="${cls(last.unrealizedGainKrw)}">${fmtW(last.unrealizedGainKrw)}</span>`, `${prevLabel} ${chgHtml(prev && prev.unrealizedGainKrw, last.unrealizedGainKrw, fmtW)}`),
+    stat('green', '평가이익 (USD)', `<span class="${cls(last.unrealizedGainUsd)}">${fmtUSD(last.unrealizedGainUsd)}</span>`, `${prevLabel} ${chgHtml(prev && prev.unrealizedGainUsd, last.unrealizedGainUsd, fmtUSD)}`),
+    stat('amber', '지분 월 순이익', fmtW(last.monthlyNetKrw), `매출 ${fmtW(last.monthlyRevenueKrw)} · 영업이익 ${fmtW(last.monthlyOpKrw)}`),
+    stat('purple', '환율', last.fxRate ? last.fxRate.toFixed(1) + '원/$' : 'N/A', `${prevLabel} ${prev && prev.fxRate ? chgHtml(prev.fxRate, last.fxRate, v => v.toFixed(1)) : '—'}`),
+    stat('gray', '전체 기간 변동', tc === null ? 'N/A' : `<span class="${cls(tc)}">${sign(tc)}${tc.toFixed(1)}%</span>`, `평가액 · ${first.date} 대비`),
+  ].join('');
+
+  // ── card headers ──
+  const setCard = (k, v, chg, color) => { document.getElementById(k + 'v').innerHTML = v; const e = document.getElementById(k + 'c'); e.innerHTML = chg; };
+  setCard('c1', fmtW(last.totalValueKrw), `${prevLabel} ${chgHtml(prev && prev.totalValueKrw, last.totalValueKrw, fmtW)}`);
+  setCard('c2', `<span class="${cls(last.unrealizedGainKrw)}">${fmtW(last.unrealizedGainKrw)}</span>`, `${fmtUSD(last.unrealizedGainUsd)} · ${prevLabel} ${chgHtml(prev && prev.unrealizedGainKrw, last.unrealizedGainKrw, fmtW)}`);
+  setCard('c3', fmtW(last.monthlyNetKrw) + '/월', `순이익 · ${prevLabel} ${chgHtml(prev && prev.monthlyNetKrw, last.monthlyNetKrw, fmtW)}`);
+  setCard('c4', last.fxRate ? last.fxRate.toFixed(1) + '원/$' : 'N/A', `${prevLabel} ${prev && prev.fxRate ? chgHtml(prev.fxRate, last.fxRate, v => v.toFixed(1) + '원') : '—'}`);
+
+  // ── charts ──
+  const L = d.map(x => x.month);
+  const o1 = opts(fmtW); o1.plugins.tooltip.callbacks = { label: c => ' ' + fmtW(c.parsed.y) };
+  mk('chTotal', { data: { labels: L, datasets: [line('평가액', d.map(x => x.totalValueKrw), '#667eea')] }, options: o1 });
+
+  const o2 = opts(fmtW, fmtUSD); o2.plugins.tooltip.callbacks = { label: c => ' ' + c.dataset.label + ' ' + (c.dataset.yAxisID === 'y2' ? fmtUSD(c.parsed.y) : fmtW(c.parsed.y)) };
+  mk('chGain', { data: { labels: L, datasets: [
+    { type: 'bar', label: 'KRW', data: d.map(x => x.unrealizedGainKrw), backgroundColor: d.map(x => x.unrealizedGainKrw >= 0 ? 'rgba(16,185,129,.45)' : 'rgba(239,68,68,.45)'), borderRadius: 3, yAxisID: 'y', order: 2 },
+    { ...line('USD', d.map(x => x.unrealizedGainUsd), '#10b981', { fill: false, yAxisID: 'y2', order: 1 }), segment: { borderColor: c => c.p1.parsed.y >= 0 ? '#10b981' : '#ef4444' } },
+  ] }, options: o2 });
+
+  const o3 = opts(fmtW); o3.plugins.tooltip.callbacks = { label: c => ' ' + c.dataset.label + ' ' + fmtW(c.parsed.y) };
+  mk('chIncome', { data: { labels: L, datasets: [
+    line('매출', d.map(x => x.monthlyRevenueKrw), '#667eea', { fill: false }),
+    line('영업이익', d.map(x => x.monthlyOpKrw), '#f59e0b', { fill: false }),
+    line('순이익', d.map(x => x.monthlyNetKrw), '#10b981'),
+  ] }, options: o3 });
+
+  const o4 = opts(v => v.toFixed(0)); o4.plugins.tooltip.callbacks = { label: c => ' ' + c.parsed.y.toFixed(2) + '원/$' };
+  mk('chFx', { data: { labels: L, datasets: [line('환율', d.map(x => x.fxRate || null), '#a78bfa', { spanGaps: true })] }, options: o4 });
+
+  // ── table (최신순) ──
+  const rows = d.slice().reverse().map((x, i, arr) => {
+    const p = arr[i + 1];
+    return `<tr><td><b>${x.date}</b></td>
+      <td>${fmtW(x.totalValueKrw)}<div class="hs-d">${chgHtml(p && p.totalValueKrw, x.totalValueKrw, fmtW)}</div></td>
+      <td><span class="${cls(x.unrealizedGainKrw)}">${fmtW(x.unrealizedGainKrw)}</span><div class="hs-d">${chgHtml(p && p.unrealizedGainKrw, x.unrealizedGainKrw, fmtW)}</div></td>
+      <td><span class="${cls(x.unrealizedGainUsd)}">${fmtUSD(x.unrealizedGainUsd)}</span><div class="hs-d">${chgHtml(p && p.unrealizedGainUsd, x.unrealizedGainUsd, fmtUSD)}</div></td>
+      <td>${fmtW(x.monthlyRevenueKrw)}<div class="hs-d">${chgHtml(p && p.monthlyRevenueKrw, x.monthlyRevenueKrw, fmtW)}</div></td>
+      <td>${fmtW(x.monthlyOpKrw)}<div class="hs-d">${chgHtml(p && p.monthlyOpKrw, x.monthlyOpKrw, fmtW)}</div></td>
+      <td>${fmtW(x.monthlyNetKrw)}<div class="hs-d">${chgHtml(p && p.monthlyNetKrw, x.monthlyNetKrw, fmtW)}</div></td>
+      <td>${x.fxRate ? x.fxRate.toFixed(1) : '—'}<div class="hs-d">${p && p.fxRate && x.fxRate ? chgHtml(p.fxRate, x.fxRate, v => v.toFixed(1)) : '<span class="mut">—</span>'}</div></td></tr>`;
+  }).join('');
+  document.getElementById('hsTable').innerHTML =
+    `<thead><tr><th>${GRAN === 'daily' ? '날짜' : '월 (마지막 스냅샷)'}</th><th>평가액</th><th>평가이익 KRW</th><th>평가이익 USD</th><th>지분 매출/월</th><th>지분 영업이익/월</th><th>지분 순이익/월</th><th>환율</th></tr></thead><tbody>${rows}</tbody>`;
 }
-
-const NEEDS_REFRESH = {{ needs_refresh | safe }};
 
 function loadHistory() {
-  fetch('/api/history')
-  .then(r => r.json())
-  .then(resp => {
-    const data = resp.items ?? resp;
-
-    if (!data || data.length === 0) {
-      document.getElementById('noDataMsg').style.display = '';
-      return;
-    }
-
-    document.getElementById('chartsWrap').style.display = '';
-    document.getElementById('summaryRow').style.display = '';
-
-    // 배지
-    const badge = document.getElementById('dataBadge');
-    badge.textContent = data.length + '개월 기록';
-    badge.style.display = '';
-
-    // 헤더 노트
-    const noteEl = document.querySelector('.hs-header-left p');
-    if (noteEl) noteEl.textContent = data.length + '개월 데이터 기록됨 · 홈 접속 시 자동 저장';
-
-    const months = data.map(d => d.month);
-    const total  = data.map(d => d.totalValueKrw);
-    const gain   = data.map(d => d.unrealizedGainUsd);
-    const first   = data[0];
-    const last    = data[data.length - 1];
-
-    // Summary cards
-    setText('sum-total', fmtW(last.totalValueKrw));
-    const totalChg = pctChange(first.totalValueKrw, last.totalValueKrw);
-    if (totalChg !== null && data.length > 1) {
-      const el = document.getElementById('sum-total-chg');
-      el.textContent = (totalChg >= 0 ? '+' : '') + totalChg.toFixed(1) + '% vs 최초';
-      el.style.color = gainColor(totalChg);
-    }
-
-    const gainVal = document.getElementById('sum-gain');
-    gainVal.textContent = fmtUSD(last.unrealizedGainUsd);
-    gainVal.style.color = gainColor(last.unrealizedGainUsd);
-    const gainChg = pctChange(first.unrealizedGainUsd, last.unrealizedGainUsd);
-    if (gainChg !== null && data.length > 1) {
-      const el = document.getElementById('sum-gain-chg');
-      el.textContent = (gainChg >= 0 ? '+' : '') + gainChg.toFixed(1) + '% vs 최초';
-      el.style.color = gainColor(gainChg);
-    }
-
-    // Chart header values
-    setText('val-total', fmtW(last.totalValueKrw));
-    if (totalChg !== null && data.length > 1) {
-      const el = document.getElementById('val-total-chg');
-      el.textContent = (totalChg >= 0 ? '+' : '') + totalChg.toFixed(1) + '% (전체 기간)';
-      el.style.color = gainColor(totalChg);
-    }
-
-    const g2El = document.getElementById('val-gain2');
-    g2El.textContent = fmtUSD(last.unrealizedGainUsd);
-    g2El.style.color = gainColor(last.unrealizedGainUsd);
-
-    const ctx = id => document.getElementById(id).getContext('2d');
-
-    /* Chart 1: 평가액 */
-    new Chart(ctx('chart-total'), {
-      type: 'line',
-      data: { labels: months, datasets: [makeDataset(total, '#667eea')] },
-      options: baseOptions(),
-    });
-
-    /* Chart 2: 평가이익 */
-    const gainOpts = baseOptions();
-    gainOpts.plugins.tooltip.callbacks.label = c => ' ' + fmtUSD(c.parsed.y);
-    gainOpts.scales.y.ticks.callback = v => fmtUSD(v);
-    new Chart(ctx('chart-gain'), {
-      type: 'line',
-      data: { labels: months, datasets: [{
-        ...makeDataset(gain, '#10b981'),
-        segment: { borderColor: c => gainColor(c.p1.parsed.y) }
-      }]},
-      options: gainOpts,
-    });
-
-  })
-  .catch(() => {
-    document.getElementById('noDataMsg').style.display = '';
-  });
+  fetch('/api/history?granularity=' + GRAN).then(r => r.json()).then(resp => {
+    DATA = resp.items || []; META = resp; render();
+  }).catch(() => { document.getElementById('noDataMsg').style.display = ''; });
 }
+document.querySelectorAll('#hsGran button').forEach(b => b.addEventListener('click', () => {
+  GRAN = b.dataset.g;
+  document.querySelectorAll('#hsGran button').forEach(x => x.classList.toggle('on', x === b));
+  loadHistory();
+}));
+const themeBtn = document.getElementById('themeToggle');
+if (themeBtn) themeBtn.addEventListener('click', () => setTimeout(() => { if (DATA.length) render(); }, 60));
 
 if (NEEDS_REFRESH) {
-  const overlay = document.getElementById('priceLoadingOverlay');
-  overlay.style.display = 'flex';
-  fetch('/api/refresh-prices')
-    .then(() => { overlay.style.display = 'none'; loadHistory(); })
-    .catch(() => { overlay.style.display = 'none'; loadHistory(); });
-} else {
-  loadHistory();
-}
+  const ov = document.getElementById('priceLoadingOverlay'); ov.style.display = 'flex';
+  fetch('/api/refresh-prices').then(() => { ov.style.display = 'none'; loadHistory(); })
+    .catch(() => { ov.style.display = 'none'; loadHistory(); });
+} else { loadHistory(); }
 </script>
-
 {% endblock %}

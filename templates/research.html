@@ -1,0 +1,1188 @@
+{% extends "base.html" %}
+{% block title %}Money — 리서치 터미널{% endblock %}
+{% block content %}
+
+<style>
+:root {
+  --ms-gradient: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  --rs-blue:  #667eea;
+  --rs-green: #10b981;
+  --rs-amber: #f59e0b;
+  --rs-red:   #ef4444;
+  --rs-gray:  #94a3b8;
+  --r-xl: 16px;
+  --ease-out: cubic-bezier(0.16, 1, 0.3, 1);
+  --shadow-sm: 0 1px 3px rgba(0,0,0,0.07);
+  --shadow-md: 0 4px 16px rgba(0,0,0,0.10);
+}
+
+/* 비교표는 넓어야 의미가 있다.
+   전역 .page-wrap이 max-width:820px로 묶고 있어 자식만 넓혀도 소용없으므로
+   이 페이지에서만 래퍼 자체를 푼다. (다른 페이지에는 영향 없음) */
+.page-wrap { max-width: none !important; padding-left: 20px; padding-right: 20px; }
+.rs-wide { max-width: 1700px; margin-left: auto; margin-right: auto; }
+
+.rs-header { padding: 4px 0 18px; }
+.rs-header h1 {
+  font-size: 26px; font-weight: 800; letter-spacing: -0.5px; margin-bottom: 6px;
+  background: var(--ms-gradient);
+  -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text;
+}
+.rs-header p { font-size: 13px; color: var(--text2); line-height: 1.6; }
+
+.rs-toolbar {
+  display: flex; align-items: center; justify-content: space-between;
+  gap: 12px; flex-wrap: wrap; margin-bottom: 14px;
+}
+.rs-btn {
+  background: var(--ms-gradient); color: #fff; border: none;
+  padding: 9px 18px; border-radius: 10px;
+  font-size: 13px; font-weight: 700; cursor: pointer;
+  transition: all .2s var(--ease-out); box-shadow: 0 2px 10px rgba(102,126,234,.3);
+}
+.rs-btn:hover:not(:disabled) { transform: translateY(-1px); box-shadow: 0 4px 16px rgba(102,126,234,.45); }
+.rs-btn:disabled { opacity: .55; cursor: not-allowed; transform: none; }
+.rs-note { font-size: 11.5px; color: var(--text2); }
+
+.rs-table-wrap {
+  overflow-x: auto; border: 1px solid var(--border);
+  border-radius: var(--r-xl); background: var(--bg);
+}
+.rs-table { width: 100%; border-collapse: collapse; font-size: 13px; }
+.rs-table th {
+  position: sticky; top: 0; z-index: 2;
+  background: var(--bg2); color: var(--text2);
+  font-size: 10.5px; font-weight: 700; text-transform: uppercase; letter-spacing: .4px;
+  padding: 10px 10px; text-align: right; white-space: nowrap;
+  border-bottom: 1px solid var(--border); cursor: pointer; user-select: none;
+}
+/* 첫 열(종목)은 가로 스크롤이 생겨도 항상 보이도록 고정 */
+.rs-table th:first-child,
+.rs-table td:first-child {
+  position: sticky; left: 0; z-index: 3;
+  text-align: left; background: var(--bg);
+}
+.rs-table th:first-child { z-index: 4; background: var(--bg2); }
+.rs-table tbody tr:hover td:first-child { background: var(--bg2); }
+.rs-table th:hover { color: var(--text); }
+.rs-table th .arrow { opacity: .35; font-size: 9px; margin-left: 2px; }
+.rs-table th.sorted .arrow { opacity: 1; color: var(--rs-blue); }
+.rs-table td {
+  padding: 11px 10px; text-align: right; white-space: nowrap;
+  border-bottom: 1px solid var(--border2); font-variant-numeric: tabular-nums;
+}
+.rs-table td:first-child { text-align: left; }
+.rs-table tbody tr:last-child td { border-bottom: none; }
+.rs-table tbody tr:hover { background: var(--bg2); }
+
+.rs-tk { display: flex; align-items: center; gap: 9px; }
+.rs-logo {
+  width: 26px; height: 26px; border-radius: 7px; object-fit: contain;
+  background: var(--bg2); flex-shrink: 0;
+}
+.rs-logo-fb {
+  width: 26px; height: 26px; border-radius: 7px; flex-shrink: 0;
+  background: var(--ms-gradient); color: #fff;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 9px; font-weight: 800;
+}
+.rs-tk-name { font-weight: 700; font-size: 13px; }
+.rs-tk-sub  { font-size: 10.5px; color: var(--text2); }
+
+.rs-score {
+  display: inline-block; min-width: 42px;
+  padding: 4px 10px; border-radius: 99px;
+  font-weight: 800; font-size: 13px; color: #fff;
+}
+.rs-s-hi  { background: var(--rs-green); }
+.rs-s-mid { background: var(--rs-blue); }
+.rs-s-low { background: var(--rs-amber); }
+.rs-s-na  { background: var(--rs-gray); font-size: 11px; font-weight: 600; }
+
+.rs-na { color: var(--text2); opacity: .6; font-style: italic; font-size: 11.5px; }
+.rs-pos { color: var(--rs-green); }
+.rs-neg { color: var(--rs-red); }
+
+.rs-detail-row td { background: var(--bg2); padding: 0; }
+.rs-detail { padding: 16px 18px; }
+.rs-detail h4 {
+  font-size: 12px; font-weight: 800; margin-bottom: 10px; color: var(--text);
+  text-transform: uppercase; letter-spacing: .4px;
+}
+.rs-sub-grid {
+  display: grid; grid-template-columns: repeat(auto-fill, minmax(230px, 1fr));
+  gap: 10px; margin-bottom: 14px;
+}
+.rs-sub {
+  border: 1px solid var(--border); border-radius: 10px;
+  padding: 10px 12px; background: var(--bg);
+}
+.rs-sub-top { display: flex; justify-content: space-between; align-items: baseline; gap: 8px; }
+.rs-sub-label { font-size: 11.5px; font-weight: 700; }
+.rs-sub-score { font-size: 15px; font-weight: 800; }
+.rs-sub-w { font-size: 10px; color: var(--text2); }
+.rs-bar { height: 4px; border-radius: 3px; background: var(--border2); margin-top: 7px; overflow: hidden; }
+.rs-bar span { display: block; height: 100%; border-radius: 3px; background: var(--ms-gradient); }
+.rs-comp { margin-top: 8px; font-size: 10.5px; color: var(--text2); line-height: 1.7; }
+.rs-comp div { display: flex; justify-content: space-between; gap: 8px; }
+
+.rs-prov {
+  font-size: 10.5px; color: var(--text2); line-height: 1.7;
+  border-top: 1px solid var(--border); padding-top: 10px; margin-top: 4px;
+}
+.rs-disclaimer {
+  margin-top: 14px; font-size: 11px; color: var(--text2);
+  background: rgba(128,128,128,.06); border-radius: 8px; padding: 10px 14px; line-height: 1.7;
+}
+.rs-empty { text-align: center; padding: 56px 24px; color: var(--text2); }
+.rs-empty .ic { font-size: 38px; opacity: .3; margin-bottom: 10px; }
+
+.rs-status {
+  display: none; align-items: center; gap: 10px;
+  padding: 11px 16px; border-radius: 10px; margin-bottom: 12px;
+  font-size: 12.5px; background: rgba(102,126,234,.07);
+  border: 1px solid rgba(102,126,234,.15); color: var(--text2);
+}
+.rs-status.on { display: flex; }
+.rs-spin {
+  width: 14px; height: 14px; border-radius: 50%; flex-shrink: 0;
+  border: 2px solid rgba(102,126,234,.25); border-top-color: var(--rs-blue);
+  animation: rsSpin .8s linear infinite;
+}
+@keyframes rsSpin { to { transform: rotate(360deg); } }
+
+/* ══════════ 시각화 레이어 ══════════ */
+.rs-section-title {
+  font-size: 12px; font-weight: 800; letter-spacing: .5px; text-transform: uppercase;
+  color: var(--text2); margin: 22px 0 10px;
+}
+.rs-card {
+  background: var(--bg); border: 1px solid var(--border);
+  border-radius: var(--r-xl); padding: 16px 18px;
+}
+.rs-card-head {
+  display: flex; align-items: baseline; justify-content: space-between;
+  gap: 10px; margin-bottom: 12px; flex-wrap: wrap;
+}
+.rs-card-title { font-size: 13px; font-weight: 800; }
+.rs-card-sub { font-size: 10.5px; color: var(--text2); }
+
+/* KPI 카드 */
+.rs-kpis {
+  display: grid; grid-template-columns: repeat(auto-fit, minmax(165px, 1fr));
+  gap: 10px; margin-bottom: 12px;
+}
+.rs-kpi {
+  background: var(--bg); border: 1px solid var(--border);
+  border-radius: 12px; padding: 13px 15px;
+}
+.rs-kpi-label {
+  font-size: 10px; font-weight: 700; color: var(--text2);
+  text-transform: uppercase; letter-spacing: .5px; margin-bottom: 6px;
+}
+.rs-kpi-val { font-size: 22px; font-weight: 800; letter-spacing: -.5px; font-variant-numeric: tabular-nums; }
+.rs-kpi-sub { font-size: 10.5px; color: var(--text2); margin-top: 3px; }
+
+/* 시그널 */
+.rs-signal {
+  border: 1px solid var(--border); border-left: 3px solid var(--rs-blue);
+  border-radius: 10px; padding: 12px 15px; background: var(--bg); margin-bottom: 8px;
+}
+.rs-signal.warn { border-left-color: var(--rs-amber); }
+.rs-signal.info { border-left-color: var(--rs-blue); }
+.rs-signal-top { display: flex; align-items: center; gap: 7px; margin-bottom: 4px; }
+.rs-signal-tag {
+  font-size: 10px; font-weight: 800; text-transform: uppercase; letter-spacing: .4px;
+}
+.rs-signal.warn .rs-signal-tag { color: var(--rs-amber); }
+.rs-signal.info .rs-signal-tag { color: var(--rs-blue); }
+.rs-signal-tk { font-size: 11.5px; font-weight: 800; }
+.rs-signal-body { font-size: 11.5px; color: var(--text2); line-height: 1.65; }
+
+/* 차트 그리드 */
+.rs-grid2 { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+@media (max-width: 1000px) { .rs-grid2 { grid-template-columns: 1fr; } }
+.rs-chart { position: relative; height: 300px; }
+.rs-chart-sm { position: relative; height: 260px; }
+.rs-excluded {
+  font-size: 10.5px; color: var(--rs-amber);
+  background: rgba(245,158,11,.09); border-radius: 6px;
+  padding: 5px 10px; margin-bottom: 8px; display: inline-block;
+}
+.rs-chart-na {
+  display: flex; align-items: center; justify-content: center; height: 100%;
+  text-align: center; color: var(--text2); font-size: 12px; line-height: 1.8;
+}
+
+/* 히트맵 */
+.rs-heat { overflow-x: auto; }
+.rs-heat-grid { display: grid; gap: 3px; min-width: 560px; }
+.rs-heat-cell {
+  border-radius: 6px; padding: 8px 6px; text-align: center;
+  font-size: 12px; font-weight: 700; font-variant-numeric: tabular-nums;
+  cursor: pointer; transition: outline-color .12s;
+  outline: 2px solid transparent;
+}
+.rs-heat-cell.na {
+  background: repeating-linear-gradient(135deg, transparent, transparent 4px,
+              var(--border2) 4px, var(--border2) 5px);
+  color: var(--text2); font-size: 10px; font-weight: 600; font-style: italic;
+}
+.rs-heat-rowlabel {
+  font-size: 11px; font-weight: 700; color: var(--text2);
+  display: flex; align-items: center; padding-right: 8px; white-space: nowrap;
+}
+.rs-heat-collabel {
+  font-size: 11px; font-weight: 800; text-align: center; padding-bottom: 5px;
+  cursor: pointer;
+}
+.rs-heat-collabel.sel { color: var(--rs-blue); }
+
+/* 선택 강조 */
+.rs-table tbody tr.sel td { background: rgba(102,126,234,.10); }
+.rs-table tbody tr.sel td:first-child { background: rgba(102,126,234,.10); }
+.rs-chip {
+  display: inline-flex; align-items: center; gap: 6px;
+  font-size: 11px; font-weight: 700; padding: 4px 11px; border-radius: 99px;
+  background: rgba(102,126,234,.12); color: var(--rs-blue); cursor: pointer;
+}
+.rs-chip.off { background: var(--bg2); color: var(--text2); }
+
+/* 증분 ROIC 표 */
+.rs-ir { width: 100%; border-collapse: collapse; font-size: 12.5px; }
+.rs-ir th {
+  font-size: 10px; text-transform: uppercase; letter-spacing: .4px; color: var(--text2);
+  text-align: right; padding: 6px 8px; border-bottom: 1px solid var(--border); font-weight: 700;
+}
+.rs-ir th:first-child, .rs-ir td:first-child { text-align: left; }
+.rs-ir td {
+  padding: 9px 8px; text-align: right; border-bottom: 1px solid var(--border2);
+  font-variant-numeric: tabular-nums;
+}
+.rs-ir tr:last-child td { border-bottom: none; }
+.rs-ir tr.sel td { background: rgba(102,126,234,.10); }
+.rs-ir tbody tr { cursor: pointer; }
+.rs-badge-warn {
+  font-size: 9.5px; font-weight: 800; padding: 2px 7px; border-radius: 99px;
+  background: rgba(245,158,11,.15); color: var(--rs-amber); margin-left: 6px;
+}
+.rs-ir-bar { height: 7px; border-radius: 4px; background: var(--border2); overflow: hidden; position: relative; }
+.rs-ir-bar span { display: block; height: 100%; border-radius: 4px; }
+</style>
+
+<div class="rs-wide">
+  <div class="rs-header">
+    <h1>리서치 터미널</h1>
+    <p>보유 종목의 수익성·자본효율·성장의 질을 한 화면에서 비교합니다.
+       모든 수치는 yfinance 기준이며 출처와 기준일을 함께 표시합니다.
+       없는 데이터는 추정하지 않고 <b>N/A</b>로 둡니다.</p>
+  </div>
+
+  <div class="rs-status" id="rsStatus"><div class="rs-spin"></div><div id="rsStatusMsg"></div></div>
+
+  <div class="rs-toolbar">
+    <div class="rs-note" id="rsMeta"></div>
+    <button class="rs-btn" id="rsRefresh" onclick="refreshAll()">데이터 수집 / 갱신</button>
+  </div>
+
+  <!-- 1. 포트폴리오 요약 -->
+  <div id="rsViz">
+    <div class="rs-kpis" id="rsKpis"></div>
+    <div id="rsSignals"></div>
+
+    <!-- 2·3. 자본효율 / 성장×효율 -->
+    <div class="rs-section-title">자본효율 · 성장</div>
+    <div class="rs-grid2">
+      <div class="rs-card">
+        <div class="rs-card-head">
+          <div>
+            <div class="rs-card-title">ROIC vs WACC</div>
+            <div class="rs-card-sub">대각선 위 = 자본비용 초과 수익 · 버블 크기 = 시가총액</div>
+          </div>
+          <div class="rs-card-sub" id="rsSrc1"></div>
+        </div>
+        <div id="rsExcl1"></div>
+        <div class="rs-chart"><canvas id="chScatter"></canvas></div>
+      </div>
+      <div class="rs-card">
+        <div class="rs-card-head">
+          <div>
+            <div class="rs-card-title">성장 × ROIC</div>
+            <div class="rs-card-sub">점선 = 6종목 중앙값 · 우상단이 고성장·고효율</div>
+          </div>
+          <div class="rs-card-sub" id="rsSrc2"></div>
+        </div>
+        <div class="rs-chart"><canvas id="chGrowth"></canvas></div>
+      </div>
+    </div>
+
+    <!-- 4. ROIC 추이 -->
+    <div class="rs-section-title">ROIC 지속성</div>
+    <div class="rs-card">
+      <div class="rs-card-head">
+        <div>
+          <div class="rs-card-title" id="rsTrendTitle">ROIC 추이</div>
+          <div class="rs-card-sub">현재 ROIC가 일시적인지 구조적인지 확인 · NOPAT ÷ (총부채+자기자본−현금−단기투자), 기말 기준</div>
+        </div>
+        <div class="rs-card-sub" id="rsSrc3"></div>
+      </div>
+      <div class="rs-chart"><canvas id="chTrend"></canvas></div>
+    </div>
+
+    <!-- 5. 증분 ROIC -->
+    <div class="rs-section-title">추가 투입 자본의 수익률</div>
+    <div class="rs-card">
+      <div class="rs-card-head">
+        <div>
+          <div class="rs-card-title">증분 ROIC vs WACC</div>
+          <div class="rs-card-sub">추가로 투입한 자본 1달러가 만든 추가 영업이익 — 재투자 여력의 핵심 지표</div>
+        </div>
+        <div class="rs-card-sub" id="rsSrc5"></div>
+      </div>
+      <div id="rsIncr"></div>
+    </div>
+
+    <!-- 6. Score 구성 -->
+    <div class="rs-section-title">Score 구성</div>
+    <div class="rs-grid2">
+      <div class="rs-card">
+        <div class="rs-card-head">
+          <div>
+            <div class="rs-card-title">항목별 히트맵</div>
+            <div class="rs-card-sub">가중 반영 점수 (항목 가중치 대비) · 열 클릭 시 종목 선택</div>
+          </div>
+        </div>
+        <div class="rs-heat"><div class="rs-heat-grid" id="rsHeat"></div></div>
+      </div>
+      <div class="rs-card">
+        <div class="rs-card-head">
+          <div>
+            <div class="rs-card-title" id="rsCompTitle">점수 구성</div>
+            <div class="rs-card-sub" id="rsCompSub">종목을 선택하면 표시됩니다</div>
+          </div>
+          <span class="rs-chip off" id="rsReset" onclick="clearSelection()">선택 해제</span>
+        </div>
+        <div class="rs-chart-sm"><canvas id="chComp"></canvas></div>
+      </div>
+    </div>
+
+    <div class="rs-section-title">종목 비교</div>
+  </div>
+
+  <div id="rsBody"></div>
+
+  <div class="rs-disclaimer">
+    <b>점수 산출 방식</b> — 8개 항목을 가중 합산합니다(자본효율 20 · 성장성 15 · 밸류에이션 15 ·
+    수익성 12 · 해자 12 · 재투자 10 · 가격결정력 8 · 재무건전성 8).
+    데이터가 없는 항목은 <b>0점이 아니라 총점에서 제외</b>하고 가중치를 재정규화하며, 커버리지를 함께 표시합니다.
+    <br><b>ROIC 계열(자본효율·해자·재투자)이 총점의 약 35%를 좌우합니다</b> — 장기 복리투자 관점을 반영한 의도된 가중입니다.
+    <br>해자·가격결정력 점수는 숫자에서 도출한 <b>정량 프록시</b>이며 서술형 해자 분석이 아닙니다.
+    <br>이 점수는 공식 기반 자체 산출이며 투자 권유가 아닙니다.
+  </div>
+</div>
+
+<script>
+const RESEARCH = {{ research_json | safe }};
+const UNCACHED = {{ uncached | safe }};
+
+let sortKey = 'score', sortDir = -1, expanded = null;
+
+const COLS = [
+  { key: 'name',      label: '기업',          type: 'text' },
+  { key: 'score',     label: 'Score',         type: 'score' },
+  { key: 'roic',      label: 'ROIC',          type: 'pct',  m: 'roic' },
+  { key: 'incr',      label: '증분 ROIC',      type: 'pct',  m: 'incremental_roic' },
+  { key: 'roe',       label: 'ROE',           type: 'pct',  m: 'roe' },
+  { key: 'rev',       label: '매출 성장',       type: 'pct',  m: 'rev_cagr' },
+  { key: 'net',       label: '순이익 성장',     type: 'pct',  m: 'net_cagr' },
+  { key: 'om',        label: '영업이익률',      type: 'pct',  m: 'operating_margin' },
+  { key: 'fcfm',      label: 'FCF 마진',       type: 'pct',  m: 'fcf_margin' },
+  { key: 'peg',       label: 'PEG',           type: 'num',  m: 'peg' },
+  { key: 'fpe',       label: 'Fwd P/E',       type: 'num',  m: 'forward_pe' },
+];
+
+function mv(row, key) {
+  if (!row.has_data) return null;
+  const m = row.metrics[key];
+  return (m && m.v !== null && m.v !== undefined) ? m.v : null;
+}
+function mna(row, key) {
+  if (!row.has_data) return row.na_reason || '데이터 없음';
+  const m = row.metrics[key];
+  return (m && m.na) ? m.na : '데이터 없음';
+}
+function prov(row, key) {
+  if (!row.has_data) return '';
+  const m = row.metrics[key];
+  if (!m || m.v === null) return '';
+  return `${m.src || 'yfinance'}${m.as_of ? ' · ' + m.as_of : ''}`;
+}
+
+// 아이콘 파일이 없는 종목은 티커 약자 배지로 대체 (속성에 HTML을 넣지 않는다)
+function logoFallback(img) {
+  const d = document.createElement('div');
+  d.className = 'rs-logo-fb';
+  d.textContent = img.dataset.tk || '';
+  img.replaceWith(d);
+}
+
+function fmtPct(v) { return (v * 100).toFixed(1) + '%'; }
+function fmtNum(v) { return v.toFixed(2); }
+
+function cellVal(row, col) {
+  if (col.type === 'score') return row.has_data && row.score.total !== null ? row.score.total : null;
+  if (col.type === 'text')  return row.name;
+  return mv(row, col.m);
+}
+
+function renderCell(row, col) {
+  if (col.type === 'text') {
+    return `<div class="rs-tk">
+      <img class="rs-logo" src="/resources/icons/${row.ticker}.png" alt=""
+           onerror="logoFallback(this)" data-tk="${row.ticker.slice(0,4)}">
+      <div><div class="rs-tk-name">${row.ticker}</div>
+           <div class="rs-tk-sub">${row.has_data ? (row.industry || '') : (row.name || '')}</div></div>
+    </div>`;
+  }
+  if (col.type === 'score') {
+    if (!row.has_data) return `<span class="rs-score rs-s-na">미수집</span>`;
+    const t = row.score.total;
+    if (t === null) return `<span class="rs-score rs-s-na" title="${row.score.na_reason}">N/A</span>`;
+    const cls = t >= 80 ? 'rs-s-hi' : t >= 60 ? 'rs-s-mid' : 'rs-s-low';
+    return `<span class="rs-score ${cls}" title="커버리지 ${row.score.coverage}%">${t}</span>`;
+  }
+  const v = mv(row, col.m);
+  if (v === null) return `<span class="rs-na" title="${mna(row, col.m)}">N/A</span>`;
+  const txt = col.type === 'pct' ? fmtPct(v) : fmtNum(v);
+  const cls = (col.type === 'pct' && v < 0) ? 'rs-neg' : '';
+  return `<span class="${cls}" title="${prov(row, col.m)}">${txt}</span>`;
+}
+
+function renderDetail(row) {
+  if (!row.has_data) return '';
+  const s = row.score;
+  const subs = Object.values(s.subs).map(sub => {
+    const comps = (sub.components || []).map(c => {
+      const raw = c.raw === null || c.raw === undefined ? 'N/A'
+        : (c.unit === '%' ? c.raw.toFixed(1) + '%' : c.unit === 'pp' ? c.raw.toFixed(1) + 'pp'
+        : c.unit === 'x' ? c.raw.toFixed(2) + 'x' : Math.round(c.raw));
+      const sc = c.score === null || c.score === undefined ? '제외' : Math.round(c.score) + '점';
+      return `<div><span>${c.name} <b>${raw}</b></span><span>${sc}</span></div>`;
+    }).join('');
+    const sc = sub.score === null ? 'N/A' : sub.score;
+    const w = sub.score === null ? '총점에서 제외' : `가중 ${sub.weight}`;
+    return `<div class="rs-sub">
+      <div class="rs-sub-top">
+        <span class="rs-sub-label">${sub.label}</span>
+        <span class="rs-sub-score">${sc}</span>
+      </div>
+      <div class="rs-sub-w">${w}</div>
+      <div class="rs-bar"><span style="width:${sub.score === null ? 0 : sub.score}%"></span></div>
+      <div class="rs-comp">${comps}</div>
+    </div>`;
+  }).join('');
+
+  const m = row.metrics;
+  const line = (label, key, fmt) => {
+    const x = m[key];
+    if (!x || x.v === null) return `<div><span>${label}</span><span class="rs-na">N/A — ${(x && x.na) || '데이터 없음'}</span></div>`;
+    return `<div><span>${label} <b>${fmt(x.v)}</b></span><span>${x.src}${x.as_of ? ' · ' + x.as_of : ''}</span></div>`;
+  };
+
+  return `<div class="rs-detail">
+    <h4>점수 구성</h4>
+    <div class="rs-sub-grid">${subs}</div>
+    <h4>핵심 지표 출처</h4>
+    <div class="rs-prov">
+      ${line('ROIC', 'roic', fmtPct)}
+      ${line('ROIC (yfinance Invested Capital 기준)', 'roic_yf', fmtPct)}
+      ${line('증분 ROIC', 'incremental_roic', fmtPct)}
+      ${line('재투자율', 'reinvestment', fmtPct)}
+      ${line('WACC (추정)', 'wacc', fmtPct)}
+      ${line('ROIC − WACC 스프레드', 'roic_spread', fmtPct)}
+      ${line('매출 CAGR', 'rev_cagr', fmtPct)}
+      ${line('현재 멀티플 ÷ 5년 평균', 'mult_vs_hist', fmtNum)}
+      <div style="margin-top:8px;">커버리지 <b>${s.coverage}%</b>${s.excluded.length ? ' · 제외: ' + s.excluded.join(', ') : ''}</div>
+      ${(m.missing && m.missing.length) ? `<div>수집 실패 항목: ${m.missing.join(', ')}</div>` : ''}
+    </div>
+  </div>`;
+}
+
+/* ══════════════════════════════════════════════════════════
+   Phase A — 정규화 뷰모델
+   서버가 내려준 캐시 데이터만 재구성한다. 네트워크 호출·추정 없음.
+   ══════════════════════════════════════════════════════════ */
+const PD = RESEARCH.filter(r => r.has_data).map(r => {
+  const m = r.metrics, s = r.score;
+  const g = k => (m[k] && m[k].v !== null && m[k].v !== undefined) ? m[k].v : null;
+  const na = k => (m[k] && m[k].na) ? m[k].na : '데이터 없음';
+  return {
+    ticker: r.ticker, name: r.name, industry: r.industry, asOf: r.as_of,
+    score: s.total, coverage: s.coverage, subs: s.subs, excluded: s.excluded,
+    roic: g('roic'), roicNa: na('roic'),
+    roicMedian: g('roic_median'),
+    roicHistory: (m.roic_series || []).filter(x => x.roic !== null),
+    wacc: g('wacc'), waccNa: na('wacc'),
+    spread: g('roic_spread'),
+    incr: g('incremental_roic'), incrNa: na('incremental_roic'),
+    revCagr: g('rev_cagr'), revCagrSrc: (m.rev_cagr || {}).src || '',
+    netCagr: g('net_cagr'), fcfCagr: g('fcf_cagr'),
+    gmSeries: (m.gross_margin_series || []).filter(x => x.v !== null),
+    marketCap: g('market_cap'),
+  };
+});
+
+let selected = null;
+const charts = {};
+
+const PALETTE = ['#667eea', '#10b981', '#f59e0b', '#ef4444', '#22d3ee', '#a78bfa',
+                 '#f472b6', '#84cc16'];
+const colorOf = t => PALETTE[PD.findIndex(p => p.ticker === t) % PALETTE.length];
+
+function theme() {
+  const dark = document.documentElement.getAttribute('data-theme') === 'dark';
+  const css = v => getComputedStyle(document.documentElement).getPropertyValue(v).trim();
+  return {
+    grid: dark ? 'rgba(255,255,255,.07)' : 'rgba(0,0,0,.07)',
+    tick: css('--text2') || '#6b7280',
+    text: css('--text') || '#1a1a1a',
+    tipBg: dark ? 'rgba(15,20,35,.96)' : 'rgba(20,24,35,.94)',
+  };
+}
+const pct1 = v => (v * 100).toFixed(1) + '%';
+const median = arr => {
+  const a = arr.filter(v => v !== null && v !== undefined).slice().sort((x, y) => x - y);
+  if (!a.length) return null;
+  const mid = Math.floor(a.length / 2);
+  return a.length % 2 ? a[mid] : (a[mid - 1] + a[mid]) / 2;
+};
+function dateRange() {
+  const ds = [...new Set(PD.map(p => (p.asOf || '').slice(0, 10)).filter(Boolean))];
+  if (!ds.length) return '';
+  return ds.length === 1 ? `기준일 ${ds[0]} · yfinance`
+                         : `기준일 혼재 (${ds.sort()[0]} ~ ${ds.sort().slice(-1)[0]}) · yfinance`;
+}
+
+/* ══════════ Phase B — 요약 KPI ══════════ */
+function renderKpis() {
+  const el = document.getElementById('rsKpis');
+  if (!PD.length) { el.innerHTML = ''; return; }
+
+  const scores = PD.map(p => p.score).filter(v => v !== null);
+  const roics  = PD.map(p => p.roic).filter(v => v !== null);
+  const cmp    = PD.filter(p => p.roic !== null && p.wacc !== null);
+  const above  = cmp.filter(p => p.roic > p.wacc).length;
+  const topRoic = PD.filter(p => p.roic !== null).sort((a, b) => b.roic - a.roic)[0];
+  const withIncr = PD.filter(p => p.incr !== null).sort((a, b) => b.incr - a.incr);
+  const covs = PD.map(p => p.coverage).filter(v => v !== null);
+
+  const kpi = (label, val, sub) =>
+    `<div class="rs-kpi"><div class="rs-kpi-label">${label}</div>
+     <div class="rs-kpi-val">${val}</div><div class="rs-kpi-sub">${sub}</div></div>`;
+
+  el.innerHTML = [
+    kpi('평균 Score',
+        scores.length ? (scores.reduce((a, b) => a + b, 0) / scores.length).toFixed(1) : 'N/A',
+        `${scores.length}개 종목 기준`),
+    kpi('평균 ROIC',
+        roics.length ? pct1(roics.reduce((a, b) => a + b, 0) / roics.length) : 'N/A',
+        `${roics.length}개 종목 기준`),
+    kpi('ROIC &gt; WACC',
+        cmp.length ? `${above} / ${cmp.length}` : 'N/A',
+        cmp.length < PD.length ? `${PD.length - cmp.length}개 제외 (WACC N/A)` : '전 종목 비교 가능'),
+    kpi('최고 ROIC',
+        topRoic ? topRoic.ticker : 'N/A',
+        topRoic ? pct1(topRoic.roic) : '데이터 없음'),
+    kpi('최고 증분 ROIC',
+        withIncr.length ? withIncr[0].ticker : 'N/A',
+        withIncr.length ? pct1(withIncr[0].incr) : '증분 ROIC 데이터 없음'),
+    kpi('평균 Coverage',
+        covs.length ? (covs.reduce((a, b) => a + b, 0) / covs.length).toFixed(0) + '%' : 'N/A',
+        '점수에 실제 반영된 데이터 비율'),
+  ].join('');
+}
+
+/* ══════════ Phase I — 데이터 기반 시그널 ══════════ */
+function renderSignals() {
+  const el = document.getElementById('rsSignals');
+  const sig = [];
+
+  // 1) 증분 ROIC < WACC — 신규 투입 자본이 자본비용 미만
+  PD.filter(p => p.incr !== null && p.wacc !== null && p.incr < p.wacc).forEach(p => {
+    sig.push({ lv: 'warn', tag: '자본효율', tk: p.ticker,
+      body: `증분 ROIC ${pct1(p.incr)} vs WACC(추정) ${pct1(p.wacc)} — 최근 추가 투입 자본이
+             추정 자본비용을 밑돌고 있습니다. 신규 투자 효율의 추가 확인이 필요합니다.` });
+  });
+  // 2) ROIC 추세 하락
+  PD.filter(p => p.roic !== null && p.roicMedian !== null &&
+                 p.roic < p.roicMedian * 0.85).forEach(p => {
+    sig.push({ lv: 'warn', tag: 'ROIC 추세', tk: p.ticker,
+      body: `최근 ROIC ${pct1(p.roic)}가 자체 중앙값 ${pct1(p.roicMedian)} 대비 낮습니다.
+             일시적 요인인지 구조적 둔화인지 확인이 필요합니다.` });
+  });
+  // 3) 매출총이익률 지속 하락
+  PD.forEach(p => {
+    const s = p.gmSeries;
+    if (s.length >= 3 && s[s.length - 1].v < s[0].v - 0.03) {
+      sig.push({ lv: 'warn', tag: '마진', tk: p.ticker,
+        body: `매출총이익률이 ${pct1(s[0].v)} → ${pct1(s[s.length - 1].v)}로 낮아졌습니다.
+               가격결정력 약화 가능성을 확인해볼 필요가 있습니다.` });
+    }
+  });
+  // 4) 고성장이지만 ROIC는 하락
+  PD.filter(p => p.revCagr !== null && p.revCagr > 0.15 &&
+                 p.roic !== null && p.roicMedian !== null && p.roic < p.roicMedian).forEach(p => {
+    sig.push({ lv: 'info', tag: '성장의 질', tk: p.ticker,
+      body: `매출은 ${pct1(p.revCagr)} 성장 중이나 ROIC는 자체 중앙값을 밑돕니다.
+             성장에 투입된 자본의 회수 속도를 함께 볼 필요가 있습니다.` });
+  });
+  // 5) 점수는 높은데 커버리지가 낮음
+  PD.filter(p => p.score !== null && p.score >= 75 && p.coverage < 85).forEach(p => {
+    sig.push({ lv: 'info', tag: '데이터 커버리지', tk: p.ticker,
+      body: `Score ${p.score}이지만 실제 데이터 반영률이 ${p.coverage}%입니다
+             (제외: ${p.excluded.join(', ') || '없음'}). 점수 해석에 주의가 필요합니다.` });
+  });
+
+  const cmp = PD.filter(p => p.roic !== null && p.wacc !== null);
+  const above = cmp.filter(p => p.roic > p.wacc).length;
+  let head = '';
+  if (cmp.length) {
+    const strong = above === cmp.length;
+    head = `<div class="rs-signal ${strong ? 'info' : 'warn'}">
+      <div class="rs-signal-top"><span class="rs-signal-tag">Portfolio Signal</span>
+        <span class="rs-signal-tk">${strong ? '자본효율 양호' : '자본효율 혼재'}</span></div>
+      <div class="rs-signal-body">비교 가능한 ${cmp.length}개 종목 중 <b>${above}개</b>가
+        추정 자본비용을 상회하는 ROIC를 기록하고 있습니다.
+        ${sig.filter(s => s.lv === 'warn').length
+          ? `다만 아래 ${sig.filter(s => s.lv === 'warn').length}건은 추가 확인이 필요합니다.` : ''}
+        <br><span style="opacity:.8;">WACC는 가정이 포함된 추정치이며, 아래 항목은 투자 추천이 아니라 데이터 기반 관찰 목록입니다.</span>
+      </div></div>`;
+  }
+
+  el.innerHTML = head + sig.map(s => `
+    <div class="rs-signal ${s.lv}" onclick="selectTicker('${s.tk}')" style="cursor:pointer;">
+      <div class="rs-signal-top">
+        <span class="rs-signal-tag">${s.lv === 'warn' ? '⚠' : 'ℹ'} ${s.tag}</span>
+        <span class="rs-signal-tk">${s.tk}</span>
+      </div>
+      <div class="rs-signal-body">${s.body}</div>
+    </div>`).join('');
+}
+
+/* ══════════ Phase C — ROIC vs WACC ══════════ */
+function renderScatter() {
+  const t = theme();
+  const usable = PD.filter(p => p.roic !== null && p.wacc !== null);
+  const excluded = PD.filter(p => p.roic === null || p.wacc === null);
+
+  document.getElementById('rsSrc1').textContent = dateRange();
+  document.getElementById('rsExcl1').innerHTML = excluded.length
+    ? `<div class="rs-excluded">${excluded.length}개 종목 제외 — ${
+        excluded.map(p => `${p.ticker}: ${p.waccNa}`).join(' · ')}</div>` : '';
+
+  if (charts.scatter) charts.scatter.destroy();
+  const cv = document.getElementById('chScatter');
+  if (!usable.length) {
+    cv.parentElement.innerHTML =
+      `<div class="rs-chart-na">비교 가능한 데이터가 없습니다.<br>
+       ${excluded.map(p => `${p.ticker}: ${p.waccNa}`).join('<br>')}</div>`;
+    return;
+  }
+
+  const maxV = Math.max(...usable.map(p => Math.max(p.roic, p.wacc))) * 100;
+  const caps = usable.map(p => p.marketCap).filter(Boolean);
+  const maxCap = caps.length ? Math.max(...caps) : 0;
+
+  charts.scatter = new Chart(cv.getContext('2d'), {
+    type: 'bubble',
+    data: {
+      datasets: [
+        ...usable.map(p => ({
+          label: p.ticker,
+          data: [{ x: p.wacc * 100, y: p.roic * 100,
+                   r: maxCap && p.marketCap ? 7 + 15 * Math.sqrt(p.marketCap / maxCap) : 11 }],
+          backgroundColor: colorOf(p.ticker) + (selected && selected !== p.ticker ? '33' : 'cc'),
+          borderColor: colorOf(p.ticker),
+          borderWidth: selected === p.ticker ? 3 : 1.5,
+        })),
+        { label: 'ROIC = WACC', type: 'line',
+          data: [{ x: 0, y: 0 }, { x: maxV * 1.1, y: maxV * 1.1 }],
+          borderColor: t.grid, borderDash: [5, 4], borderWidth: 1.5,
+          pointRadius: 0, fill: false, order: 99 },
+      ],
+    },
+    options: {
+      responsive: true, maintainAspectRatio: false,
+      plugins: {
+        legend: { display: false },
+        tooltip: {
+          backgroundColor: t.tipBg, padding: 11, cornerRadius: 9, displayColors: false,
+          callbacks: {
+            title: c => c[0].dataset.label,
+            label: c => {
+              const p = usable.find(x => x.ticker === c.dataset.label);
+              if (!p) return '';
+              return [`ROIC ${pct1(p.roic)}`, `WACC(추정) ${pct1(p.wacc)}`,
+                      `스프레드 ${(p.spread * 100).toFixed(1)}pp`,
+                      `Score ${p.score ?? 'N/A'}`, `기준일 ${(p.asOf || '').slice(0, 10)}`];
+            },
+          },
+        },
+      },
+      onClick: (e, els) => {
+        if (els.length) {
+          const ds = charts.scatter.data.datasets[els[0].datasetIndex];
+          if (ds.label !== 'ROIC = WACC') selectTicker(ds.label);
+        }
+      },
+      scales: {
+        x: { title: { display: true, text: 'WACC (추정, %)', color: t.tick, font: { size: 10 } },
+             ticks: { color: t.tick, font: { size: 10 } },
+             grid: { color: t.grid }, border: { display: false } },
+        y: { title: { display: true, text: 'ROIC (%)', color: t.tick, font: { size: 10 } },
+             ticks: { color: t.tick, font: { size: 10 } },
+             grid: { color: t.grid }, border: { display: false } },
+      },
+    },
+    plugins: [tickerLabelPlugin],
+  });
+}
+
+/* 버블 위에 티커를 직접 그린다 */
+const tickerLabelPlugin = {
+  id: 'tickerLabel',
+  afterDatasetsDraw(chart) {
+    const ctx = chart.ctx, t = theme();
+    chart.data.datasets.forEach((ds, i) => {
+      if (ds.type === 'line') return;
+      const meta = chart.getDatasetMeta(i);
+      (meta.data || []).forEach(pt => {
+        ctx.save();
+        ctx.font = 'bold 10px sans-serif';
+        ctx.fillStyle = t.text;
+        ctx.textAlign = 'center';
+        ctx.fillText(ds.label, pt.x, pt.y - (pt.options.radius || 10) - 4);
+        ctx.restore();
+      });
+    });
+  },
+};
+
+/* ══════════ Phase D — 성장 × ROIC ══════════ */
+function renderGrowth() {
+  const t = theme();
+  const usable = PD.filter(p => p.roic !== null && p.revCagr !== null);
+  document.getElementById('rsSrc2').textContent = dateRange();
+
+  if (charts.growth) charts.growth.destroy();
+  const cv = document.getElementById('chGrowth');
+  if (usable.length < 2) {
+    cv.parentElement.innerHTML = `<div class="rs-chart-na">비교 가능한 데이터가 부족합니다.</div>`;
+    return;
+  }
+
+  const mg = median(usable.map(p => p.revCagr)) * 100;
+  const mr = median(usable.map(p => p.roic)) * 100;
+
+  charts.growth = new Chart(cv.getContext('2d'), {
+    type: 'bubble',
+    data: {
+      datasets: usable.map(p => ({
+        label: p.ticker,
+        data: [{ x: p.revCagr * 100, y: p.roic * 100, r: 11 }],
+        backgroundColor: colorOf(p.ticker) + (selected && selected !== p.ticker ? '33' : 'cc'),
+        borderColor: colorOf(p.ticker),
+        borderWidth: selected === p.ticker ? 3 : 1.5,
+      })),
+    },
+    options: {
+      responsive: true, maintainAspectRatio: false,
+      plugins: {
+        legend: { display: false },
+        tooltip: {
+          backgroundColor: t.tipBg, padding: 11, cornerRadius: 9, displayColors: false,
+          callbacks: {
+            title: c => c[0].dataset.label,
+            label: c => {
+              const p = usable.find(x => x.ticker === c.dataset.label);
+              if (!p) return '';
+              return [`ROIC ${pct1(p.roic)}`,
+                      `매출 CAGR ${pct1(p.revCagr)}`,
+                      `순이익 CAGR ${p.netCagr !== null ? pct1(p.netCagr) : 'N/A'}`,
+                      `FCF CAGR ${p.fcfCagr !== null ? pct1(p.fcfCagr) : 'N/A'}`,
+                      `Score ${p.score ?? 'N/A'}`, p.revCagrSrc];
+            },
+          },
+        },
+      },
+      onClick: (e, els) => {
+        if (els.length) selectTicker(charts.growth.data.datasets[els[0].datasetIndex].label);
+      },
+      scales: {
+        x: { title: { display: true, text: '매출 CAGR (%)', color: t.tick, font: { size: 10 } },
+             ticks: { color: t.tick, font: { size: 10 } }, grid: { color: t.grid },
+             border: { display: false } },
+        y: { title: { display: true, text: 'ROIC (%)', color: t.tick, font: { size: 10 } },
+             ticks: { color: t.tick, font: { size: 10 } }, grid: { color: t.grid },
+             border: { display: false } },
+      },
+    },
+    plugins: [tickerLabelPlugin, quadrantPlugin(mg, mr)],
+  });
+}
+
+/* 중앙값 기준 4분면 (임의 기준값을 만들지 않고 6종목 중앙값만 사용) */
+function quadrantPlugin(mx, my) {
+  return {
+    id: 'quadrant',
+    beforeDatasetsDraw(chart) {
+      const { ctx, chartArea: a, scales } = chart;
+      if (!a) return;
+      const x = scales.x.getPixelForValue(mx), y = scales.y.getPixelForValue(my);
+      const t = theme();
+      ctx.save();
+      ctx.strokeStyle = t.grid; ctx.setLineDash([4, 4]); ctx.lineWidth = 1;
+      ctx.beginPath(); ctx.moveTo(x, a.top); ctx.lineTo(x, a.bottom);
+      ctx.moveTo(a.left, y); ctx.lineTo(a.right, y); ctx.stroke();
+      ctx.setLineDash([]);
+      ctx.font = '9px sans-serif'; ctx.fillStyle = t.tick;
+      ctx.textAlign = 'right'; ctx.fillText('고ROIC · 고성장', a.right - 4, a.top + 11);
+      ctx.textAlign = 'left';  ctx.fillText('고ROIC · 저성장', a.left + 4, a.top + 11);
+      ctx.textAlign = 'right'; ctx.fillText('저ROIC · 고성장', a.right - 4, a.bottom - 4);
+      ctx.textAlign = 'left';  ctx.fillText('저ROIC · 저성장', a.left + 4, a.bottom - 4);
+      ctx.restore();
+    },
+  };
+}
+
+/* ══════════ Phase E — ROIC 추이 ══════════ */
+function renderTrend() {
+  const t = theme();
+  const usable = PD.filter(p => p.roicHistory.length >= 2);
+  document.getElementById('rsSrc3').textContent = dateRange();
+
+  if (charts.trend) charts.trend.destroy();
+  const cv = document.getElementById('chTrend');
+  if (!usable.length) {
+    cv.parentElement.innerHTML =
+      `<div class="rs-chart-na">과거 ROIC 데이터가 부족합니다.<br>최소 2개 회계연도가 필요합니다.</div>`;
+    document.getElementById('rsTrendTitle').textContent = 'ROIC 추이';
+    return;
+  }
+
+  const yrs = [...new Set(usable.flatMap(p => p.roicHistory.map(h => h.fy)))].sort();
+  const maxLen = Math.max(...usable.map(p => p.roicHistory.length));
+  document.getElementById('rsTrendTitle').textContent = `${maxLen}개 회계연도 ROIC 추이`;
+
+  charts.trend = new Chart(cv.getContext('2d'), {
+    type: 'line',
+    data: {
+      labels: yrs.map(y => 'FY' + y),
+      datasets: usable.map(p => ({
+        label: p.ticker,
+        data: yrs.map(y => {
+          const h = p.roicHistory.find(x => x.fy === y);
+          return h ? h.roic * 100 : null;
+        }),
+        borderColor: colorOf(p.ticker) + (selected && selected !== p.ticker ? '44' : ''),
+        backgroundColor: colorOf(p.ticker),
+        borderWidth: selected === p.ticker ? 3.2 : 1.8,
+        pointRadius: selected === p.ticker ? 4 : 2.5,
+        tension: 0.3, spanGaps: true,
+      })),
+    },
+    options: {
+      responsive: true, maintainAspectRatio: false,
+      interaction: { mode: 'nearest', intersect: false },
+      plugins: {
+        legend: { position: 'bottom',
+                  labels: { color: t.tick, boxWidth: 10, font: { size: 10 }, usePointStyle: true } },
+        tooltip: {
+          backgroundColor: t.tipBg, padding: 11, cornerRadius: 9,
+          callbacks: {
+            label: c => {
+              const p = usable.find(x => x.ticker === c.dataset.label);
+              const fy = yrs[c.dataIndex];
+              const h = p && p.roicHistory.find(x => x.fy === fy);
+              if (!h) return `${c.dataset.label}: N/A`;
+              const bn = v => v >= 1e9 ? (v / 1e9).toFixed(1) + 'B' : (v / 1e6).toFixed(0) + 'M';
+              return [`${c.dataset.label} · FY${fy}`,
+                      `ROIC ${h.roic !== null ? pct1(h.roic) : 'N/A'}`,
+                      `NOPAT ${bn(h.nopat)}`, `투하자본 ${bn(h.ic)} (${h.basis})`,
+                      `yfinance · ${(p.asOf || '').slice(0, 10)}`];
+            },
+          },
+        },
+      },
+      onClick: (e, els) => {
+        if (els.length) selectTicker(charts.trend.data.datasets[els[0].datasetIndex].label);
+      },
+      scales: {
+        x: { ticks: { color: t.tick, font: { size: 10 } }, grid: { display: false },
+             border: { display: false } },
+        y: { ticks: { color: t.tick, font: { size: 10 }, callback: v => v + '%' },
+             grid: { color: t.grid }, border: { display: false } },
+      },
+    },
+  });
+}
+
+/* ══════════ Phase G — 증분 ROIC vs WACC ══════════ */
+function renderIncr() {
+  const el = document.getElementById('rsIncr');
+  document.getElementById('rsSrc5').textContent = dateRange();
+
+  const vals = PD.flatMap(p => [p.roic, p.incr].filter(v => v !== null));
+  const max = vals.length ? Math.max(...vals) : 1;
+  const w = v => Math.max(2, Math.min(100, (v / max) * 100));
+
+  const rows = PD.map(p => {
+    const below = p.incr !== null && p.wacc !== null && p.incr < p.wacc;
+    const bar = (v, color) => v === null
+      ? `<span class="rs-na">N/A</span>`
+      : `<div class="rs-ir-bar"><span style="width:${w(v)}%;background:${color};"></span></div>`;
+    return `<tr class="${selected === p.ticker ? 'sel' : ''}" onclick="selectTicker('${p.ticker}')">
+      <td><b>${p.ticker}</b></td>
+      <td>${p.roic !== null ? pct1(p.roic) : `<span class="rs-na">N/A</span>`}</td>
+      <td style="width:22%;">${bar(p.roic, colorOf(p.ticker))}</td>
+      <td>${p.incr !== null ? pct1(p.incr) : `<span class="rs-na" title="${p.incrNa}">N/A</span>`}
+          ${below ? '<span class="rs-badge-warn">WACC 미만</span>' : ''}</td>
+      <td style="width:22%;">${bar(p.incr, colorOf(p.ticker) + '99')}</td>
+      <td>${p.wacc !== null ? pct1(p.wacc)
+            : `<span class="rs-na" title="${p.waccNa}">N/A</span>`}</td>
+    </tr>`;
+  }).join('');
+
+  el.innerHTML = `<table class="rs-ir">
+    <thead><tr><th>종목</th><th>ROIC</th><th></th><th>증분 ROIC</th><th></th><th>WACC(추정)</th></tr></thead>
+    <tbody>${rows}</tbody></table>
+    <div class="rs-card-sub" style="margin-top:9px;line-height:1.7;">
+      증분 ROIC = 구간 ΔNOPAT ÷ ΔIC. 투하자본이 줄었거나 변화가 미미하면 값을 만들지 않고 N/A로 둡니다.
+      WACC는 가정이 포함된 추정치입니다.
+    </div>`;
+}
+
+/* ══════════ Phase F — 히트맵 + 점수 구성 ══════════ */
+const SUB_KEYS = ['capital_efficiency', 'growth', 'valuation', 'profitability',
+                  'moat_proxy', 'reinvestment', 'pricing_power', 'financial_health'];
+
+function heatColor(ratio) {
+  // ratio 0~1 (가중 대비 달성률). 과하지 않게 채도를 낮춰 사용.
+  if (ratio === null) return '';
+  const stops = [[0.0, [239, 68, 68]], [0.5, [245, 158, 11]], [0.75, [102, 126, 234]], [1.0, [16, 185, 129]]];
+  let lo = stops[0], hi = stops[stops.length - 1];
+  for (let i = 1; i < stops.length; i++) {
+    if (ratio <= stops[i][0]) { lo = stops[i - 1]; hi = stops[i]; break; }
+  }
+  const span = hi[0] - lo[0] || 1;
+  const k = Math.max(0, Math.min(1, (ratio - lo[0]) / span));
+  const c = lo[1].map((v, i) => Math.round(v + (hi[1][i] - v) * k));
+  return `rgba(${c.join(',')},.20)`;
+}
+
+function renderHeat() {
+  const el = document.getElementById('rsHeat');
+  if (!PD.length) { el.innerHTML = ''; return; }
+  el.style.gridTemplateColumns = `minmax(84px,auto) repeat(${PD.length}, minmax(58px,1fr))`;
+
+  let html = `<div></div>` + PD.map(p =>
+    `<div class="rs-heat-collabel ${selected === p.ticker ? 'sel' : ''}"
+          onclick="selectTicker('${p.ticker}')">${p.ticker}</div>`).join('');
+
+  SUB_KEYS.forEach(k => {
+    const label = (PD[0].subs[k] || {}).label || k;
+    const weight = (PD[0].subs[k] || {}).weight || 0;
+    html += `<div class="rs-heat-rowlabel">${label}</div>`;
+    PD.forEach(p => {
+      const s = p.subs[k];
+      if (!s || s.score === null) {
+        html += `<div class="rs-heat-cell na" title="${label} — 데이터 없어 총점에서 제외 (0점 아님)"
+                      onclick="selectTicker('${p.ticker}')">N/A</div>`;
+        return;
+      }
+      const wt = s.score * s.weight / 100;
+      const comps = (s.components || []).map(c => {
+        const raw = c.raw === null || c.raw === undefined ? 'N/A'
+          : (c.unit === '%' ? c.raw.toFixed(1) + '%' : c.unit === 'pp' ? c.raw.toFixed(1) + 'pp'
+          : c.unit === 'x' ? c.raw.toFixed(2) + 'x' : Math.round(c.raw));
+        return `${c.name}: ${raw}`;
+      }).join('\n');
+      const tip = `${p.ticker} · ${label}\n가중 반영 ${wt.toFixed(1)} / ${s.weight}` +
+                  `\n원점수 ${s.score} / 100\n\n${comps}\n\nCoverage ${p.coverage}%`;
+      html += `<div class="rs-heat-cell" style="background:${heatColor(s.score / 100)};
+                    outline-color:${selected === p.ticker ? 'var(--rs-blue)' : 'transparent'};"
+                    title="${tip.replace(/"/g, '&quot;')}"
+                    onclick="selectTicker('${p.ticker}')">${wt.toFixed(1)}</div>`;
+    });
+  });
+  el.innerHTML = html;
+}
+
+function renderComp() {
+  const t = theme();
+  const p = PD.find(x => x.ticker === selected);
+  document.getElementById('rsCompTitle').textContent =
+    p ? `${p.ticker} · Score ${p.score ?? 'N/A'}` : '점수 구성';
+  document.getElementById('rsCompSub').textContent =
+    p ? `가중 반영 점수 · Coverage ${p.coverage}%${p.excluded.length ? ' · 제외: ' + p.excluded.join(', ') : ''}`
+      : '종목을 선택하면 표시됩니다 (표·차트·히트맵 클릭)';
+  document.getElementById('rsReset').className = 'rs-chip' + (p ? '' : ' off');
+
+  if (charts.comp) charts.comp.destroy();
+  const cv = document.getElementById('chComp');
+  if (!p) {
+    if (cv.getContext) {
+      const ctx = cv.getContext('2d');
+      ctx.clearRect(0, 0, cv.width, cv.height);
+    }
+    return;
+  }
+
+  const labels = SUB_KEYS.map(k => (p.subs[k] || {}).label || k);
+  const vals = SUB_KEYS.map(k => {
+    const s = p.subs[k];
+    return (!s || s.score === null) ? null : s.score * s.weight / 100;
+  });
+  const maxes = SUB_KEYS.map(k => (p.subs[k] || {}).weight || 0);
+
+  charts.comp = new Chart(cv.getContext('2d'), {
+    type: 'bar',
+    data: {
+      labels,
+      datasets: [
+        { label: '가중 반영 점수', data: vals,
+          backgroundColor: colorOf(p.ticker) + 'cc', borderRadius: 4, borderSkipped: false },
+        { label: '가중치 상한', data: maxes.map((m, i) => vals[i] === null ? null : m - vals[i]),
+          backgroundColor: t.grid, borderRadius: 4, borderSkipped: false },
+      ],
+    },
+    options: {
+      indexAxis: 'y', responsive: true, maintainAspectRatio: false,
+      plugins: {
+        legend: { display: false },
+        tooltip: {
+          backgroundColor: t.tipBg, padding: 10, cornerRadius: 9,
+          callbacks: {
+            label: c => {
+              const k = SUB_KEYS[c.dataIndex], s = p.subs[k];
+              if (!s || s.score === null) return '데이터 없음 — 총점에서 제외';
+              return [`가중 반영 ${(s.score * s.weight / 100).toFixed(1)} / ${s.weight}`,
+                      `원점수 ${s.score} / 100`];
+            },
+          },
+        },
+      },
+      scales: {
+        x: { stacked: true, max: 20, ticks: { color: t.tick, font: { size: 10 } },
+             grid: { color: t.grid }, border: { display: false } },
+        y: { stacked: true, ticks: { color: t.tick, font: { size: 10 } },
+             grid: { display: false }, border: { display: false } },
+      },
+    },
+  });
+}
+
+/* ══════════ Phase H — 선택 동기화 ══════════ */
+function selectTicker(tk) {
+  selected = (selected === tk) ? null : tk;
+  expanded = selected;          // 기존 테이블 상세 패널과 연동
+  renderAll();
+}
+function clearSelection() { selected = null; expanded = null; renderAll(); }
+
+function renderAll() {
+  render();
+  renderKpis();
+  renderSignals();
+  renderScatter();
+  renderGrowth();
+  renderTrend();
+  renderIncr();
+  renderHeat();
+  renderComp();
+}
+
+function render() {
+  const body = document.getElementById('rsBody');
+  if (!RESEARCH.length) {
+    body.innerHTML = `<div class="rs-empty"><div class="ic">📊</div>
+      <div>보유 종목이 없습니다. <a href="/portfolio">포트폴리오</a>에서 먼저 추가해주세요.</div></div>`;
+    return;
+  }
+
+  const rows = RESEARCH.slice().sort((a, b) => {
+    const col = COLS.find(c => c.key === sortKey) || COLS[1];
+    const av = cellVal(a, col), bv = cellVal(b, col);
+    if (av === null && bv === null) return 0;
+    if (av === null) return 1;           // N/A는 항상 아래로
+    if (bv === null) return -1;
+    if (typeof av === 'string') return av.localeCompare(bv) * sortDir;
+    return (av - bv) * sortDir;
+  });
+
+  const head = COLS.map(c =>
+    `<th class="${sortKey === c.key ? 'sorted' : ''}" onclick="setSort('${c.key}')">
+       ${c.label}<span class="arrow">${sortKey === c.key ? (sortDir === 1 ? '▲' : '▼') : '▼'}</span>
+     </th>`).join('');
+
+  const trs = rows.map(r => {
+    const tds = COLS.map(c => `<td>${renderCell(r, c)}</td>`).join('');
+    const detail = expanded === r.ticker
+      ? `<tr class="rs-detail-row"><td colspan="${COLS.length}">${renderDetail(r)}</td></tr>` : '';
+    const sel = selected === r.ticker ? ' class="sel"' : '';
+    return `<tr${sel} onclick="selectTicker('${r.ticker}')" style="cursor:pointer;">${tds}</tr>${detail}`;
+  }).join('');
+
+  body.innerHTML = `<div class="rs-table-wrap"><table class="rs-table">
+      <thead><tr>${head}</tr></thead><tbody>${trs}</tbody></table></div>`;
+
+  const withData = RESEARCH.filter(r => r.has_data).length;
+  const stale = RESEARCH.filter(r => r.stale).length;
+  document.getElementById('rsMeta').innerHTML =
+    `${RESEARCH.length}개 종목 · 데이터 있음 ${withData}개` +
+    (stale ? ` · <span style="color:var(--rs-amber);">갱신 필요 ${stale}개</span>` : '') +
+    ` · 행을 클릭하면 점수 근거가 열립니다`;
+}
+
+function setSort(key) {
+  if (sortKey === key) sortDir *= -1;
+  else { sortKey = key; sortDir = key === 'name' ? 1 : -1; }
+  render();
+}
+
+async function refreshAll() {
+  const btn = document.getElementById('rsRefresh');
+  const box = document.getElementById('rsStatus');
+  btn.disabled = true;
+  box.className = 'rs-status on';
+  document.getElementById('rsStatusMsg').textContent =
+    `${RESEARCH.length}개 종목 수집 중… (Yahoo 제한을 피해 순차 처리하므로 30초 이상 걸릴 수 있습니다)`;
+  try {
+    const res = await fetch('/api/research/refresh', {
+      method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({}),
+    });
+    if (!res.ok) throw new Error('HTTP ' + res.status);
+    location.reload();
+  } catch (e) {
+    box.className = 'rs-status on';
+    document.getElementById('rsStatusMsg').textContent = '수집 실패: ' + e.message;
+    btn.disabled = false;
+  }
+}
+
+// 데이터가 없으면 시각화 영역 자체를 숨긴다 (빈 차트를 억지로 그리지 않음)
+if (!PD.length) document.getElementById('rsViz').style.display = 'none';
+renderAll();
+
+// 테마 전환 시 차트 색상 재적용
+const themeBtn = document.getElementById('themeToggle');
+if (themeBtn) themeBtn.addEventListener('click', () => setTimeout(renderAll, 60));
+
+if (UNCACHED.length === RESEARCH.length && RESEARCH.length > 0) {
+  document.getElementById('rsStatus').className = 'rs-status on';
+  document.getElementById('rsStatus').querySelector('.rs-spin').style.display = 'none';
+  document.getElementById('rsStatusMsg').textContent =
+    '아직 수집된 분석 데이터가 없습니다. 우측 상단 "데이터 수집 / 갱신"을 눌러주세요.';
+}
+</script>
+{% endblock %}

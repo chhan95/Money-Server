@@ -405,68 +405,297 @@
   background: var(--glass-border);
 }
 
-.ms-timeline {
+/* ── Flow list (연결선 있는 태스크 목록) ── */
+.ms-flow {
   position: relative;
-  padding-left: 28px;
+  padding-left: 24px;
 }
-.ms-timeline::before {
+.ms-flow::before {
   content: '';
   position: absolute;
-  left: 6px;
-  top: 8px;
-  bottom: 8px;
+  left: 5px;
+  top: 4px;
+  bottom: 24px;
   width: 2px;
-  background: linear-gradient(to bottom, var(--glass-border), transparent);
+  background: linear-gradient(to bottom, var(--glass-border), transparent 96%);
   border-radius: 2px;
 }
-.ms-tl-item {
+.ms-flow-item {
   position: relative;
-  padding-bottom: 20px;
+  margin-bottom: 8px;
 }
-.ms-tl-item:last-child { padding-bottom: 0; }
-.ms-tl-dot { display: none; }
-.ms-tl-content {
+.ms-flow-item:last-child { margin-bottom: 0; }
+.ms-flow-item::before {
+  content: '';
+  position: absolute;
+  left: -19px;
+  top: 21px;
+  width: 15px;
+  height: 2px;
+  background: var(--glass-border);
+  border-radius: 2px;
+}
+.ms-flow-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
   background: var(--bg);
   border: 1px solid var(--glass-border);
   border-radius: 12px;
-  padding: 14px 18px;
-  transition: all 0.25s var(--ease-out);
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  gap: 12px;
+  padding: 11px 14px;
+  transition: all 0.22s var(--ease-out);
 }
-.ms-tl-content:hover {
-  border-color: rgba(255,255,255,0.1);
+.ms-flow-row:hover {
+  border-color: rgba(255,255,255,0.14);
   box-shadow: var(--shadow-sm);
+  transform: translateX(2px);
 }
-.ms-tl-content .title {
+.ms-flow-marker {
+  flex-shrink: 0;
+  width: 20px;
+  height: 20px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.ms-flow-marker .hex {
+  width: 15px;
+  height: 15px;
+  transform: rotate(45deg);
+  border-radius: 4px;
+}
+.ms-flow-marker .ring {
+  width: 14px;
+  height: 14px;
+  border-radius: 50%;
+  background: transparent;
+}
+.ms-flow-body { flex: 1; min-width: 0; }
+.ms-flow-toprow {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+.ms-flow-title {
   font-weight: 600;
   font-size: 14px;
-  margin-bottom: 2px;
+  color: var(--text);
 }
-.ms-tl-content .meta {
-  font-size: 12px;
+.ms-flow-meta {
+  font-size: 11.5px;
   color: var(--text2);
+  margin-top: 2px;
 }
-.ms-tl-content .actions {
+.ms-flow-thumb {
+  width: 42px;
+  height: 42px;
+  border-radius: 9px;
+  object-fit: cover;
+  flex-shrink: 0;
+  border: 1px solid var(--glass-border);
+}
+.ms-flow-actions {
   display: flex;
   gap: 4px;
   flex-shrink: 0;
   opacity: 0;
   transition: opacity 0.2s;
 }
-.ms-tl-content:hover .actions { opacity: 1; }
+.ms-flow-row:hover .ms-flow-actions { opacity: 1; }
+@media (max-width: 600px) {
+  .ms-flow-actions { opacity: 1; }
+}
 
-/* ── Category Badge ── */
-.cat-badge {
-  display: inline-block;
-  font-size: 11px;
-  padding: 2px 10px;
-  border-radius: 99px;
-  font-weight: 600;
+/* ── 단일 시간축 타임라인 (드래그 스크롤) ── */
+.ms-tl-toolbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 10px;
+}
+.ms-tl-legend {
+  display: flex;
+  gap: 14px;
+  flex-wrap: wrap;
+  font-size: 11.5px;
+  color: var(--text2);
+}
+.ms-tl-legend-item { display: flex; align-items: center; gap: 5px; }
+.ms-tl-legend .hex {
+  width: 9px; height: 9px; transform: rotate(45deg); border-radius: 2px;
+  border: 2px solid #10b981; background: #10b98122;
+}
+.ms-tl-legend .ring {
+  width: 9px; height: 9px; border-radius: 50%; border: 2px solid #94a3b8;
+}
+
+.ms-tl-container {
+  display: flex;
+  border: 1px solid var(--glass-border);
+  border-radius: var(--r-xl);
+  overflow: hidden;
+  background: var(--bg);
+}
+.ms-tl-labels {
   flex-shrink: 0;
+  width: 148px;
+  border-right: 1px solid var(--glass-border);
+  background: var(--bg2);
+}
+.ms-tl-labels-spacer { height: 52px; border-bottom: 1px solid var(--glass-border); }
+.ms-tl-label-row {
+  height: 68px;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  padding: 0 12px;
+  border-bottom: 1px solid var(--glass-border);
+  gap: 2px;
+}
+.ms-tl-label-row:last-child { border-bottom: none; }
+.ms-tl-label-name { font-size: 12.5px; font-weight: 700; color: var(--text); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.ms-tl-label-count { font-size: 10.5px; color: var(--text2); }
+.ms-tl-label-row.empty .ms-tl-label-name,
+.ms-tl-label-row.empty .ms-tl-label-count { opacity: 0.45; }
+
+.ms-tl-scroll {
+  flex: 1;
+  overflow-x: auto;
+  overflow-y: hidden;
+  cursor: grab;
+  scrollbar-width: thin;
+}
+.ms-tl-scroll.dragging { cursor: grabbing; user-select: none; }
+.ms-tl-inner { position: relative; }
+
+.ms-tl-ruler { height: 52px; border-bottom: 1px solid var(--glass-border); position: relative; }
+.ms-tl-month-row { height: 24px; position: relative; }
+.ms-tl-month-cell {
+  position: absolute;
+  top: 0; height: 24px;
+  display: flex; align-items: center;
+  padding-left: 6px;
+  font-size: 11px; font-weight: 700; color: var(--text2);
+  border-left: 1px solid var(--glass-border);
   white-space: nowrap;
+}
+.ms-tl-day-row { height: 28px; position: relative; }
+.ms-tl-day-cell {
+  position: absolute;
+  top: 0; height: 28px;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 10.5px; color: var(--text2);
+  border-left: 1px solid var(--border2);
+}
+.ms-tl-day-cell.weekend { color: var(--text2); opacity: 0.55; }
+.ms-tl-day-cell.today { color: #667eea; font-weight: 800; }
+.ms-tl-year-cell {
+  position: absolute;
+  top: 0; height: 28px;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 13px; font-weight: 700; color: var(--text2);
+  border-left: 1px solid var(--border2);
+}
+.ms-tl-year-cell.today { color: #667eea; font-weight: 800; }
+
+.ms-tl-today-line {
+  position: absolute;
+  top: 0; bottom: 0;
+  width: 2px;
+  background: #667eea;
+  z-index: 3;
+  pointer-events: none;
+}
+.ms-tl-today-line::before {
+  content: '';
+  position: absolute;
+  top: 46px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 8px; height: 8px;
+  border-radius: 50%;
+  background: #667eea;
+  box-shadow: 0 0 0 3px rgba(102,126,234,0.25);
+}
+
+.ms-tl-lane-track {
+  position: relative;
+  height: 68px;
+  border-bottom: 1px solid var(--glass-border);
+}
+.ms-tl-lane-track:last-child { border-bottom: none; }
+.ms-tl-lane-track.empty {
+  background: repeating-linear-gradient(
+    135deg,
+    transparent, transparent 9px,
+    var(--border2) 9px, var(--border2) 10px
+  );
+  opacity: 0.5;
+}
+
+.ms-tl-marker {
+  position: absolute;
+  top: 34px;
+  transform: translate(-50%, -50%);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  cursor: pointer;
+  z-index: 2;
+}
+.ms-tl-marker .mk {
+  width: 13px; height: 13px;
+  flex-shrink: 0;
+}
+.ms-tl-marker .mk.hex { transform: rotate(45deg); border-radius: 3px; }
+.ms-tl-marker .mk.ring { border-radius: 50%; background: transparent; }
+.ms-tl-marker-label {
+  position: absolute;
+  font-size: 10.5px;
+  font-weight: 600;
+  color: var(--text);
+  white-space: nowrap;
+  background: var(--bg);
+  border: 1px solid var(--glass-border);
+  border-radius: 6px;
+  padding: 1px 6px;
+  box-shadow: var(--shadow-sm);
+  pointer-events: none;
+}
+.ms-tl-marker-label.above { bottom: 22px; }
+.ms-tl-marker-label.below { top: 22px; }
+.ms-tl-marker:hover { z-index: 5; }
+.ms-tl-marker:hover .mk { transform: scale(1.35); }
+.ms-tl-marker:hover .mk.hex { transform: rotate(45deg) scale(1.35); }
+.ms-tl-marker:hover .ms-tl-marker-label { z-index: 6; border-color: #667eea; }
+
+/* ── Image Upload ── */
+.ms-upload-zone {
+  border: 1.5px dashed var(--glass-border);
+  border-radius: 12px;
+  padding: 14px;
+  background: var(--bg2);
+}
+.ms-image-preview-box {
+  display: none;
+  margin-top: 10px;
+  position: relative;
+}
+.ms-image-preview-box img {
+  width: 100%;
+  max-height: 180px;
+  object-fit: cover;
+  border-radius: 10px;
+  display: block;
+}
+.ms-image-preview-box .rm-btn {
+  position: absolute;
+  top: 6px;
+  right: 6px;
+  background: rgba(0,0,0,0.55);
+  color: #fff;
+  border: none;
 }
 
 /* ── Modal ── */
@@ -579,6 +808,49 @@
   font-weight: 600;
 }
 
+/* ── 전체 목록 표 ── */
+.ms-table-wrap {
+  overflow-x: auto;
+}
+.ms-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 13px;
+}
+.ms-table th {
+  text-align: left;
+  font-size: 11.5px;
+  font-weight: 700;
+  color: var(--text2);
+  text-transform: uppercase;
+  letter-spacing: 0.4px;
+  padding: 8px 12px;
+  border-bottom: 1px solid var(--glass-border);
+  white-space: nowrap;
+}
+.ms-table td {
+  padding: 10px 12px;
+  border-bottom: 1px solid var(--border2);
+  vertical-align: middle;
+  white-space: nowrap;
+}
+.ms-table td.wrap { white-space: normal; }
+.ms-table tbody tr { transition: background 0.15s; cursor: pointer; }
+.ms-table tbody tr:hover { background: var(--bg2); }
+.ms-table tbody tr:last-child td { border-bottom: none; }
+.ms-table .cat-cell { display: flex; align-items: center; gap: 6px; }
+.ms-table .cat-dot { width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0; }
+.ms-table .title-cell { font-weight: 600; color: var(--text); }
+.ms-table .note-cell { color: var(--text2); font-size: 12.5px; }
+.ms-table .row-actions {
+  display: flex; gap: 4px; justify-content: flex-end;
+  opacity: 0; transition: opacity 0.15s;
+}
+.ms-table tbody tr:hover .row-actions { opacity: 1; }
+@media (max-width: 700px) {
+  .ms-table .note-cell { display: none; }
+}
+
 /* ── Empty State ── */
 .ms-empty {
   text-align: center;
@@ -593,9 +865,12 @@
   .ms-hero { padding: 24px 20px; }
   .ms-hero-pct { font-size: 28px; }
   .ms-card { padding: 16px 18px; }
-  .ms-card .actions, .ms-done-card .actions, .ms-tl-content .actions { opacity: 1; }
+  .ms-card .actions, .ms-done-card .actions { opacity: 1; }
   .modal-box { margin: 16px; padding: 24px; }
   .ms-toolbar { flex-direction: column; align-items: stretch; }
+  .ms-tl-labels { width: 96px; }
+  .ms-tl-label-name { font-size: 11px; }
+  .ms-tl-toolbar { flex-direction: column; align-items: stretch; gap: 8px; }
 }
 </style>
 
@@ -608,6 +883,16 @@
   <p>인생 목표 달성 현황을 한눈에 확인</p>
 </div>
 
+<div class="ms-hero" id="msHero">
+  <div class="ms-hero-top">
+    <span class="ms-hero-label">Overall Progress</span>
+    <span class="ms-hero-stats" id="heroStats">0 / 0</span>
+  </div>
+  <div class="ms-hero-bar-track">
+    <div class="ms-hero-bar-fill" id="heroBarFill"></div>
+  </div>
+  <div class="ms-hero-pct" id="heroPct">0<span>%</span></div>
+</div>
 
 
 <!-- ══════════════════════════════════════
@@ -627,6 +912,20 @@
     <div class="form-field">
       <label>카테고리</label>
       <div class="cat-pick" id="mCatPick"></div>
+    </div>
+
+    <div class="form-field">
+      <label>이미지 (선택)</label>
+      <div class="ms-upload-zone">
+        <input type="file" id="mImageFile" accept="image/*" style="display:none;" onchange="handleImageUpload(this,'m')">
+        <button type="button" class="btn-soft" onclick="document.getElementById('mImageFile').click()">이미지 선택</button>
+        <span id="mUploadStatus" style="font-size:12px;color:var(--text2);margin-left:8px;"></span>
+        <div class="ms-image-preview-box" id="mImagePreviewBox">
+          <img id="mImagePreview" alt="">
+          <button type="button" class="btn-icon-sm rm-btn" onclick="clearImage('m')">✕</button>
+        </div>
+      </div>
+      <input type="hidden" id="mImage" value="">
     </div>
 
     <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px;">
@@ -665,9 +964,45 @@
 
 
 <!-- ══════════════════════════════════════
-     연도별
+     타임라인 (단일 시간축, 드래그 스크롤)
 ══════════════════════════════════════ -->
-<div id="yearlyView"></div>
+<div class="ms-tl-toolbar">
+  <div class="ms-tl-legend">
+    <span class="ms-tl-legend-item"><span class="hex"></span>달성 완료</span>
+    <span class="ms-tl-legend-item"><span class="ring"></span>진행 중 / 예정</span>
+  </div>
+  <button class="btn-soft" onclick="scrollToToday()">오늘로 이동</button>
+</div>
+<div id="timelineView"></div>
+
+<div id="undatedView" style="margin-top:20px;"></div>
+
+
+<!-- ══════════════════════════════════════
+     전체 목록 (표)
+══════════════════════════════════════ -->
+<div class="ms-section-card" style="margin-top:20px;">
+  <div class="ms-year-header" style="margin-bottom:14px;">
+    <span class="ms-year-badge" style="font-size:16px;">전체 목록</span>
+    <span class="ms-year-count" id="tableCount">0개</span>
+    <div class="ms-year-line"></div>
+  </div>
+  <div class="ms-table-wrap">
+    <table class="ms-table">
+      <thead>
+        <tr>
+          <th>날짜</th>
+          <th>제목</th>
+          <th>카테고리</th>
+          <th>상태</th>
+          <th>메모</th>
+          <th></th>
+        </tr>
+      </thead>
+      <tbody id="tableBody"></tbody>
+    </table>
+  </div>
+</div>
 
 
 <!-- ── 수정 모달 (수정 시에만 사용) ── -->
@@ -684,6 +1019,20 @@
     <div class="form-field">
       <label>카테고리</label>
       <div class="cat-pick" id="eCatPick"></div>
+    </div>
+
+    <div class="form-field">
+      <label>이미지 (선택)</label>
+      <div class="ms-upload-zone">
+        <input type="file" id="eImageFile" accept="image/*" style="display:none;" onchange="handleImageUpload(this,'e')">
+        <button type="button" class="btn-soft" onclick="document.getElementById('eImageFile').click()">이미지 선택</button>
+        <span id="eUploadStatus" style="font-size:12px;color:var(--text2);margin-left:8px;"></span>
+        <div class="ms-image-preview-box" id="eImagePreviewBox">
+          <img id="eImagePreview" alt="">
+          <button type="button" class="btn-icon-sm rm-btn" onclick="clearImage('e')">✕</button>
+        </div>
+      </div>
+      <input type="hidden" id="eImage" value="">
     </div>
 
     <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px;">
@@ -740,14 +1089,11 @@ const CAT = Object.fromEntries(CATS.map(c => [c.id, { label: c.label, color: c.c
 let selectedCat = 'career';
 let editSelectedCat = 'career';
 
-function catBadge(cat) {
-  const c = CAT[cat];
-  if (!c) return '';
-  return `<span class="cat-badge" style="background:${c.color}18;color:${c.color};">${c.label}</span>`;
-}
 function catColor(cat) {
   return CAT[cat]?.color || '#64748b';
 }
+const CAT_EMOJI = { edu:'🎓', career:'💼', invest:'📈', rel:'❤️', travel:'✈️', health:'🌱', etc:'✨' };
+function catEmoji(cat) { return CAT_EMOJI[cat] || '📌'; }
 
 async function load() {
   const res = await fetch('/api/milestones');
@@ -771,57 +1117,216 @@ async function load() {
     items = await res2.json();
   }
 
-  renderYearly();
+  renderHero();
+  renderTimeline();
+  renderUndated();
+  renderTable();
 }
 
-// ── 연도별 ──
-function renderYearly() {
-  if (!items.length) {
-    document.getElementById('yearlyView').innerHTML = '<div class="ms-empty"><div class="icon">📅</div><div class="msg">마일스톤이 없습니다.</div></div>';
+// ── 상단 전체 진행률 히어로 ──
+function renderHero() {
+  const total = items.length;
+  const done  = items.filter(d => d.status === 'completed').length;
+  const pct   = total ? Math.round(done / total * 100) : 0;
+  document.getElementById('heroStats').textContent = `${done} / ${total} 달성`;
+  document.getElementById('heroBarFill').style.width = pct + '%';
+  document.getElementById('heroPct').innerHTML = pct + '<span>%</span>';
+}
+
+// ── 단일 시간축 타임라인 (드래그 스크롤, 연 단위) ──
+const TL_YEAR_W = 200;
+
+function renderTimeline() {
+  const view = document.getElementById('timelineView');
+  const dated = items.filter(d => d.date).slice().sort((a,b) => a.date.localeCompare(b.date));
+  if (!dated.length) {
+    view.innerHTML = '<div class="ms-empty"><div class="icon">📅</div><div class="msg">날짜가 있는 마일스톤이 없습니다.</div></div>';
     return;
   }
 
-  const byYear = {};
-  items.forEach(d => {
-    const y = d.date ? d.date.slice(0,4) : '날짜 미지정';
-    if (!byYear[y]) byYear[y] = [];
-    byYear[y].push(d);
-  });
+  const parseD = s => new Date(s + 'T00:00:00');
+  const today = new Date(); today.setHours(0,0,0,0);
 
-  const years = Object.keys(byYear).sort((a,b) => {
-    if (a === '날짜 미지정') return 1;
-    if (b === '날짜 미지정') return -1;
-    return b - a;
-  });
+  const minYear = Math.min(parseD(dated[0].date).getFullYear(), today.getFullYear()) - 1;
+  const maxYear = Math.max(parseD(dated[dated.length-1].date).getFullYear(), today.getFullYear()) + 1;
+  const yearCount = maxYear - minYear + 1;
+  const totalW = yearCount * TL_YEAR_W;
 
-  let html = '';
-  years.forEach(year => {
-    const list = byYear[year].sort((a,b) => (b.date||'').localeCompare(a.date||''));
-    const doneCount = list.filter(d => d.status === 'completed').length;
-    const countLabel = doneCount === list.length
-      ? `${list.length}개 달성`
-      : `${doneCount}/${list.length}개 달성`;
-    html += `
+  // 연도 내에서 날짜 비율만큼 x축 위치를 보간 (같은 해 항목도 시간순으로 퍼지도록)
+  function xOfDate(d) {
+    const y = d.getFullYear();
+    const jan1  = new Date(y, 0, 1);
+    const dec31 = new Date(y, 11, 31);
+    const daysInY = Math.round((dec31 - jan1) / 86400000) + 1;
+    const dayOfY  = Math.round((d - jan1) / 86400000);
+    return (y - minYear) * TL_YEAR_W + (dayOfY / daysInY) * TL_YEAR_W;
+  }
+  const xOf = dateStr => xOfDate(parseD(dateStr));
+
+  // ── 상단 눈금 (10년 구간 + 연도) ──
+  let yearCells = '', decadeCells = '';
+  let decStartIdx = 0, curDecade = null, decadeLabel = '';
+  for (let i = 0; i < yearCount; i++) {
+    const y = minYear + i;
+    const decade = Math.floor(y / 10) * 10;
+    if (decade !== curDecade) {
+      if (curDecade !== null) {
+        decadeCells += `<div class="ms-tl-month-cell" style="left:${decStartIdx*TL_YEAR_W}px;width:${(i-decStartIdx)*TL_YEAR_W}px;">${decadeLabel}</div>`;
+      }
+      curDecade = decade; decStartIdx = i;
+      decadeLabel = decade + '년대';
+    }
+    const isCurYear = y === today.getFullYear();
+    yearCells += `<div class="ms-tl-year-cell${isCurYear?' today':''}" style="left:${i*TL_YEAR_W}px;width:${TL_YEAR_W}px;">${y}</div>`;
+  }
+  decadeCells += `<div class="ms-tl-month-cell" style="left:${decStartIdx*TL_YEAR_W}px;width:${(yearCount-decStartIdx)*TL_YEAR_W}px;">${decadeLabel}</div>`;
+
+  const todayX = xOfDate(today);
+
+  // ── 카테고리(Phase)별 레인 ──
+  // 정의된 카테고리(CATS)는 항목이 아직 없어도 빈 레인으로 항상 미리 만들어두고,
+  // 목록에 없는/이상한 카테고리 값이 있어도 항목이 누락되지 않도록 뒤에 그대로 나열한다.
+  const byCat = {};
+  dated.forEach(d => { const c = d.category || 'etc'; (byCat[c] = byCat[c] || []).push(d); });
+  const knownIds = CATS.map(c => c.id);
+  const catOrder = [
+    ...knownIds,
+    ...Object.keys(byCat).filter(id => !knownIds.includes(id)),
+  ];
+
+  const labelsHtml = catOrder.map(id => {
+    const n = (byCat[id]||[]).length;
+    return `
+    <div class="ms-tl-label-row${n?'':' empty'}">
+      <div class="ms-tl-label-name">${catEmoji(id)} ${CAT[id]?.label || id}</div>
+      <div class="ms-tl-label-count">${n}개</div>
+    </div>`;
+  }).join('');
+
+  const lanesHtml = catOrder.map(id => {
+    const color = catColor(id);
+    const catItems = byCat[id] || [];
+    const byDate = {};
+    catItems.forEach(d => { (byDate[d.date] = byDate[d.date] || []).push(d); });
+    let markers = '';
+    Object.keys(byDate).forEach(dateStr => {
+      byDate[dateStr].forEach((d, idx) => {
+        const side = idx % 2 === 0 ? 'above' : 'below';
+        markers += `
+        <div class="ms-tl-marker" style="left:${xOf(dateStr)}px;" onclick="openModal(${d.id})" title="${esc(d.title)} · ${fmtDate(d.date)}">
+          ${tlMarker(d, color)}
+          <div class="ms-tl-marker-label ${side}">${d.title}</div>
+        </div>`;
+      });
+    });
+    const emptyCls = catItems.length ? '' : ' empty';
+    return `<div class="ms-tl-lane-track${emptyCls}" style="width:${totalW}px;">${markers}</div>`;
+  }).join('');
+
+  view.innerHTML = `
+    <div class="ms-tl-container">
+      <div class="ms-tl-labels">
+        <div class="ms-tl-labels-spacer"></div>
+        ${labelsHtml}
+      </div>
+      <div class="ms-tl-scroll" id="tlScroll">
+        <div class="ms-tl-inner" style="width:${totalW}px;">
+          <div class="ms-tl-ruler">
+            <div class="ms-tl-month-row">${decadeCells}</div>
+            <div class="ms-tl-day-row">${yearCells}</div>
+          </div>
+          <div class="ms-tl-today-line" style="left:${todayX}px;"></div>
+          ${lanesHtml}
+        </div>
+      </div>
+    </div>`;
+
+  setupDragScroll();
+  requestAnimationFrame(() => {
+    const sc = document.getElementById('tlScroll');
+    if (sc) sc.scrollLeft = Math.max(0, todayX - sc.clientWidth / 2);
+  });
+}
+
+function tlMarker(d, color) {
+  if (d.status === 'completed') {
+    return `<div class="mk hex" style="background:${color}22;border:2px solid ${color};"></div>`;
+  }
+  const s = STATUS_STYLE[d.status] || STATUS_STYLE.planned;
+  return `<div class="mk ring" style="border:2px solid ${s.dot};"></div>`;
+}
+
+// ── 드래그로 스크롤 (마우스 + 터치) ──
+// 타임라인은 매번 innerHTML로 새로 그려지므로, window 리스너는 한 번만 등록하고
+// 현재 드래그 대상은 dragState로 추적한다 (재렌더마다 리스너가 누적되는 것을 방지).
+const dragState = { el: null, isDown: false, startX: 0, startScroll: 0, moved: false };
+window.addEventListener('mouseup', () => {
+  if (dragState.el) dragState.el.classList.remove('dragging');
+  dragState.isDown = false;
+});
+window.addEventListener('mousemove', e => {
+  if (!dragState.isDown || !dragState.el) return;
+  const dx = e.pageX - dragState.startX;
+  if (Math.abs(dx) > 3) dragState.moved = true;
+  dragState.el.scrollLeft = dragState.startScroll - dx;
+});
+
+function setupDragScroll() {
+  const el = document.getElementById('tlScroll');
+  if (!el) return;
+
+  el.addEventListener('mousedown', e => {
+    dragState.el = el; dragState.isDown = true; dragState.moved = false;
+    el.classList.add('dragging');
+    dragState.startX = e.pageX; dragState.startScroll = el.scrollLeft;
+  });
+  el.addEventListener('click', e => { if (dragState.moved) { e.stopPropagation(); e.preventDefault(); } }, true);
+
+  let touchX = 0, touchScroll = 0, touchDown = false;
+  el.addEventListener('touchstart', e => {
+    touchDown = true; touchX = e.touches[0].pageX; touchScroll = el.scrollLeft;
+  }, { passive: true });
+  el.addEventListener('touchmove', e => {
+    if (!touchDown) return;
+    el.scrollLeft = touchScroll - (e.touches[0].pageX - touchX);
+  }, { passive: true });
+  el.addEventListener('touchend', () => { touchDown = false; });
+}
+
+function scrollToToday() {
+  const line = document.querySelector('.ms-tl-today-line');
+  const sc = document.getElementById('tlScroll');
+  if (!line || !sc) return;
+  const x = parseInt(line.style.left, 10) || 0;
+  sc.scrollTo({ left: Math.max(0, x - sc.clientWidth / 2), behavior: 'smooth' });
+}
+
+// ── 날짜 미지정 항목 ──
+function renderUndated() {
+  const list = items.filter(d => !d.date);
+  const view = document.getElementById('undatedView');
+  if (!list.length) { view.innerHTML = ''; return; }
+  view.innerHTML = `
     <div class="ms-section-card">
       <div class="ms-year-header">
-        <span class="ms-year-badge">${year}</span>
-        <span class="ms-year-count">${countLabel}</span>
+        <span class="ms-year-badge" style="font-size:16px;">날짜 미지정</span>
+        <span class="ms-year-count">${list.length}개</span>
         <div class="ms-year-line"></div>
       </div>
-      <div class="ms-timeline">
+      <div class="ms-flow">
         ${list.map(d => `
-        <div class="ms-tl-item">
-          <div class="ms-tl-content">
-            ${statusDot(d)}
-            <div style="flex:1;min-width:0;">
-              <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;">
-                <span class="title" style="${d.status!=='completed'?'opacity:0.75;':''}">${d.title}</span>
-                ${catBadge(d.category)}
+        <div class="ms-flow-item">
+          <div class="ms-flow-row">
+            <div class="ms-flow-marker">${flowMarker(d, catColor(d.category))}</div>
+            <div class="ms-flow-body">
+              <div class="ms-flow-toprow">
+                <span class="ms-flow-title" style="${d.status!=='completed'?'opacity:0.75;':''}">${d.title}</span>
                 ${statusBadge(d.status)}
               </div>
-              <div class="meta">${d.date ? (d.status==='completed'?'':'목표: ')+fmtDate(d.date) : ''}${d.date && d.note ? ' · ' : ''}${d.note || ''}</div>
+              <div class="ms-flow-meta">${d.note || ''}</div>
             </div>
-            <div class="actions">
+            ${d.image ? `<img class="ms-flow-thumb" src="${d.image}" alt="${esc(d.title)}">` : ''}
+            <div class="ms-flow-actions">
               <button class="btn-icon-sm" onclick="openModal(${d.id})" title="수정">✏️</button>
               <button class="btn-icon-sm danger" onclick="deleteItem(${d.id},'${esc(d.title)}')" title="삭제">🗑</button>
             </div>
@@ -829,9 +1334,45 @@ function renderYearly() {
         </div>`).join('')}
       </div>
     </div>`;
-  });
+}
 
-  document.getElementById('yearlyView').innerHTML = html;
+// ── 전체 목록 표 ──
+function renderTable() {
+  const tbody = document.getElementById('tableBody');
+  const list = items.slice().sort((a,b) => (b.date||'').localeCompare(a.date||''));
+  document.getElementById('tableCount').textContent = `${list.length}개`;
+  if (!list.length) {
+    tbody.innerHTML = `<tr><td colspan="6" style="text-align:center;color:var(--text2);padding:24px;">마일스톤이 없습니다.</td></tr>`;
+    return;
+  }
+  tbody.innerHTML = list.map(d => `
+    <tr onclick="openModal(${d.id})">
+      <td>${d.date ? fmtDate(d.date) : '—'}</td>
+      <td class="title-cell">${d.title}</td>
+      <td>
+        <div class="cat-cell">
+          <span class="cat-dot" style="background:${catColor(d.category)};"></span>
+          ${CAT[d.category]?.label || d.category || '미분류'}
+        </div>
+      </td>
+      <td>${statusBadge(d.status) || `<span style="font-size:10px;padding:1px 6px;border-radius:99px;background:rgba(16,185,129,0.12);color:#10b981;">달성 완료</span>`}</td>
+      <td class="note-cell wrap">${d.note || ''}</td>
+      <td>
+        <div class="row-actions">
+          <button class="btn-icon-sm" onclick="event.stopPropagation();openModal(${d.id})" title="수정">✏️</button>
+          <button class="btn-icon-sm danger" onclick="event.stopPropagation();deleteItem(${d.id},'${esc(d.title)}')" title="삭제">🗑</button>
+        </div>
+      </td>
+    </tr>`).join('');
+}
+
+// 완료 항목은 다이아몬드(계약 마일스톤 스타일) 마커, 그 외는 상태 링
+function flowMarker(d, color) {
+  if (d.status === 'completed') {
+    return `<div class="hex" style="background:${color}22;border:2px solid ${color};"></div>`;
+  }
+  const s = STATUS_STYLE[d.status] || STATUS_STYLE.planned;
+  return `<div class="ring" style="border:2px solid ${s.dot};"></div>`;
 }
 
 function esc(s) { return (s||'').replace(/'/g,"\\'"); }
@@ -841,13 +1382,6 @@ const STATUS_STYLE = {
   in_progress: { dot: '#f59e0b', border: true,   badge: { bg: 'rgba(245,158,11,0.12)', color: '#f59e0b', label: '진행 중' } },
   planned:     { dot: '#64748b', border: true,   badge: { bg: 'rgba(100,116,139,0.12)', color: '#94a3b8', label: '예정' } },
 };
-function statusDot(d) {
-  const s = STATUS_STYLE[d.status] || STATUS_STYLE.planned;
-  const style = s.border
-    ? `border:2px solid ${s.dot};background:transparent;`
-    : `background:${s.dot};`;
-  return `<div style="width:10px;height:10px;border-radius:50%;${style}flex-shrink:0;margin-right:4px;"></div>`;
-}
 function statusBadge(status) {
   const s = STATUS_STYLE[status];
   if (!s || !s.badge) return '';
@@ -896,6 +1430,40 @@ document.getElementById('addFormToggle').onclick = () => {
   chev.style.transform = open ? 'rotate(180deg)' : '';
 };
 
+// ── 이미지 업로드 ──
+async function handleImageUpload(inputEl, prefix) {
+  const file = inputEl.files[0];
+  if (!file) return;
+  const statusEl = document.getElementById(prefix + 'UploadStatus');
+  statusEl.textContent = '업로드 중…';
+  const fd = new FormData();
+  fd.append('file', file);
+  try {
+    const res = await fetch('/api/milestones/upload-image', { method: 'POST', body: fd });
+    if (!res.ok) {
+      const e = await res.json();
+      alert(e.detail || '업로드 실패');
+      statusEl.textContent = '';
+      return;
+    }
+    const data = await res.json();
+    document.getElementById(prefix + 'Image').value = data.url;
+    document.getElementById(prefix + 'ImagePreview').src = data.url;
+    document.getElementById(prefix + 'ImagePreviewBox').style.display = 'block';
+    statusEl.textContent = '업로드 완료';
+  } catch (err) {
+    statusEl.textContent = '';
+    alert('업로드 실패');
+  }
+}
+function clearImage(prefix) {
+  document.getElementById(prefix + 'Image').value = '';
+  document.getElementById(prefix + 'ImagePreview').src = '';
+  document.getElementById(prefix + 'ImagePreviewBox').style.display = 'none';
+  document.getElementById(prefix + 'UploadStatus').textContent = '';
+  document.getElementById(prefix + 'ImageFile').value = '';
+}
+
 function resetForm() {
   document.getElementById('mTitle').value  = '';
   document.getElementById('mYear').value   = '';
@@ -905,6 +1473,7 @@ function resetForm() {
   document.getElementById('mEditId').value = '';
   document.getElementById('mCancelBtn').style.display = 'none';
   document.getElementById('modalSaveBtn').textContent = '기록하기';
+  clearImage('m');
   selectedCat = 'career';
   buildCatChips();
 }
@@ -932,6 +1501,7 @@ async function saveItem() {
         category: selectedCat,
         date,
         note:     document.getElementById('mNote').value.trim(),
+        image:    document.getElementById('mImage').value,
       }),
     });
     if (!res.ok) { const e = await res.json(); alert(e.detail||'저장 실패'); return; }
@@ -958,6 +1528,14 @@ function openModal(id) {
   } else {
     document.getElementById('eYear').value  = '';
     document.getElementById('eMonth').value = '';
+  }
+  if (d.image) {
+    document.getElementById('eImage').value = d.image;
+    document.getElementById('eImagePreview').src = d.image;
+    document.getElementById('eImagePreviewBox').style.display = 'block';
+    document.getElementById('eUploadStatus').textContent = '';
+  } else {
+    clearImage('e');
   }
   editSelectedCat = d.category || 'career';
   buildEditChips();
@@ -986,6 +1564,7 @@ async function saveEdit() {
         category: editSelectedCat,
         date,
         note:     document.getElementById('eNote').value.trim(),
+        image:    document.getElementById('eImage').value,
       }),
     });
     if (!res.ok) { const e = await res.json(); alert(e.detail||'저장 실패'); return; }

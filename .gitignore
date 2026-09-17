@@ -12,3 +12,6 @@ money.db
 # OS
 .DS_Store
 Thumbs.db
+
+# 업로드된 마일스톤 이미지 (개인 데이터)
+resources/milestones/

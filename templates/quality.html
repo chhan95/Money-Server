@@ -1,0 +1,647 @@
+{% extends "base.html" %}
+{% block title %}Money — Portfolio Business Quality{% endblock %}
+{% block content %}
+
+<style>
+:root {
+  --q-grad: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  --q-blue: #667eea; --q-green: #10b981; --q-amber: #f59e0b; --q-red: #ef4444; --q-gray: #94a3b8;
+  --q-r: 14px;
+}
+/* 비교표·차트가 넓어야 의미가 있어 이 페이지에서만 전역 820px 폭 제한을 푼다 */
+.page-wrap { max-width: none !important; padding-left: 20px; padding-right: 20px; }
+.q-wrap { max-width: 1680px; margin: 0 auto; }
+
+.q-head { display: flex; justify-content: space-between; gap: 18px; flex-wrap: wrap; align-items: flex-start; margin: 4px 0 14px; }
+.q-head h1 {
+  font-size: 26px; font-weight: 800; letter-spacing: -.5px; margin-bottom: 4px;
+  background: var(--q-grad); -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text;
+}
+.q-sub { font-size: 13px; color: var(--text2); line-height: 1.6; max-width: 780px; }
+.q-meta { font-size: 11.5px; color: var(--text2); margin-top: 6px; line-height: 1.7; }
+.q-pq { text-align: right; }
+.q-pq-num { font-size: 40px; font-weight: 800; letter-spacing: -1px; font-variant-numeric: tabular-nums; line-height: 1; }
+.q-pq-label { font-size: 10.5px; color: var(--text2); text-transform: uppercase; letter-spacing: .5px; }
+.q-btn {
+  background: var(--q-grad); color: #fff; border: none; padding: 9px 16px; border-radius: 10px;
+  font-size: 12.5px; font-weight: 700; cursor: pointer; margin-top: 10px;
+}
+.q-btn:disabled { opacity: .55; cursor: not-allowed; }
+.q-btn-ghost {
+  background: var(--bg2); color: var(--text); border: 1px solid var(--border);
+  padding: 7px 12px; border-radius: 9px; font-size: 12px; font-weight: 600; cursor: pointer;
+}
+
+.q-headline {
+  border: 1px solid var(--border); border-left: 3px solid var(--q-blue); border-radius: 10px;
+  background: var(--bg); padding: 12px 16px; font-size: 13px; line-height: 1.75; margin-bottom: 12px;
+}
+.q-headline small { color: var(--text2); display: block; margin-top: 2px; font-size: 10.5px; }
+.q-alert {
+  border-radius: 10px; padding: 10px 14px; font-size: 12px; margin-bottom: 10px; line-height: 1.7;
+  background: rgba(245,158,11,.09); border: 1px solid rgba(245,158,11,.25);
+}
+.q-alert.err { background: rgba(239,68,68,.08); border-color: rgba(239,68,68,.25); }
+
+.q-sec { font-size: 11.5px; font-weight: 800; text-transform: uppercase; letter-spacing: .6px; color: var(--text2); margin: 26px 0 10px; }
+.q-card { background: var(--bg); border: 1px solid var(--border); border-radius: var(--q-r); padding: 15px 17px; }
+.q-card-title { font-size: 13px; font-weight: 800; }
+.q-card-sub { font-size: 10.5px; color: var(--text2); line-height: 1.6; }
+.q-card-head { display: flex; justify-content: space-between; gap: 10px; flex-wrap: wrap; align-items: baseline; margin-bottom: 10px; }
+
+.q-flow { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; font-size: 11.5px; color: var(--text2); margin-bottom: 10px; }
+.q-flow b { color: var(--text); background: var(--bg2); border: 1px solid var(--border); padding: 3px 9px; border-radius: 99px; font-weight: 700; }
+
+.q-kpis { display: grid; grid-template-columns: repeat(auto-fit, minmax(160px, 1fr)); gap: 9px; }
+.q-kpi { background: var(--bg); border: 1px solid var(--border); border-radius: 12px; padding: 12px 14px; }
+.q-kpi-l { font-size: 10px; font-weight: 700; color: var(--text2); text-transform: uppercase; letter-spacing: .4px; margin-bottom: 5px; }
+.q-kpi-v { font-size: 21px; font-weight: 800; letter-spacing: -.4px; font-variant-numeric: tabular-nums; }
+.q-kpi-s { font-size: 10.5px; color: var(--text2); margin-top: 3px; }
+.q-seg { display: inline-flex; border: 1px solid var(--border); border-radius: 9px; overflow: hidden; }
+.q-seg button { background: var(--bg); color: var(--text2); border: none; padding: 6px 11px; font-size: 11.5px; font-weight: 700; cursor: pointer; }
+.q-seg button.on { background: var(--q-blue); color: #fff; }
+
+.q-qs { display: grid; grid-template-columns: repeat(auto-fit, minmax(230px, 1fr)); gap: 9px; }
+.q-q { background: var(--bg); border: 1px solid var(--border); border-radius: 12px; padding: 12px 14px; cursor: pointer; }
+.q-q:hover { border-color: var(--q-blue); }
+.q-q-l { font-size: 11px; color: var(--text2); font-weight: 700; margin-bottom: 6px; }
+.q-q-a { display: flex; align-items: baseline; gap: 8px; }
+.q-q-t { font-size: 19px; font-weight: 800; }
+.q-q-v { font-size: 12.5px; font-weight: 700; color: var(--text2); font-variant-numeric: tabular-nums; }
+.q-q-b { font-size: 10px; color: var(--text2); margin-top: 5px; line-height: 1.55; }
+
+.q-controls { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; margin-bottom: 10px; }
+.q-input, .q-select {
+  background: var(--bg); color: var(--text); border: 1px solid var(--border); border-radius: 9px;
+  padding: 7px 10px; font-size: 12.5px;
+}
+.q-input { min-width: 180px; }
+
+.q-table-wrap { overflow-x: auto; border: 1px solid var(--border); border-radius: var(--q-r); background: var(--bg); }
+.q-table { width: 100%; border-collapse: collapse; font-size: 12.5px; }
+.q-table th {
+  position: sticky; top: 0; background: var(--bg2); color: var(--text2);
+  font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: .35px;
+  padding: 9px 9px; text-align: right; white-space: nowrap; border-bottom: 1px solid var(--border);
+  cursor: pointer; user-select: none;
+}
+.q-table th.sorted { color: var(--q-blue); }
+.q-table td { padding: 10px 9px; text-align: right; white-space: nowrap; border-bottom: 1px solid var(--border2); font-variant-numeric: tabular-nums; }
+.q-table th:first-child, .q-table td:first-child {
+  position: sticky; left: 0; text-align: left; background: var(--bg); z-index: 2;
+}
+.q-table th:first-child { background: var(--bg2); z-index: 3; }
+.q-table tbody tr { cursor: pointer; }
+.q-table tbody tr:hover td { background: var(--bg2); }
+.q-co-name { font-weight: 800; }
+.q-co-sub { font-size: 10px; color: var(--text2); }
+.q-na { color: var(--text2); opacity: .6; font-style: italic; font-size: 11px; }
+.q-neg { color: var(--q-red); }
+.q-pill { display: inline-block; min-width: 38px; text-align: center; padding: 3px 8px; border-radius: 99px; font-weight: 800; font-size: 12px; color: #fff; }
+.q-hi { background: var(--q-green); } .q-mid { background: var(--q-blue); } .q-low { background: var(--q-amber); }
+.q-label { font-size: 10.5px; font-weight: 700; padding: 2px 8px; border-radius: 99px; background: var(--bg2); border: 1px solid var(--border); }
+.q-del { background: none; border: none; color: var(--text2); cursor: pointer; font-size: 13px; padding: 2px 6px; border-radius: 6px; }
+.q-del:hover { color: var(--q-red); background: rgba(239,68,68,.08); }
+
+.q-grid2 { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+.q-grid3 { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; }
+@media (max-width: 1200px) { .q-grid3 { grid-template-columns: 1fr 1fr; } }
+@media (max-width: 860px) { .q-grid2, .q-grid3 { grid-template-columns: 1fr; } .q-pq { text-align: left; } }
+.q-chart { position: relative; height: 280px; }
+.q-excl { font-size: 10.5px; color: var(--q-amber); margin-bottom: 6px; }
+
+.q-mini { width: 100%; border-collapse: collapse; font-size: 12px; }
+.q-mini th { font-size: 10px; color: var(--text2); text-transform: uppercase; letter-spacing: .35px; text-align: right; padding: 6px 8px; border-bottom: 1px solid var(--border); font-weight: 700; }
+.q-mini td { padding: 8px; text-align: right; border-bottom: 1px solid var(--border2); font-variant-numeric: tabular-nums; }
+.q-mini th:first-child, .q-mini td:first-child { text-align: left; }
+.q-mini td.wrap { white-space: normal; text-align: left; color: var(--text2); font-size: 11px; line-height: 1.55; }
+.q-mini tr:last-child td { border-bottom: none; }
+
+.q-add { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
+.q-method { font-size: 11.5px; color: var(--text2); line-height: 1.8; }
+.q-method b { color: var(--text); }
+.q-basis { font-size: 9.5px; font-weight: 800; padding: 1px 6px; border-radius: 5px; margin-left: 4px; }
+.q-basis.Reported { background: rgba(148,163,184,.2); color: var(--text2); }
+.q-basis.Calculated { background: rgba(102,126,234,.15); color: var(--q-blue); }
+.q-basis.Estimate { background: rgba(245,158,11,.15); color: var(--q-amber); }
+.q-empty { text-align: center; padding: 50px 20px; color: var(--text2); }
+</style>
+
+<div class="q-wrap">
+  <div class="q-head">
+    <div>
+      <h1>Portfolio Business Quality Dashboard</h1>
+      <div class="q-sub">내가 보유한 기업들이 돈을 얼마나 잘 벌고, 그 돈을 얼마나 효율적으로 재투자하며,
+        장기적으로 얼마나 강한 복리를 만들어내는가?</div>
+      <div class="q-meta" id="qMeta"></div>
+    </div>
+    <div class="q-pq">
+      <div class="q-pq-label">Portfolio Business Quality</div>
+      <div class="q-pq-num" id="qPq">—</div>
+      <div class="q-kpi-s">보유 기업 Business Quality 단순 평균</div>
+      <button class="q-btn" id="qRefresh" onclick="refreshData()">데이터 수집 / 갱신</button>
+    </div>
+  </div>
+
+  {% if error %}<div class="q-alert err">{{ error }}</div>{% endif %}
+  <div id="qAlerts"></div>
+  <div class="q-headline" id="qHeadline"></div>
+
+  <div class="q-flow">
+    <span>관통 흐름</span>
+    <b>매출 성장</b>→<b>이익 성장</b>→<b>이익률</b>→<b>현금흐름</b>→<b>ROIC/ROE</b>→<b>재투자</b>→<b>경쟁우위</b>→<b>장기 복리</b>
+  </div>
+
+  <!-- 요약 -->
+  <div class="q-card-head" style="margin-top:18px;">
+    <div class="q-sec" style="margin:0;">Portfolio Summary</div>
+    <div class="q-seg" id="qWeightSeg">
+      <button data-w="simple" class="on">단순 평균</button>
+      <button data-w="holding_weighted">보유금액 가중</button>
+      <button data-w="cap_weighted">시가총액 가중</button>
+    </div>
+  </div>
+  <div class="q-kpis" id="qKpis"></div>
+  <div class="q-card-sub" id="qWeightNote" style="margin-top:6px;"></div>
+
+  <!-- 8대 질문 -->
+  <div class="q-sec">30초 요약 — 8가지 질문</div>
+  <div class="q-qs" id="qQs"></div>
+
+  <!-- 비교표 -->
+  <div class="q-sec">관통실적 비교</div>
+  <div class="q-controls">
+    <input class="q-input" id="qSearch" placeholder="기업명·티커 검색" oninput="renderTable()">
+    <select class="q-select" id="qSector" onchange="renderTable()"><option value="">섹터 전체</option></select>
+    <select class="q-select" id="qIndustry" onchange="renderTable()"><option value="">산업 전체</option></select>
+    <span class="q-card-sub">기간</span>
+    <div class="q-seg" id="qPeriodSeg"></div>
+    <span class="q-card-sub">빠른 정렬</span>
+    <button class="q-btn-ghost" onclick="quickSort('bq')">Quality</button>
+    <button class="q-btn-ghost" onclick="quickSort('rev')">성장성</button>
+    <button class="q-btn-ghost" onclick="quickSort('roic')">ROIC</button>
+    <button class="q-btn-ghost" onclick="quickSort('om')">수익성</button>
+  </div>
+  <div class="q-table-wrap"><table class="q-table" id="qTable"></table></div>
+  <div class="q-card-sub" style="margin-top:6px;line-height:1.7;">
+    성장률·이익률·ROE·ROIC는 선택한 기간 기준입니다. 재투자율·CAGR·점수는 보유 연간 데이터 전체 구간 기준이라 기간 선택과 무관합니다.
+    셀에 마우스를 올리면 기간·데이터 구분(<span class="q-basis Reported">Reported</span><span class="q-basis Calculated">Calculated</span><span class="q-basis Estimate">Estimate</span>)·출처·기준일·산식이 표시됩니다.
+    행을 누르면 기업별 상세 분석으로 이동합니다.
+  </div>
+
+  <!-- 좋은 기업 vs 좋은 주식 -->
+  <div class="q-sec">좋은 기업 vs 좋은 주식</div>
+  <div class="q-grid2">
+    <div class="q-card">
+      <div class="q-card-head">
+        <div><div class="q-card-title">Business Quality × Valuation</div>
+          <div class="q-card-sub">점선 = 보유 기업 중앙값 · 우상단: 좋은 기업·가격 매력 / 좌상단: 좋은 기업·가격 부담</div></div>
+      </div>
+      <div id="qQpExcl" class="q-excl"></div>
+      <div class="q-chart"><canvas id="chQP"></canvas></div>
+    </div>
+    <div class="q-card">
+      <div class="q-card-head">
+        <div><div class="q-card-title">품질·가격 분리 점수</div>
+          <div class="q-card-sub" id="qAttrFormula"></div></div>
+      </div>
+      <table class="q-mini" id="qQpTable"></table>
+    </div>
+  </div>
+
+  <!-- 비교 차트 -->
+  <div class="q-sec">기업 간 비교</div>
+  <div class="q-grid3">
+    <div class="q-card">
+      <div class="q-card-title">ROIC × 매출 성장률</div>
+      <div class="q-card-sub" style="margin-bottom:6px;">버블 크기 = 시가총액 · 최근 FY 기준 — 고성장·고ROIC는 우상단</div>
+      <div id="qRgExcl" class="q-excl"></div>
+      <div class="q-chart"><canvas id="chRG"></canvas></div>
+    </div>
+    <div class="q-card">
+      <div class="q-card-title">ROIC × FCF Margin</div>
+      <div class="q-card-sub" style="margin-bottom:6px;">현금창출력과 자본효율을 동시에 가진 기업은 우상단</div>
+      <div id="qRfExcl" class="q-excl"></div>
+      <div class="q-chart"><canvas id="chRF"></canvas></div>
+    </div>
+    <div class="q-card">
+      <div class="q-card-title">Revenue CAGR × EPS CAGR (3Y)</div>
+      <div class="q-card-sub" style="margin-bottom:6px;">대각선 위 = 이익이 매출보다 빠르게 성장 (영업 레버리지) · 아래 = 이익 성장이 매출에 못 미침</div>
+      <div id="qCeExcl" class="q-excl"></div>
+      <div class="q-chart"><canvas id="chCE"></canvas></div>
+    </div>
+  </div>
+
+  <!-- 복리 엔진 -->
+  <div class="q-sec">Compounding Engine</div>
+  <div class="q-card">
+    <div class="q-card-head">
+      <div><div class="q-card-title">ROIC × Reinvestment Rate × Growth Duration</div>
+        <div class="q-card-sub">재투자율 = 구간 ΔIC ÷ 구간 누적 NOPAT · 내재 성장률 = ROIC × 재투자율 ·
+          Growth Duration은 정량 측정이 어려워 분석 노트의 정성 평가로 분리</div></div>
+    </div>
+    <div style="overflow-x:auto;"><table class="q-mini" id="qCompTable"></table></div>
+  </div>
+
+  <!-- 포트폴리오 관리 -->
+  <div class="q-sec">보유 종목 관리</div>
+  <div class="q-grid2">
+    <div class="q-card">
+      <div class="q-card-title" style="margin-bottom:8px;">종목 추가 / 수량 변경</div>
+      <form method="post" action="/portfolio/add" class="q-add">
+        <input type="hidden" name="next_url" value="/quality">
+        <input class="q-input" name="ticker" placeholder="티커 (예: AAPL)" required style="min-width:120px;">
+        <input class="q-input" name="shares_owned" type="number" step="any" min="0" placeholder="보유 수량" required style="min-width:110px;">
+        <input class="q-input" name="avg_price" type="number" step="any" min="0" placeholder="평균 단가 (선택)" style="min-width:130px;">
+        <button class="q-btn" style="margin-top:0;" type="submit">추가</button>
+      </form>
+      <div class="q-card-sub" style="margin-top:8px;line-height:1.7;">
+        기존 포트폴리오 테이블에 저장됩니다. 추가 후 <b>데이터 수집 / 갱신</b>을 눌러야 관통실적 분석이 채워집니다.
+        같은 티커를 다시 입력하면 수량이 변경됩니다. 종목 삭제는 표의 ✕ 버튼을 사용하세요.
+      </div>
+    </div>
+    <div class="q-card">
+      <div class="q-card-title" style="margin-bottom:8px;">과거 보유 종목</div>
+      <div id="qHistory"></div>
+    </div>
+  </div>
+
+  <!-- 방법론 -->
+  <div class="q-sec">점수와 데이터 기준</div>
+  <div class="q-card q-method" id="qMethod"></div>
+</div>
+
+<script>
+const Q = {{ quality_json | safe }};
+const C = Q.companies || [];
+
+let PERIOD = 'FY', WEIGHT = 'simple', sortKey = 'bq', sortDir = -1;
+const charts = {};
+const PALETTE = ['#667eea','#10b981','#f59e0b','#ef4444','#22d3ee','#a78bfa','#f472b6','#84cc16','#fb7185','#38bdf8'];
+const colorOf = t => PALETTE[Math.max(0, C.findIndex(c => c.ticker === t)) % PALETTE.length];
+
+/* ── 공통 포맷 ── */
+function esc(s) { return String(s ?? '').replace(/&/g,'&amp;').replace(/"/g,'&quot;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
+const pct = v => (v * 100).toFixed(1) + '%';
+function isNum(v) { return typeof v === 'number' && isFinite(v); }
+function tip(r) {
+  if (!r) return '';
+  const p = [];
+  if (r.period) p.push(r.period);
+  if (r.period_type && r.period_type !== 'FY' && r.period_type !== r.period) p.push(r.period_type);
+  if (r.basis) p.push(r.basis);
+  if (r.src) p.push(r.src);
+  if (r.as_of) p.push('기준 ' + r.as_of);
+  if (r.formula) p.push('산식: ' + r.formula);
+  return esc(p.join(' · '));
+}
+function naSpan(reason) { return `<span class="q-na" title="${esc(reason || '데이터 없음')}">N/A</span>`; }
+function pctCell(r) {
+  if (!r || !isNum(r.v)) return naSpan(r && r.na);
+  return `<span class="${r.v < 0 ? 'q-neg' : ''}" title="${tip(r)}">${pct(r.v)}</span>`;
+}
+function scorePill(v, na) {
+  if (!isNum(v)) return naSpan(na);
+  const cls = v >= 80 ? 'q-hi' : v >= 65 ? 'q-mid' : 'q-low';
+  return `<span class="q-pill ${cls}">${v.toFixed(1)}</span>`;
+}
+function theme() {
+  const dark = document.documentElement.getAttribute('data-theme') === 'dark';
+  const css = v => getComputedStyle(document.documentElement).getPropertyValue(v).trim();
+  return { grid: dark ? 'rgba(255,255,255,.07)' : 'rgba(0,0,0,.07)', tick: css('--text2') || '#6b7280',
+           text: css('--text') || '#1a1a1a', tip: 'rgba(18,22,34,.95)' };
+}
+
+/* ── 헤더 ── */
+function renderHeader() {
+  const updated = C.map(c => (c.fetched_at || '')).filter(Boolean).sort().slice(-1)[0];
+  document.getElementById('qPq').textContent = isNum(Q.portfolio_quality) ? Q.portfolio_quality.toFixed(1) : 'N/A';
+  document.getElementById('qMeta').innerHTML =
+    `보유 기업 <b>${C.length + (Q.pending || []).length}</b>개 (분석 완료 ${C.length}) · ` +
+    `기준일 <b>${Q.as_of || 'N/A'}</b>${Q.mixed_dates ? ' <span style="color:var(--q-amber)">(기준일 혼재)</span>' : ''} · ` +
+    `최신 업데이트 ${updated ? updated + ' UTC' : 'N/A'} · 출처 Yahoo Finance (yfinance)`;
+  document.getElementById('qHeadline').innerHTML =
+    `${esc(Q.headline)}<small>보유 기업 데이터에서 자동 생성된 문장입니다. 투자 권유가 아닙니다.</small>`;
+
+  const alerts = [];
+  if ((Q.pending || []).length) {
+    alerts.push(`<div class="q-alert">분석 데이터가 없는 보유 종목: <b>${Q.pending.map(p => esc(p.ticker)).join(', ')}</b>
+      — 비교표·점수에서 제외했습니다. <b>데이터 수집 / 갱신</b>을 눌러주세요.</div>`);
+  }
+  const stale = C.filter(c => c.stale).map(c => c.ticker);
+  if (stale.length) {
+    alerts.push(`<div class="q-alert">캐시가 오래됐거나 이전 형식인 종목: <b>${stale.join(', ')}</b> — 수집 버튼으로 갱신할 수 있습니다.</div>`);
+  }
+  document.getElementById('qAlerts').innerHTML = alerts.join('');
+}
+
+/* ── 요약 카드 ── */
+function renderKpis() {
+  const s = Q.summary || { rows: [] };
+  const wrap = document.getElementById('qKpis');
+  const cards = [`<div class="q-kpi"><div class="q-kpi-l">보유 기업 수</div>
+      <div class="q-kpi-v">${C.length + (Q.pending || []).length}</div><div class="q-kpi-s">분석 완료 ${C.length}개</div></div>`];
+  s.rows.forEach(r => {
+    const v = r[WEIGHT];
+    const n = WEIGHT === 'simple' ? r.n : WEIGHT === 'holding_weighted' ? r.n_holding : r.n_cap;
+    const txt = !isNum(v) ? 'N/A' : r.kind === 'pct' ? pct(v) : v.toFixed(1);
+    cards.push(`<div class="q-kpi"><div class="q-kpi-l">${esc(r.label)}</div>
+      <div class="q-kpi-v">${txt}</div><div class="q-kpi-s">${n ? n + '개 기업 반영' : '데이터 없음'}</div></div>`);
+  });
+  wrap.innerHTML = cards.join('');
+  const note = WEIGHT === 'simple' ? '기업별 단순 평균입니다. 결측 값은 평균에서 제외합니다.'
+    : WEIGHT === 'holding_weighted' ? (s.has_holding ? s.weight_note + ' 기준 가중 평균입니다.' : '보유 수량이 없어 보유금액 가중 평균을 계산할 수 없습니다.')
+    : '시가총액(yfinance marketCap) 가중 평균입니다.';
+  document.getElementById('qWeightNote').textContent = note;
+}
+document.querySelectorAll('#qWeightSeg button').forEach(b => b.addEventListener('click', () => {
+  WEIGHT = b.dataset.w;
+  document.querySelectorAll('#qWeightSeg button').forEach(x => x.classList.toggle('on', x === b));
+  renderKpis();
+}));
+
+/* ── 8대 질문 ── */
+function renderQuestions() {
+  document.getElementById('qQs').innerHTML = (Q.questions || []).map(q => {
+    const val = !isNum(q.value) ? '' : q.fmt === 'score' ? q.value.toFixed(1) : pct(q.value);
+    const go = q.ticker ? `onclick="location.href='/quality/${encodeURIComponent(q.ticker)}'"` : '';
+    return `<div class="q-q" ${go}>
+      <div class="q-q-l">${esc(q.q)}</div>
+      <div class="q-q-a"><span class="q-q-t">${q.ticker ? esc(q.ticker) : 'N/A'}</span><span class="q-q-v">${val || esc(q.na || '')}</span></div>
+      <div class="q-q-b">${esc(q.basis || '')}</div></div>`;
+  }).join('');
+}
+
+/* ── 비교표 ── */
+const PERIODS = ['TTM', 'FY', 'FY-1', 'FY-3', 'FY-5'];
+const COLS = [
+  { k: 'co',   label: '기업',            kind: 'co' },
+  { k: 'rev',  label: '매출 성장',        kind: 'pct', get: c => per(c).rev_growth },
+  { k: 'eps',  label: 'EPS 성장',         kind: 'pct', get: c => per(c).eps_growth },
+  { k: 'om',   label: '영업이익률',        kind: 'pct', get: c => per(c).operating_margin },
+  { k: 'fcfm', label: 'FCF Margin',       kind: 'pct', get: c => per(c).fcf_margin },
+  { k: 'roe',  label: 'ROE',              kind: 'pct', get: c => per(c).roe },
+  { k: 'roic', label: 'ROIC',             kind: 'pct', get: c => PERIOD === 'FY' ? c.roic : per(c).roic },
+  { k: 'rr',   label: '재투자율',          kind: 'pct', get: c => c.reinvestment },
+  { k: 'revc', label: 'Revenue CAGR 3Y',  kind: 'pct', get: c => c.rev_cagr3 },
+  { k: 'epsc', label: 'EPS CAGR 3Y',      kind: 'pct', get: c => c.eps_cagr3 },
+  { k: 'bq',   label: 'Quality',          kind: 'score', get: c => ({ v: c.scores.business_quality.score, na: c.scores.business_quality.na }) },
+  { k: 'val',  label: 'Valuation',        kind: 'score', get: c => ({ v: c.scores.valuation.score, na: c.scores.valuation.na }) },
+  { k: 'attr', label: 'Attractiveness',   kind: 'score', get: c => ({ v: c.scores.attractiveness.score, na: c.scores.attractiveness.na }) },
+  { k: 'lbl',  label: '판정',             kind: 'label' },
+  { k: 'del',  label: '',                 kind: 'del' },
+];
+const per = c => (c.period && c.period[PERIOD]) || {};
+
+function buildPeriodSeg() {
+  const seg = document.getElementById('qPeriodSeg');
+  seg.innerHTML = PERIODS.map(p => `<button data-p="${p}" class="${p === PERIOD ? 'on' : ''}">${p}</button>`).join('');
+  seg.querySelectorAll('button').forEach(b => b.addEventListener('click', () => {
+    PERIOD = b.dataset.p;
+    seg.querySelectorAll('button').forEach(x => x.classList.toggle('on', x === b));
+    renderTable();
+  }));
+}
+function buildFilters() {
+  const uniq = arr => [...new Set(arr.filter(Boolean))].sort();
+  document.getElementById('qSector').innerHTML += uniq(C.map(c => c.sector)).map(s => `<option>${esc(s)}</option>`).join('');
+  document.getElementById('qIndustry').innerHTML += uniq(C.map(c => c.industry)).map(s => `<option>${esc(s)}</option>`).join('');
+}
+function sortVal(c, col) {
+  if (col.kind === 'co') return c.ticker;
+  if (col.kind === 'label' || col.kind === 'del') return null;
+  const r = col.get(c);
+  return r && isNum(r.v) ? r.v : null;
+}
+function setSort(k) {
+  if (k === 'del' || k === 'lbl') return;
+  if (sortKey === k) sortDir *= -1; else { sortKey = k; sortDir = k === 'co' ? 1 : -1; }
+  renderTable();
+}
+function quickSort(k) { sortKey = k; sortDir = -1; renderTable(); }
+
+function renderTable() {
+  const q = document.getElementById('qSearch').value.trim().toLowerCase();
+  const sec = document.getElementById('qSector').value, ind = document.getElementById('qIndustry').value;
+  const col = COLS.find(x => x.k === sortKey) || COLS[10];
+  const rows = C.filter(c =>
+      (!q || c.ticker.toLowerCase().includes(q) || (c.name || '').toLowerCase().includes(q)) &&
+      (!sec || c.sector === sec) && (!ind || c.industry === ind))
+    .sort((a, b) => {
+      const av = sortVal(a, col), bv = sortVal(b, col);
+      if (av === null && bv === null) return 0;
+      if (av === null) return 1;
+      if (bv === null) return -1;
+      return (typeof av === 'string' ? av.localeCompare(bv) : av - bv) * sortDir;
+    });
+
+  const head = '<thead><tr>' + COLS.map(x =>
+    `<th class="${x.k === sortKey ? 'sorted' : ''}" onclick="setSort('${x.k}')">${x.label}${x.k === sortKey ? (sortDir === 1 ? ' ▲' : ' ▼') : ''}</th>`
+  ).join('') + '</tr></thead>';
+
+  const body = rows.map(c => '<tr onclick="location.href=\'/quality/' + encodeURIComponent(c.ticker) + '\'">' + COLS.map(x => {
+    if (x.kind === 'co') {
+      return `<td><div class="q-co-name">${esc(c.ticker)}</div><div class="q-co-sub">${esc(c.name)} · ${esc(c.industry || '')}</div></td>`;
+    }
+    if (x.kind === 'pct') return `<td>${pctCell(x.get(c))}</td>`;
+    if (x.kind === 'score') { const r = x.get(c); return `<td>${scorePill(r.v, r.na)}</td>`; }
+    if (x.kind === 'label') return `<td>${c.qp_label ? `<span class="q-label">${esc(c.qp_label)}</span>` : naSpan('점수 산출 불가')}</td>`;
+    if (x.kind === 'del') {
+      return `<td><form method="post" action="/portfolio/delete/${c.holding.id}" onsubmit="event.stopPropagation(); return confirm('${esc(c.ticker)}를 보유 목록에서 제거할까요? 분석 데이터는 과거 보유 종목으로 남습니다.');" onclick="event.stopPropagation();" style="display:inline;">
+        <input type="hidden" name="next_url" value="/quality"><button class="q-del" title="보유 목록에서 제거">✕</button></form></td>`;
+    }
+    return '<td></td>';
+  }).join('') + '</tr>').join('');
+
+  document.getElementById('qTable').innerHTML = head + '<tbody>' +
+    (body || `<tr><td colspan="${COLS.length}" class="q-empty">조건에 맞는 기업이 없습니다.</td></tr>`) + '</tbody>';
+}
+
+/* ── 차트 공통 ── */
+const labelPlugin = {
+  id: 'qLabel',
+  afterDatasetsDraw(chart) {
+    const ctx = chart.ctx, t = theme();
+    chart.data.datasets.forEach((ds, i) => {
+      if (ds.noLabel) return;
+      chart.getDatasetMeta(i).data.forEach(pt => {
+        ctx.save(); ctx.font = 'bold 10px sans-serif'; ctx.fillStyle = t.text; ctx.textAlign = 'center';
+        ctx.fillText(ds.label, pt.x, pt.y - ((pt.options && pt.options.radius) || 8) - 4); ctx.restore();
+      });
+    });
+  },
+};
+function medianLines(mx, my) {
+  return {
+    id: 'qMed',
+    beforeDatasetsDraw(chart) {
+      const { ctx, chartArea: a, scales } = chart;
+      if (!a || !isNum(mx) || !isNum(my)) return;
+      const t = theme(), x = scales.x.getPixelForValue(mx), y = scales.y.getPixelForValue(my);
+      ctx.save(); ctx.strokeStyle = t.tick; ctx.globalAlpha = .35; ctx.setLineDash([4, 4]);
+      ctx.beginPath(); ctx.moveTo(x, a.top); ctx.lineTo(x, a.bottom); ctx.moveTo(a.left, y); ctx.lineTo(a.right, y); ctx.stroke();
+      ctx.restore();
+    },
+  };
+}
+function bubble(id, points, xLabel, yLabel, tipFn, extraPlugins, extraDatasets) {
+  if (charts[id]) charts[id].destroy();
+  const cv = document.getElementById(id);
+  if (!points.length) {
+    cv.parentElement.innerHTML = '<div class="q-empty">비교 가능한 데이터가 없습니다.</div>';
+    return;
+  }
+  const t = theme();
+  charts[id] = new Chart(cv.getContext('2d'), {
+    type: 'bubble',
+    data: { datasets: [...points.map(p => ({
+      label: p.ticker, data: [{ x: p.x, y: p.y, r: p.r || 9 }],
+      backgroundColor: colorOf(p.ticker) + 'bb', borderColor: colorOf(p.ticker), borderWidth: 1.5,
+    })), ...(extraDatasets || [])] },
+    options: {
+      responsive: true, maintainAspectRatio: false,
+      plugins: { legend: { display: false },
+        tooltip: { backgroundColor: t.tip, padding: 10, cornerRadius: 8, displayColors: false,
+          filter: it => !it.dataset.noLabel,
+          callbacks: { title: c => c[0].dataset.label, label: c => tipFn(c.dataset.label) } } },
+      onClick: (e, els) => {
+        const ds = els.length && charts[id].data.datasets[els[0].datasetIndex];
+        if (ds && !ds.noLabel) location.href = '/quality/' + encodeURIComponent(ds.label);
+      },
+      scales: {
+        x: { title: { display: true, text: xLabel, color: t.tick, font: { size: 10 } }, ticks: { color: t.tick, font: { size: 10 } }, grid: { color: t.grid }, border: { display: false } },
+        y: { title: { display: true, text: yLabel, color: t.tick, font: { size: 10 } }, ticks: { color: t.tick, font: { size: 10 } }, grid: { color: t.grid }, border: { display: false } },
+      },
+    },
+    plugins: [labelPlugin, ...(extraPlugins || [])],
+  });
+}
+function exclNote(id, excluded, what) {
+  document.getElementById(id).textContent = excluded.length
+    ? `${excluded.length}개 제외 (${what} 없음): ${excluded.join(', ')}` : '';
+}
+
+/* ── 좋은 기업 vs 좋은 주식 ── */
+function renderQP() {
+  const ok = C.filter(c => isNum(c.scores.business_quality.score) && isNum(c.scores.valuation.score));
+  exclNote('qQpExcl', C.filter(c => !ok.includes(c)).map(c => c.ticker), 'Quality 또는 Valuation 점수');
+  bubble('chQP', ok.map(c => ({ ticker: c.ticker, x: c.scores.valuation.score, y: c.scores.business_quality.score })),
+    'Valuation Score (높을수록 가격 매력)', 'Business Quality Score',
+    t => { const c = C.find(x => x.ticker === t); return [`Quality ${c.scores.business_quality.score}`, `Valuation ${c.scores.valuation.score}`,
+      `Attractiveness ${c.scores.attractiveness.score ?? 'N/A'}`, c.qp_label || '']; },
+    [medianLines(Q.medians.valuation, Q.medians.business_quality)]);
+
+  const w = Q.attr_weights || {};
+  document.getElementById('qAttrFormula').textContent =
+    `Investment Attractiveness = ${w.quality} × Business Quality + ${w.valuation} × Valuation · 판정은 보유 기업 중앙값 대비 상대 위치`;
+  const rows = C.slice().sort((a, b) => (b.scores.attractiveness.score ?? -1) - (a.scores.attractiveness.score ?? -1));
+  document.getElementById('qQpTable').innerHTML =
+    '<thead><tr><th>기업</th><th>Business Quality</th><th>Valuation</th><th>Growth</th><th>Attractiveness</th><th>판정</th></tr></thead><tbody>' +
+    rows.map(c => `<tr onclick="location.href='/quality/${encodeURIComponent(c.ticker)}'" style="cursor:pointer;">
+      <td><b>${esc(c.ticker)}</b></td>
+      <td>${scorePill(c.scores.business_quality.score, c.scores.business_quality.na)}</td>
+      <td>${scorePill(c.scores.valuation.score, c.scores.valuation.na)}</td>
+      <td>${scorePill(c.scores.groups.growth.score, '성장 점수 없음')}</td>
+      <td>${scorePill(c.scores.attractiveness.score, c.scores.attractiveness.na)}</td>
+      <td class="wrap">${esc(c.qp_label || 'N/A')}</td></tr>`).join('') + '</tbody>';
+}
+
+/* ── 비교 차트 3종 ── */
+function renderCompareCharts() {
+  const caps = C.map(c => c.market_cap && c.market_cap.v).filter(isNum);
+  const maxCap = caps.length ? Math.max(...caps) : 0;
+  const rOf = c => (maxCap && isNum(c.market_cap && c.market_cap.v)) ? 6 + 14 * Math.sqrt(c.market_cap.v / maxCap) : 9;
+
+  const rg = C.filter(c => isNum(c.roic.v) && isNum(per0(c).rev_growth.v));
+  exclNote('qRgExcl', C.filter(c => !rg.includes(c)).map(c => c.ticker), 'ROIC 또는 매출 성장률');
+  bubble('chRG', rg.map(c => ({ ticker: c.ticker, x: per0(c).rev_growth.v * 100, y: c.roic.v * 100, r: rOf(c) })),
+    '매출 성장률 (최근 FY, %)', 'ROIC (%)',
+    t => { const c = C.find(x => x.ticker === t); return [`ROIC ${pct(c.roic.v)}`, `매출 성장 ${pct(per0(c).rev_growth.v)} (${per0(c).rev_growth.period})`,
+      `시가총액 ${c.market_cap.v ? (c.market_cap.v / 1e9).toFixed(0) + 'B ' + (c.quote_currency || '') : 'N/A'}`]; });
+
+  const rf = C.filter(c => isNum(c.roic.v) && isNum(per0(c).fcf_margin.v));
+  exclNote('qRfExcl', C.filter(c => !rf.includes(c)).map(c => c.ticker), 'ROIC 또는 FCF Margin');
+  bubble('chRF', rf.map(c => ({ ticker: c.ticker, x: per0(c).fcf_margin.v * 100, y: c.roic.v * 100, r: rOf(c) })),
+    'FCF Margin (최근 FY, %)', 'ROIC (%)',
+    t => { const c = C.find(x => x.ticker === t); return [`ROIC ${pct(c.roic.v)}`, `FCF Margin ${pct(per0(c).fcf_margin.v)}`]; });
+
+  const ce = C.filter(c => isNum(c.rev_cagr3.v) && isNum(c.eps_cagr3.v));
+  exclNote('qCeExcl', C.filter(c => !ce.includes(c)).map(c => c.ticker), '3Y CAGR');
+  const vals = ce.flatMap(c => [c.rev_cagr3.v * 100, c.eps_cagr3.v * 100]);
+  const lo = vals.length ? Math.min(0, ...vals) : 0, hi = vals.length ? Math.max(...vals) * 1.1 : 1;
+  bubble('chCE', ce.map(c => ({ ticker: c.ticker, x: c.rev_cagr3.v * 100, y: c.eps_cagr3.v * 100 })),
+    'Revenue CAGR 3Y (%)', 'EPS CAGR 3Y (%)',
+    t => { const c = C.find(x => x.ticker === t);
+      const cls = c.eps_cagr3.v > c.rev_cagr3.v ? '이익 성장이 매출보다 빠름' : '이익 성장이 매출에 못 미침';
+      return [`Revenue CAGR ${pct(c.rev_cagr3.v)} (${c.rev_cagr3.period})`, `EPS CAGR ${pct(c.eps_cagr3.v)} (${c.eps_cagr3.period})`, cls]; },
+    [], [{ label: 'EPS = 매출', type: 'line', noLabel: true, data: [{ x: lo, y: lo }, { x: hi, y: hi }],
+           borderColor: theme().tick + '66', borderDash: [5, 4], borderWidth: 1.2, pointRadius: 0, fill: false }]);
+}
+const per0 = c => (c.period && c.period.FY) || {};
+
+/* ── 복리 엔진 ── */
+function renderCompounding() {
+  const dur = c => {
+    const g = c.note && c.note.growth_duration;
+    if (!g) return naSpan('분석 노트 미작성');
+    return `<span title="${esc((g.rationale || []).join(' / '))} · 분석 노트 ${esc(c.note.written_at)}">${esc(g.level)} ⓘ</span>`;
+  };
+  document.getElementById('qCompTable').innerHTML =
+    '<thead><tr><th>기업</th><th>ROIC</th><th>×</th><th>재투자율</th><th>=</th><th>내재 성장률</th><th>증분 ROIC</th><th>Growth Duration</th><th>판정</th></tr></thead><tbody>' +
+    C.map(c => { const k = c.compounding || {};
+      return `<tr><td><b>${esc(c.ticker)}</b></td><td>${pctCell(k.roic)}</td><td>×</td><td>${pctCell(k.reinvestment)}</td><td>=</td>
+        <td><b>${pctCell(k.implied_growth)}</b></td><td>${pctCell(k.incremental_roic)}</td><td>${dur(c)}</td>
+        <td class="wrap">${esc(k.text || '')}<br><span style="opacity:.75;">기준: ${esc(k.bar || '')}</span></td></tr>`; }).join('') +
+    '</tbody>';
+}
+
+/* ── 과거 보유 · 방법론 ── */
+function renderHistory() {
+  const h = Q.history || [];
+  document.getElementById('qHistory').innerHTML = h.length
+    ? '<table class="q-mini"><thead><tr><th>티커</th><th>기업</th><th>분석 기준일</th></tr></thead><tbody>' +
+      h.map(x => `<tr onclick="location.href='/quality/${encodeURIComponent(x.ticker)}'" style="cursor:pointer;">
+        <td><b>${esc(x.ticker)}</b></td><td class="wrap">${esc(x.name || '')}</td><td>${esc(x.fetched_at || 'N/A')}</td></tr>`).join('') + '</tbody></table>'
+    : '<div class="q-card-sub">포트폴리오에서 제거된 뒤 분석 데이터가 남아 있는 종목이 여기에 표시됩니다.</div>';
+}
+function renderMethod() {
+  const c = C[0];
+  const groups = c ? Object.values(c.scores.groups).map(g => `<b>${esc(g.label)}</b> = ${esc(g.from.join(' + '))}`).join('<br>') : '';
+  document.getElementById('qMethod').innerHTML = `
+    <b>점수 엔진은 리서치 터미널과 동일한 8개 항목·가중치를 그대로 사용</b>하고, 이 화면에서는 표시만 묶었습니다.<br>
+    ${groups}<br>
+    <b>Business Quality</b> = 밸류에이션을 제외한 7개 엔진 항목의 가중평균 (결측 항목 제외 후 재정규화, 커버리지 60% 미만이면 산출하지 않음)<br>
+    <b>Investment Attractiveness</b> = ${Q.attr_weights.quality} × Business Quality + ${Q.attr_weights.valuation} × Valuation (둘 중 하나라도 없으면 N/A)<br>
+    <b>Moat 점수</b>는 재무 데이터에서 도출한 정량 프록시입니다. 경쟁우위 서술과 별점은 기업 상세의 분석 노트에서 근거와 함께 확인하세요.<br>
+    <b>데이터 구분</b> — <span class="q-basis Reported">Reported</span> 공시 재무 값(yfinance 집계) ·
+    <span class="q-basis Calculated">Calculated</span> 공시 값으로 계산한 지표(산식 표시) ·
+    <span class="q-basis Estimate">Estimate</span> 가정이 들어간 추정치(WACC 등)<br>
+    <b>기간</b> — yfinance 연간 재무는 최대 5개 회계연도라 5Y CAGR(6개 연도 필요)과 10Y는 N/A로 표시합니다. 추정으로 채우지 않습니다.<br>
+    <b>원천 데이터 우선순위</b> — 현재는 Yahoo Finance(yfinance) 단일 소스입니다. SEC 공시 원문 연동은 아직 구현되지 않았습니다.`;
+}
+
+async function refreshData() {
+  const b = document.getElementById('qRefresh');
+  b.disabled = true; b.textContent = '수집 중… (종목당 약 5초)';
+  try {
+    const r = await fetch('/api/research/refresh', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: '{}' });
+    if (!r.ok) throw new Error('HTTP ' + r.status);
+    location.reload();
+  } catch (e) { b.disabled = false; b.textContent = '수집 실패 — 다시 시도'; }
+}
+
+function renderCharts() { renderQP(); renderCompareCharts(); }
+
+renderHeader();
+if (!C.length) {
+  document.getElementById('qTable').innerHTML =
+    '<tbody><tr><td class="q-empty">분석된 보유 종목이 없습니다. 아래에서 종목을 추가하고 데이터를 수집해주세요.</td></tr></tbody>';
+  renderHistory();
+} else {
+  renderKpis(); renderQuestions(); buildPeriodSeg(); buildFilters(); renderTable();
+  renderCharts(); renderCompounding(); renderHistory(); renderMethod();
+}
+const themeBtn = document.getElementById('themeToggle');
+if (themeBtn) themeBtn.addEventListener('click', () => setTimeout(() => { if (C.length) renderCharts(); }, 60));
+</script>
+{% endblock %}
