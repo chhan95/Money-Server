@@ -57,7 +57,9 @@
 .hm-hero-count { position: absolute; top: 12px; right: 14px; font-size: 10.5px; font-weight: 600; opacity: 0.8; background: rgba(255,255,255,0.14); border-radius: 99px; padding: 2px 9px; z-index: 2; }
 .hm-hero-spark { position: absolute; left: 0; right: 0; bottom: 0; height: 46px; opacity: 0.9; pointer-events: none; }
 .hm-hero-chg { display: inline-block; margin-left: 6px; font-size: 10.5px; font-weight: 700; padding: 1px 7px; border-radius: 99px; background: rgba(255,255,255,0.16); }
-.hm-hero { padding-bottom: 30px; }
+.hm-hero { padding-bottom: 44px; }
+.hm-hero-spark { height: 36px; opacity: 0.7; z-index: 0; }
+.hm-hero-label, .hm-hero-value { position: relative; z-index: 1; }
 
 /* 카드 공통 hover */
 .hm-card, .hm-kpi, .hm-table-card { transition: transform .15s var(--ease-out), box-shadow .15s var(--ease-out); }
@@ -68,7 +70,7 @@
 /* 종목별 가로 막대 */
 .hm-row2 { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 10px; }
 @media (max-width: 800px) { .hm-row2 { grid-template-columns: 1fr; } }
-.hm-hbar-wrap { position: relative; }
+.hm-hbar-wrap { position: relative; height: 160px; }
 .hm-hbar-note { font-size: 10px; color: var(--text2); margin-top: 6px; }
 .hm-tick-link { color: inherit; text-decoration: none; }
 .hm-tick-link:hover .hm-tick-name { color: var(--blue); }
@@ -189,12 +191,12 @@
     <div class="hm-hero">
       <span class="hm-hero-count" id="s-count">—</span>
       <div class="hm-hero-label">Total Value</div>
-      <div class="hm-hero-value" id="s-value">—</div>
+      <div class="hm-hero-value"><span id="s-value">—</span><span class="hm-hero-chg" id="s-value-chg" style="display:none;"></span></div>
       <div class="hm-hero-sub" id="s-value-krw">—</div>
       <canvas class="hm-hero-spark" id="heroSpark"></canvas>
     </div>
     <div class="hm-kpi green"><div class="hm-kpi-l">평가이익</div><div class="hm-kpi-v" id="s-gain">—</div><div class="hm-kpi-s" id="s-gain-sub">평단가 입력 종목 기준</div></div>
-    <div class="hm-kpi green"><div class="hm-kpi-l">통합 월 소득</div><div class="hm-kpi-v pos" id="s-income">—</div><div class="hm-kpi-s">지분비례 순이익 · 현재 FY</div></div>
+    <div class="hm-kpi green"><div class="hm-kpi-l">통합 월 소득</div><div class="hm-kpi-v pos" id="s-income">—</div><div class="hm-kpi-s" id="s-income-sub">지분비례 순이익 · 현재 FY</div></div>
     <div class="hm-kpi amber"><div class="hm-kpi-l">예상 월 소득</div><div class="hm-kpi-v" style="color:var(--amber);" id="s-forecast">—</div><div class="hm-kpi-s" id="s-forecast-sub">내년 FY 애널리스트 예상</div></div>
     <div class="hm-kpi purple"><div class="hm-kpi-l">최대 비중</div><div class="hm-kpi-v" id="s-top">—</div><div class="hm-kpi-s" id="s-top-sub">—</div></div>
     <div class="hm-kpi gray"><div class="hm-kpi-l">소득 수익률</div><div class="hm-kpi-v" id="s-yield">—</div><div class="hm-kpi-s">연간 지분 순이익 ÷ 평가액</div></div>
@@ -220,7 +222,7 @@
       </div>
     </div>
     <div class="hm-card">
-      <div class="hm-card-head"><div class="hm-card-title">연도별 월 소득 합계</div><div class="hm-card-sub">순이익 기준 · 포트폴리오 전체</div></div>
+      <div class="hm-card-head"><div class="hm-card-title">연도별 월 소득 합계</div><div class="hm-card-sub">순이익 기준 · USD · 포트폴리오 전체</div></div>
       <div class="hm-legend-row">
         <span class="hm-legend-item"><span class="hm-legend-dot" style="background:rgba(16,185,129,0.7);"></span>실적</span>
         <span class="hm-legend-item"><span class="hm-legend-dot" style="background:rgba(245,158,11,0.45);border:1.5px dashed rgba(245,158,11,0.7);"></span>예상</span>
@@ -241,7 +243,7 @@
       <div class="hm-hbar-note" id="gainBarNote"></div>
     </div>
     <div class="hm-card">
-      <div class="hm-card-head"><div class="hm-card-title">종목별 월 소득 기여</div><div class="hm-card-sub">지분비례 순이익 · 현재 FY · 원화</div></div>
+      <div class="hm-card-head"><div class="hm-card-title">종목별 월 소득 기여</div><div class="hm-card-sub">지분비례 순이익 · 현재 FY · USD</div></div>
       <div class="hm-hbar-wrap" id="incomeBarWrap"><canvas id="incomeBar"></canvas></div>
       <div class="hm-hbar-note" id="incomeBarNote"></div>
     </div>
@@ -342,11 +344,12 @@ function renderAll() {
     setHTML('s-gain-sub', `${pill(gp)} ≈ ${fmtKRWraw(totalGain*fxRate)}${costRows.length<rows.length?` · ${costRows.length}/${rows.length}종목`:''}`);
   } else { setText('s-gain','N/A'); setText('s-gain-sub','평단가를 입력하면 표시됩니다'); }
 
-  setText('s-income', fmtKRW(totalMonthly)+'/월');
+  setText('s-income', fmtUSDraw(totalMonthly*1e6)+'/월');
+  setText('s-income-sub', '≈ '+fmtKRW(totalMonthly)+' · 현재 FY');
   if (fcRows.length) {
-    setText('s-forecast', fmtKRW(totalFc)+'/월');
+    setText('s-forecast', fmtUSDraw(totalFc*1e6)+'/월');
     const g = totalMonthly>0 ? (totalFc-totalMonthly)/totalMonthly*100 : null;
-    setHTML('s-forecast-sub', (g!==null?pill(g)+' ':'')+'내년 FY 애널리스트 예상'+(fcRows.length<rows.length?` · ${fcRows.length}/${rows.length}종목`:''));
+    setHTML('s-forecast-sub', (g!==null?pill(g)+' ':'')+'≈ '+fmtKRW(totalFc)+' · 내년 FY'+(fcRows.length<rows.length?` · ${fcRows.length}/${rows.length}종목`:''));
   } else setText('s-forecast','데이터 없음');
 
   const top = rows.slice().sort((a,b)=>b.value-a.value)[0];
@@ -357,7 +360,80 @@ function renderAll() {
   renderPie(rows, totalValue);
   renderBarChart();
   renderSector();
+  renderGainBar(rows);
+  renderIncomeBar(rows, totalMonthly);
   renderTable(rows, totalValue);
+  loadSpark(totalValue);
+}
+
+/* ── 히어로 스파크라인 (일별 스냅샷 · USD) ── */
+let sparkData = null;
+function loadSpark(totalValue) {
+  if (sparkData) { renderSpark(sparkData, totalValue); return; }
+  fetch('/api/history?granularity=daily').then(r=>r.json()).then(j => {
+    sparkData = (j.items||[]).filter(x=>x.fxRate>0 && x.totalValueKrw>0)
+      .map(x=>({ d:x.date, v:x.totalValueKrw/x.fxRate })).slice(-90);
+    renderSpark(sparkData, totalValue);
+  }).catch(()=>{});
+}
+function renderSpark(pts, totalValue) {
+  const chg = document.getElementById('s-value-chg');
+  if (!pts || pts.length < 2) { if (chg) chg.style.display='none'; return; }
+  const prev = pts[pts.length-2].v, last = totalValue || pts[pts.length-1].v;
+  const diff = last-prev, pct = prev ? diff/prev*100 : 0;
+  if (chg) { chg.style.display='inline-block'; const pd = pts[pts.length-2].d.slice(5).replace('-','/'); chg.textContent = `${sgn(pct)}${pct.toFixed(2)}% vs ${pd}`; chg.title = `${sgn(diff)}${fmtUSDraw(diff)} (${pts[pts.length-2].d} 스냅샷 대비)`; }
+  const first = pts[0].v, per = first ? (last-first)/first*100 : 0;
+  setText('s-value-krw', `≈ ${fmtKRWraw(last*fxRate)} · ${pts.length}일 ${sgn(per)}${per.toFixed(1)}%`);
+  const c = document.getElementById('heroSpark'); if (!c) return;
+  if (sparkChart) sparkChart.destroy();
+  sparkChart = new Chart(c.getContext('2d'), {
+    type:'line',
+    data:{ labels:pts.map(p=>p.d), datasets:[{ data:pts.map(p=>p.v), borderColor:'rgba(255,255,255,0.85)', borderWidth:1.5, pointRadius:0, tension:0.35, fill:true,
+      backgroundColor:(ctx)=>{ const g=ctx.chart.ctx.createLinearGradient(0,0,0,ctx.chart.height); g.addColorStop(0,'rgba(255,255,255,0.28)'); g.addColorStop(1,'rgba(255,255,255,0)'); return g; } }] },
+    options:{ responsive:true, maintainAspectRatio:false, animation:{duration:400}, layout:{padding:0},
+      plugins:{ legend:{display:false}, tooltip:{ enabled:false } },
+      scales:{ x:{display:false}, y:{display:false, min:Math.min(...pts.map(p=>p.v))*0.995} } },
+  });
+}
+
+/* ── 종목별 가로 막대 (평가이익 / 월 소득 기여) ── */
+function hbarOpts(fmt) {
+  const tickColor = getComputedStyle(document.documentElement).getPropertyValue('--text2').trim()||'#a8b3c0';
+  return { indexAxis:'y', responsive:true, maintainAspectRatio:false,
+    plugins:{ legend:{display:false}, tooltip:{ backgroundColor:'rgba(15,20,35,0.95)', cornerRadius:8, padding:9, callbacks:{ label:c=>fmt(c.parsed.x, c.dataIndex) } } },
+    scales:{ x:{ ticks:{font:{size:9.5},color:tickColor,maxTicksLimit:6,callback:v=>fmtUSDraw(v)}, grid:{color:'rgba(128,128,128,0.08)'}, border:{display:false} },
+             y:{ grid:{display:false}, ticks:{font:{size:11,weight:'700'},color:tickColor}, border:{display:false} } } };
+}
+function sizeHbar(wrapId, n) { const w=document.getElementById(wrapId); if (w) w.style.height = Math.max(120, 26*n+30)+'px'; }
+function renderGainBar(rows) {
+  const rs = rows.filter(r=>r.gain!==null).sort((a,b)=>b.gain-a.gain);
+  const note = document.getElementById('gainBarNote'), wrap=document.getElementById('gainBarWrap');
+  if (!rs.length) { wrap.style.height='auto'; wrap.innerHTML='<div class="hm-sector-empty">평단가를 입력하면 표시됩니다</div>'; note.textContent=''; return; }
+  sizeHbar('gainBarWrap', rs.length);
+  if (gainBar) gainBar.destroy();
+  gainBar = new Chart(document.getElementById('gainBar').getContext('2d'), {
+    type:'bar',
+    data:{ labels:rs.map(r=>r.item.ticker), datasets:[{ data:rs.map(r=>+r.gain.toFixed(0)),
+      backgroundColor:rs.map(r=>r.gain>=0?'rgba(16,185,129,0.55)':'rgba(239,68,68,0.5)'), borderColor:rs.map(r=>r.gain>=0?'rgba(16,185,129,0.9)':'rgba(239,68,68,0.9)'), borderWidth:1, borderRadius:4, borderSkipped:false }] },
+    options: hbarOpts((v,i)=>`${sgn(v)}${fmtUSDraw(v)} (${sgn(rs[i].gainPct)}${rs[i].gainPct.toFixed(1)}%) ≈ ${fmtKRWraw(v*fxRate)}`),
+  });
+  const best=rs[0], worst=rs[rs.length-1];
+  note.textContent = `최대 ${best.item.ticker} ${sgn(best.gain)}${fmtUSDraw(best.gain)}` + (rs.length>1?` · 최소 ${worst.item.ticker} ${sgn(worst.gain)}${fmtUSDraw(worst.gain)}`:'') + (rs.length<rows.length?` · 평단 미입력 ${rows.length-rs.length}종목 제외`:'');
+}
+function renderIncomeBar(rows, totalMonthly) {
+  const rs = rows.filter(r=>r.mUsd).sort((a,b)=>b.mUsd-a.mUsd);
+  const note = document.getElementById('incomeBarNote'), wrap=document.getElementById('incomeBarWrap');
+  if (!rs.length) { wrap.style.height='auto'; wrap.innerHTML='<div class="hm-sector-empty">소득 데이터가 없습니다</div>'; note.textContent=''; return; }
+  sizeHbar('incomeBarWrap', rs.length);
+  if (incomeBar) incomeBar.destroy();
+  incomeBar = new Chart(document.getElementById('incomeBar').getContext('2d'), {
+    type:'bar',
+    data:{ labels:rs.map(r=>r.item.ticker), datasets:[{ data:rs.map(r=>+(r.mUsd*1e6).toFixed(0)),
+      backgroundColor:rs.map(r=>COLORS[r.item.ticker]+'99'), borderColor:rs.map(r=>COLORS[r.item.ticker]), borderWidth:1, borderRadius:4, borderSkipped:false }] },
+    options: hbarOpts((v,i)=>`${fmtUSDraw(v)}/월 (${totalMonthly>0?(rs[i].mUsd/totalMonthly*100).toFixed(1):'0'}%) ≈ ${fmtKRWraw(v*fxRate)}`),
+  });
+  const top3 = rs.slice(0,3).reduce((s,r)=>s+r.mUsd,0);
+  note.textContent = totalMonthly>0 ? `상위 ${Math.min(3,rs.length)}종목이 월 소득의 ${(top3/totalMonthly*100).toFixed(1)}% 기여` : '';
 }
 
 function renderPie(rows, totalValue) {
@@ -383,8 +459,8 @@ function renderBarChart() {
   const histMap = new Map(), fcMap = new Map();
   ITEMS.forEach(item => {
     const fd = item.fiscal_data||{};
-    (item.year_keys||[]).forEach(k => { const d=fd[k]; if(!d||!d.shares) return; histMap.set(d.label,(histMap.get(d.label)||0)+(d.net||0)*(item.shares_owned/(d.shares*1e6))/12*1e6*fxRate/1e4); });
-    (item.forecast_keys||[]).forEach(k => { const d=fd[k]; if(!d||!d.shares) return; fcMap.set(d.label,(fcMap.get(d.label)||0)+(d.net||0)*(item.shares_owned/(d.shares*1e6))/12*1e6*fxRate/1e4); });
+    (item.year_keys||[]).forEach(k => { const d=fd[k]; if(!d||!d.shares) return; histMap.set(d.label,(histMap.get(d.label)||0)+(d.net||0)*(item.shares_owned/(d.shares*1e6))/12*1e6); });
+    (item.forecast_keys||[]).forEach(k => { const d=fd[k]; if(!d||!d.shares) return; fcMap.set(d.label,(fcMap.get(d.label)||0)+(d.net||0)*(item.shares_owned/(d.shares*1e6))/12*1e6); });
   });
   const hE=[...histMap.entries()].sort((a,b)=>a[0]<b[0]?-1:1), fE=[...fcMap.entries()];
   if (!hE.length && !fE.length) return;
@@ -395,8 +471,8 @@ function renderBarChart() {
     type:'bar',
     data:{ labels, datasets:[{ data, backgroundColor:isFc.map(f=>f?'rgba(245,158,11,0.22)':'rgba(16,185,129,0.28)'), borderColor:isFc.map(f=>f?'rgba(245,158,11,0.65)':'rgba(16,185,129,0.6)'), borderWidth:1.5, borderRadius:5, borderSkipped:false }] },
     options:{ responsive:true, maintainAspectRatio:false,
-      plugins:{ legend:{display:false}, tooltip:{ backgroundColor:'rgba(15,20,35,0.95)', cornerRadius:8, padding:9, callbacks:{ label:c=>'월 소득'+(isFc[c.dataIndex]?' (예상)':'')+': '+fmtKRWraw(c.parsed.y*1e4)+'/월' } } },
-      scales:{ y:{ ticks:{callback:v=>v.toLocaleString()+'만',font:{size:9.5},color:tickColor,maxTicksLimit:6}, grid:{color:'rgba(128,128,128,0.08)'}, border:{display:false} },
+      plugins:{ legend:{display:false}, tooltip:{ backgroundColor:'rgba(15,20,35,0.95)', cornerRadius:8, padding:9, callbacks:{ label:c=>'월 소득'+(isFc[c.dataIndex]?' (예상)':'')+': '+fmtUSDraw(c.parsed.y)+'/월 ≈ '+fmtKRWraw(c.parsed.y*fxRate) } } },
+      scales:{ y:{ ticks:{callback:v=>'$'+(v>=1000?(v/1000).toFixed(v>=10000?0:1)+'K':v),font:{size:9.5},color:tickColor,maxTicksLimit:6}, grid:{color:'rgba(128,128,128,0.08)'}, border:{display:false} },
                x:{ grid:{display:false}, ticks:{font:{size:10},color:tickColor}, border:{display:false} } } },
   });
 }
@@ -420,9 +496,9 @@ const COLS = [
   { k:'value',  l:'평가액',      v:r=>r.value },
   { k:'weight', l:'비중',        v:r=>r.value },
   { k:'gain',   l:'평가이익',    v:r=>r.gain },
-  { k:'income', l:'월 소득',     v:r=>r.mKrw },
+  { k:'income', l:'월 소득',     v:r=>r.mUsd },
   { k:'yield',  l:'소득 수익률', v:r=>r.yieldPct },
-  { k:'fc',     l:'내년 FY 월 소득', v:r=>r.fcKrw },
+  { k:'fc',     l:'내년 FY 월 소득', v:r=>r.fcUsd },
   { k:'growth', l:'성장률',      v:r=>r.growth },
 ];
 function setSort(k) { if (sortKey===k) sortDir*=-1; else { sortKey=k; sortDir = k==='ticker'?1:-1; } renderAll(); }
@@ -442,17 +518,17 @@ function renderTable(rows, totalValue) {
       <td>${fmtUSDraw(r.value)}<div class="hm-sub">${fmtKRWraw(r.value*fxRate)}</div></td>
       <td><span class="hm-w-track"><span class="hm-w-fill" style="width:${w}%;background:${c};"></span></span>${w.toFixed(1)}%</td>
       <td>${r.gain===null?na:`<span class="${cls(r.gain)}">${sgn(r.gain)}${fmtUSDraw(r.gain)}</span><div class="hm-sub">${pill(r.gainPct)}</div>`}</td>
-      <td class="hm-income-val">${fmtKRWraw(r.mKrw)}<div class="hm-sub" style="font-weight:400;">${fmtUSDraw(r.mUsd*1e6)}</div></td>
+      <td class="hm-income-val">${fmtUSDraw(r.mUsd*1e6)}<div class="hm-sub" style="font-weight:400;">≈ ${fmtKRWraw(r.mKrw)}</div></td>
       <td>${r.yieldPct===null?na:r.yieldPct.toFixed(2)+'%'}</td>
-      <td>${r.fcKrw===null?na:`<span class="hm-fc-val">${fmtKRWraw(r.fcKrw)}</span><div class="hm-sub">${it.forecast?.label||''}</div>`}</td>
+      <td>${r.fcUsd===null?na:`<span class="hm-fc-val">${fmtUSDraw(r.fcUsd*1e6)}</span><div class="hm-sub">≈ ${fmtKRWraw(r.fcKrw)}${it.forecast?.label?' · '+it.forecast.label:''}</div>`}</td>
       <td>${r.growth===null?na:pill(r.growth)}</td></tr>`; }).join('');
   const tKrw = rows.reduce((s,r)=>s+r.mKrw,0), fcRows=rows.filter(r=>r.fcKrw!==null), tFc=fcRows.reduce((s,r)=>s+r.fcKrw,0);
   const costRows=rows.filter(r=>r.gain!==null), tGain=costRows.reduce((s,r)=>s+r.gain,0), tCost=costRows.reduce((s,r)=>s+r.cost,0);
   const tY = totalValue>0 ? tKrw/fxRate*12/totalValue*100 : null;
   const total = `<tr class="total-row"><td colspan="3">합계 · ${rows.length}종목</td><td>${fmtUSDraw(totalValue)}<div class="hm-sub">${fmtKRWraw(totalValue*fxRate)}</div></td><td>100%</td>
     <td>${costRows.length?`<span class="${cls(tGain)}">${sgn(tGain)}${fmtUSDraw(tGain)}</span><div class="hm-sub">${pill(tCost?tGain/tCost*100:0)}</div>`:na}</td>
-    <td class="hm-income-val">${fmtKRWraw(tKrw)}/월</td><td>${tY===null?na:tY.toFixed(2)+'%'}</td>
-    <td class="hm-fc-val">${fcRows.length?fmtKRWraw(tFc)+'/월':na}</td><td>${(fcRows.length&&tKrw>0)?pill((tFc-tKrw)/tKrw*100):na}</td></tr>`;
+    <td class="hm-income-val">${fmtUSDraw(tKrw/fxRate)}/월<div class="hm-sub" style="font-weight:400;">≈ ${fmtKRWraw(tKrw)}</div></td><td>${tY===null?na:tY.toFixed(2)+'%'}</td>
+    <td class="hm-fc-val">${fcRows.length?fmtUSDraw(tFc/fxRate)+'/월<div class="hm-sub" style="font-weight:400;">≈ '+fmtKRWraw(tFc)+'</div>':na}</td><td>${(fcRows.length&&tKrw>0)?pill((tFc-tKrw)/tKrw*100):na}</td></tr>`;
   document.getElementById('incomeTable').innerHTML = head+'<tbody>'+body+total+'</tbody>';
 }
 
