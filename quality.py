@@ -661,9 +661,14 @@ def headline(companies, summary):
                 "자본비용 대비 수익성이 약한 기업 비중이 큰 상태로")
         parts.append(f"현재 포트폴리오는 {tone} 구성되어 있습니다 "
                      f"(WACC 비교 가능 {len(cmp_)}개 중 {above}개가 ROIC > WACC).")
-    g, om = rows["rev_growth"]["simple"], rows["op_margin"]["simple"]
+    # 기본 화면과 동일하게 보유금액 가중을 우선하고, 없으면 단순 평균
+    wkey, wlabel = (("holding_weighted", "보유금액 가중") if summary.get("has_holding")
+                    else ("simple", "기업별 단순"))
+    g, om = rows["rev_growth"].get(wkey), rows["op_margin"].get(wkey)
+    if g is None or om is None:
+        wlabel, g, om = "기업별 단순", rows["rev_growth"]["simple"], rows["op_margin"]["simple"]
     if g is not None and om is not None:
-        parts.append(f"기업별 단순 평균 매출 성장률 {g * 100:.1f}%, 영업이익률 {om * 100:.1f}%.")
+        parts.append(f"{wlabel} 평균 매출 성장률 {g * 100:.1f}%, 영업이익률 {om * 100:.1f}%.")
     pricey = [c["ticker"] for c in companies if c.get("qp_label") == "좋은 기업 · 가격 부담"]
     if pricey:
         parts.append(f"사업 품질은 상대적으로 높지만 가격 부담이 있는 기업: {', '.join(pricey)}.")

@@ -156,8 +156,8 @@
   <div class="q-card-head" style="margin-top:18px;">
     <div class="q-sec" style="margin:0;">Portfolio Summary</div>
     <div class="q-seg" id="qWeightSeg">
-      <button data-w="simple" class="on">단순 평균</button>
-      <button data-w="holding_weighted">보유금액 가중</button>
+      <button data-w="holding_weighted" class="on">보유금액 가중</button>
+      <button data-w="simple">단순 평균</button>
       <button data-w="cap_weighted">시가총액 가중</button>
     </div>
   </div>
@@ -275,7 +275,9 @@
 const Q = {{ quality_json | safe }};
 const C = Q.companies || [];
 
-let PERIOD = 'FY', WEIGHT = 'simple', sortKey = 'bq', sortDir = -1;
+// 기본은 보유금액 가중. 보유 수량이 없어 계산 불가면 단순 평균으로 대체
+let PERIOD = 'FY', WEIGHT = (Q.summary && Q.summary.has_holding) ? 'holding_weighted' : 'simple', sortKey = 'bq', sortDir = -1;
+document.querySelectorAll('#qWeightSeg button').forEach(x => x.classList.toggle('on', x.dataset.w === WEIGHT));
 const charts = {};
 const PALETTE = ['#667eea','#10b981','#f59e0b','#ef4444','#22d3ee','#a78bfa','#f472b6','#84cc16','#fb7185','#38bdf8'];
 const colorOf = t => PALETTE[Math.max(0, C.findIndex(c => c.ticker === t)) % PALETTE.length];
