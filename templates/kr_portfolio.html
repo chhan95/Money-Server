@@ -27,6 +27,8 @@
   --blue: #667eea;
   --red: #ef4444;
 }
+/* 전역 .page-wrap이 820px로 묶고 있어 이 페이지에서만 넓은 레이아웃으로 푼다 */
+.page-wrap { max-width: none !important; padding-left: 20px; padding-right: 20px; }
 
 .pf-page-header {
   text-align: center;
@@ -132,7 +134,7 @@
 
 .pf-summary-row {
   display: grid;
-  grid-template-columns: repeat(2, 1fr);
+  grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
   gap: 12px;
   margin-bottom: 24px;
 }
@@ -175,7 +177,7 @@
 
 .pf-grid {
   display: grid;
-  grid-template-columns: repeat(2, 1fr);
+  grid-template-columns: repeat(auto-fill, minmax(380px, 1fr));
   gap: 16px;
   margin-bottom: 24px;
 }

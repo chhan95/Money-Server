@@ -1,699 +1,616 @@
 {% extends "base.html" %}
-{% block title %}Money — 포트폴리오{% endblock %}
+{% block title %}해외 포트폴리오 — Holding Company{% endblock %}
 {% block content %}
 
-<!-- ── 로딩 오버레이 ── -->
-<div id="priceLoadingOverlay" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.75);z-index:9999;flex-direction:column;align-items:center;justify-content:center;gap:20px;">
-  <div style="width:48px;height:48px;border:4px solid rgba(255,255,255,0.15);border-top-color:#667eea;border-radius:50%;animation:spin 0.8s linear infinite;"></div>
-  <div style="color:#fff;font-size:16px;font-weight:700;">현재가 업데이트 중...</div>
-</div>
-<style>@keyframes spin{to{transform:rotate(360deg)}}</style>
-
 <style>
-:root {
-  --ms-gradient: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-  --glass-border: var(--border);
-  --ease-out: cubic-bezier(0.16, 1, 0.3, 1);
-  --shadow-sm: 0 1px 3px rgba(0,0,0,0.07);
-  --shadow-md: 0 4px 16px rgba(0,0,0,0.11);
-  --shadow-lg: 0 8px 32px rgba(0,0,0,0.18);
-  --r-xl: 16px;
-  --r-2xl: 20px;
-  --green: #10b981;
-  --amber: #f59e0b;
-  --blue: #667eea;
-  --red: #ef4444;
-}
+/* ══════════════════════════════════════════════════════════
+   해외 포트폴리오 — 미니멀 레이아웃
+   · 색은 본문/보조 텍스트 + 액센트 1개 + 손익(초록/빨강)만 쓴다
+   · 카드·그림자·테두리는 구획이 꼭 필요한 곳에만
+   ══════════════════════════════════════════════════════════ */
+.page-wrap { max-width: none !important; padding-left: 28px; padding-right: 28px; }
 
-/* ── Page Header ── */
-.pf-header {
-  display: flex; align-items: center; justify-content: space-between;
-  padding: 28px 0 20px;
-  gap: 12px;
-}
-.pf-header-left h1 {
-  font-size: 22px; font-weight: 800; letter-spacing: -0.4px;
-  background: var(--ms-gradient);
-  -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text;
-  margin-bottom: 2px;
-}
-.pf-header-left p { font-size: 12px; color: var(--text2); }
+.pf { font-variant-numeric: tabular-nums; }
+.pf-num { font-variant-numeric: tabular-nums; }
 
-/* ── Buttons ── */
-.btn-gradient {
-  background: var(--ms-gradient); color: white; border: none;
-  padding: 10px 20px; border-radius: 10px;
-  font-size: 13px; font-weight: 600; cursor: pointer;
-  transition: all 0.2s var(--ease-out);
-  box-shadow: 0 2px 12px rgba(102,126,234,0.3);
-  display: inline-flex; align-items: center; gap: 6px; white-space: nowrap;
+/* ── 상단 ── */
+.pf-top {
+  display: flex; align-items: flex-end; justify-content: space-between;
+  gap: 16px; flex-wrap: wrap;
+  padding: 32px 0 20px;
 }
-.btn-gradient:hover { transform: translateY(-1px); box-shadow: 0 4px 20px rgba(102,126,234,0.45); }
-.btn-soft {
-  background: var(--bg2); color: var(--text); border: 1px solid var(--glass-border);
-  padding: 7px 14px; border-radius: 8px; font-size: 12px; font-weight: 500;
-  cursor: pointer; transition: all 0.15s var(--ease-out);
-  display: inline-flex; align-items: center; gap: 5px;
-}
-.btn-soft:hover { background: rgba(128,128,128,0.1); }
-.btn-soft.danger:hover { background: rgba(239,68,68,0.08); color: var(--red); border-color: rgba(239,68,68,0.2); }
+.pf-top h1 { font-size: 20px; font-weight: 700; letter-spacing: -0.3px; color: var(--text); }
+.pf-top-sub { font-size: 12px; color: var(--text2); margin-top: 4px; }
 
-/* ── Error Banner ── */
-.pf-error-banner {
-  display: flex; align-items: center; gap: 10px;
-  background: rgba(239,68,68,0.08); border: 1px solid rgba(239,68,68,0.25);
-  border-radius: 12px; padding: 12px 16px; margin-bottom: 16px;
-  font-size: 13px; color: #ef4444; font-weight: 500;
+/* ── 버튼 ── */
+.pf-btn {
+  border: 1px solid var(--border); background: var(--bg); color: var(--text);
+  padding: 8px 16px; border-radius: 8px;
+  font-size: 13px; font-weight: 500; cursor: pointer;
+  transition: background 0.15s, border-color 0.15s, color 0.15s;
+  white-space: nowrap;
 }
-.pf-error-banner .close-btn {
-  margin-left: auto; background: none; border: none;
-  color: #ef4444; cursor: pointer; font-size: 14px; opacity: 0.7; padding: 0;
-}
-.pf-error-banner .close-btn:hover { opacity: 1; }
+.pf-btn:hover { background: var(--bg2); }
+.pf-btn.primary { background: var(--accent); border-color: var(--accent); color: #fff; font-weight: 600; }
+.pf-btn.primary:hover { filter: brightness(1.08); background: var(--accent); }
+.pf-btn.quiet { border-color: transparent; background: transparent; color: var(--text2); padding: 6px 10px; }
+.pf-btn.quiet:hover { background: var(--bg2); color: var(--text); }
+.pf-btn.danger { border-color: transparent; background: transparent; color: var(--red); padding: 6px 10px; }
+.pf-btn.danger:hover { background: rgba(220,38,38,0.08); }
+.pf-btn:disabled { opacity: 0.55; cursor: default; }
 
-/* ── Summary Bar ── */
-.pf-summary {
-  display: grid; grid-template-columns: 2fr 1fr 1fr 1fr;
-  gap: 12px; margin-bottom: 20px;
-}
-@media (max-width: 860px) { .pf-summary { grid-template-columns: 1fr 1fr; } }
-@media (max-width: 500px) { .pf-summary { grid-template-columns: 1fr; } }
-
-.pf-sum-card {
-  background: var(--bg); border: 1px solid var(--glass-border);
-  border-radius: var(--r-xl); padding: 20px 22px;
-  position: relative; overflow: hidden;
-  transition: box-shadow 0.2s var(--ease-out);
-}
-.pf-sum-card:hover { box-shadow: var(--shadow-md); }
-.pf-sum-card.main {
-  background: var(--ms-gradient); color: white;
-  box-shadow: 0 4px 24px rgba(102,126,234,0.3);
-}
-.pf-sum-card.main::after {
-  content: ''; position: absolute; top: -40%; right: -10%;
-  width: 200px; height: 200px;
-  background: radial-gradient(circle, rgba(255,255,255,0.1) 0%, transparent 70%);
-  pointer-events: none;
-}
-.pf-sum-label {
-  font-size: 10px; font-weight: 700; letter-spacing: 1px;
-  text-transform: uppercase; color: var(--text2);
-  margin-bottom: 8px;
-}
-.pf-sum-card.main .pf-sum-label { color: rgba(255,255,255,0.7); }
-.pf-sum-value {
-  font-size: 26px; font-weight: 800; letter-spacing: -0.5px;
-  line-height: 1.1;
-}
-.pf-sum-card.main .pf-sum-value { color: white; }
-.pf-sum-sub {
-  font-size: 11px; color: var(--text2); margin-top: 3px;
-}
-.pf-sum-card.main .pf-sum-sub { color: rgba(255,255,255,0.6); }
-
-/* ── Allocation Bar ── */
-.pf-alloc-section {
-  background: var(--bg); border: 1px solid var(--glass-border);
-  border-radius: var(--r-xl); padding: 18px 22px;
-  margin-bottom: 20px;
-}
-.pf-alloc-label {
-  font-size: 11px; font-weight: 700; color: var(--text2);
-  text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 10px;
-}
-.pf-alloc-bar {
-  display: flex; height: 10px; border-radius: 99px; overflow: hidden; gap: 2px;
-}
-.pf-alloc-segment { height: 100%; border-radius: 99px; min-width: 4px; }
-.pf-alloc-legend {
-  display: flex; flex-wrap: wrap; gap: 10px; margin-top: 10px;
-}
-.pf-alloc-dot {
-  display: flex; align-items: center; gap: 5px;
-  font-size: 11px; color: var(--text2);
-}
-.pf-alloc-dot span { font-weight: 600; color: var(--text); }
-
-/* ── Stock List ── */
-.pf-list-card {
-  background: var(--bg); border: 1px solid var(--glass-border);
-  border-radius: var(--r-xl); overflow: hidden;
-  margin-bottom: 20px;
-}
-.pf-list-head {
-  display: grid;
-  grid-template-columns: 200px 80px 100px 100px 90px 110px 80px;
-  gap: 0; padding: 10px 20px;
-  border-bottom: 1px solid var(--glass-border);
-  font-size: 10px; font-weight: 700; color: var(--text2);
-  text-transform: uppercase; letter-spacing: 0.5px;
-}
-.pf-list-head > *:not(:first-child) { text-align: right; }
-
-.pf-list-row {
-  display: grid;
-  grid-template-columns: 200px 80px 100px 100px 90px 110px 80px;
-  gap: 0; padding: 14px 20px;
-  border-bottom: 1px solid rgba(128,128,128,0.06);
-  align-items: center;
-  transition: background 0.15s;
-  position: relative;
-}
-.pf-list-row:last-child { border-bottom: none; }
-.pf-list-row:hover { background: rgba(128,128,128,0.04); }
-.pf-list-row > *:not(:first-child) { text-align: right; }
-
-/* Left accent line based on gain */
-.pf-list-row::before {
-  content: ''; position: absolute; left: 0; top: 0; bottom: 0;
-  width: 3px; border-radius: 0 3px 3px 0;
-  background: transparent;
-  transition: background 0.3s;
-}
-.pf-list-row.gain-pos::before { background: var(--green); }
-.pf-list-row.gain-neg::before { background: var(--red); }
-
-.pf-ticker-cell { display: flex; align-items: center; gap: 10px; }
-.pf-logo {
-  width: 34px; height: 34px; flex-shrink: 0; border-radius: 9px;
-  overflow: hidden; background: rgba(102,126,234,0.08);
-  display: flex; align-items: center; justify-content: center;
-  position: relative;
-}
-.pf-logo img { width: 100%; height: 100%; object-fit: contain; }
-.pf-logo-fb {
-  font-size: 9px; font-weight: 800; color: var(--blue);
-  display: none; position: absolute; inset: 0;
-  align-items: center; justify-content: center;
-}
-.pf-ticker-name { font-size: 13px; font-weight: 700; color: var(--text); line-height: 1.2; }
-.pf-ticker-fullname { font-size: 10px; color: var(--text2); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 120px; }
-
-.pf-num { font-size: 13px; font-weight: 600; font-variant-numeric: tabular-nums; }
-.pf-num-sub { font-size: 10px; color: var(--text2); margin-top: 1px; }
-
-.pf-badge {
-  display: inline-flex; align-items: center; justify-content: center;
-  padding: 3px 10px; border-radius: 99px;
-  font-size: 11px; font-weight: 700; white-space: nowrap;
-}
-.pf-badge.pos { background: rgba(16,185,129,0.1); color: var(--green); border: 1px solid rgba(16,185,129,0.2); }
-.pf-badge.neg { background: rgba(239,68,68,0.08); color: var(--red); border: 1px solid rgba(239,68,68,0.15); }
-.pf-badge.neu { background: rgba(128,128,128,0.07); color: var(--text2); border: 1px solid rgba(128,128,128,0.12); }
-
-.pf-row-actions { display: flex; gap: 6px; justify-content: flex-end; opacity: 0; transition: opacity 0.15s; }
-.pf-list-row:hover .pf-row-actions { opacity: 1; }
-@media (max-width: 700px) { .pf-row-actions { opacity: 1; } }
-
-/* ── Mobile: collapse to simpler layout ── */
-@media (max-width: 760px) {
-  .pf-list-head { display: none; }
-  .pf-list-row {
-    grid-template-columns: 1fr auto;
-    grid-template-rows: auto auto auto;
-    gap: 6px; padding: 14px 16px;
-  }
-  .pf-ticker-cell { grid-column: 1; }
-  .pf-col-shares, .pf-col-avg, .pf-col-cur { display: none; }
-  .pf-col-gain { grid-column: 2; grid-row: 1; }
-  .pf-col-eval { grid-column: 1 / -1; grid-row: 2; text-align: left !important; }
-  .pf-col-actions { grid-column: 1 / -1; grid-row: 3; opacity: 1; text-align: left !important; }
-  .pf-row-actions { justify-content: flex-start; opacity: 1; }
-}
-
-/* ── Empty State ── */
-.pf-empty {
-  text-align: center; padding: 64px 24px;
+/* ── 알림 줄 ── */
+.pf-note {
+  display: flex; align-items: center; gap: 8px;
+  font-size: 13px; padding: 10px 0; margin-bottom: 4px;
+  border-top: 1px solid var(--border); border-bottom: 1px solid var(--border);
   color: var(--text2);
 }
-.pf-empty .icon { font-size: 48px; margin-bottom: 14px; opacity: 0.25; }
-.pf-empty .title { font-size: 16px; font-weight: 700; color: var(--text); margin-bottom: 6px; }
-.pf-empty .msg { font-size: 13px; margin-bottom: 22px; }
+.pf-note.error { color: var(--red); }
+.pf-note .pf-note-close { margin-left: auto; background: none; border: none; color: inherit; cursor: pointer; font-size: 13px; opacity: 0.6; }
+.pf-note .pf-note-close:hover { opacity: 1; }
+.pf-spinner {
+  width: 12px; height: 12px; flex-shrink: 0;
+  border: 2px solid var(--border); border-top-color: var(--text2);
+  border-radius: 50%; animation: pfSpin 0.8s linear infinite;
+}
+@keyframes pfSpin { to { transform: rotate(360deg); } }
 
-/* ── Disclaimer ── */
-.pf-disclaimer {
-  font-size: 11px; color: var(--text2); opacity: 0.55;
-  text-align: center; padding: 4px 16px 28px;
+/* ── 요약 ── */
+.pf-overview {
+  display: grid; grid-template-columns: repeat(auto-fit, minmax(190px, 1fr));
+  gap: 28px 40px;
+  padding: 32px 0 30px;
+  border-bottom: 1px solid var(--border);
+  margin-bottom: 8px;
 }
+.pf-metric-label { font-size: 12px; color: var(--text2); margin-bottom: 8px; }
+.pf-metric-value { font-size: 24px; font-weight: 700; letter-spacing: -0.5px; line-height: 1.15; color: var(--text); }
+.pf-metric.lead .pf-metric-value { font-size: 34px; letter-spacing: -1px; }
+.pf-metric-note { font-size: 12px; color: var(--text2); margin-top: 6px; }
+.pos { color: var(--green); }
+.neg { color: var(--red); }
 
-/* ── Modal ── */
-.pf-modal-overlay {
-  display: none; position: fixed; inset: 0;
-  background: rgba(0,0,0,0.6); backdrop-filter: blur(4px);
-  z-index: 200; overflow-y: auto;
+/* ── 보유 종목 표 ── */
+.pf-section-head {
+  display: flex; align-items: baseline; justify-content: space-between;
+  gap: 12px; flex-wrap: wrap; padding: 26px 0 12px;
 }
-.pf-modal-box {
-  max-width: 460px; margin: 60px auto;
-  background: var(--bg); border: 1px solid var(--glass-border);
-  border-radius: var(--r-2xl); overflow: hidden;
-  box-shadow: var(--shadow-lg);
-  animation: modalSlideUp 0.3s var(--ease-out);
-}
-@keyframes modalSlideUp {
-  from { opacity: 0; transform: translateY(18px); }
-  to   { opacity: 1; transform: translateY(0); }
-}
-.pf-modal-header {
-  padding: 20px 24px 16px; border-bottom: 1px solid var(--glass-border);
-  display: flex; justify-content: space-between; align-items: center;
-}
-.pf-modal-header h2 { font-size: 16px; font-weight: 700; margin: 0; }
-.pf-modal-close {
-  background: var(--bg2); border: none; width: 32px; height: 32px;
-  border-radius: 8px; cursor: pointer; color: var(--text2); font-size: 14px;
-  display: flex; align-items: center; justify-content: center; transition: all 0.15s;
-}
-.pf-modal-close:hover { background: rgba(128,128,128,0.15); color: var(--text); }
-.pf-modal-body { padding: 20px 24px 24px; }
-.pf-form-field { margin-bottom: 14px; }
-.pf-form-field label {
-  display: block; font-size: 12px; font-weight: 500; color: var(--text2); margin-bottom: 6px;
-}
-.pf-form-field input {
-  width: 100%; padding: 10px 14px; background: var(--bg2);
-  border: 1px solid var(--glass-border); border-radius: 10px;
-  color: var(--text); font-size: 13px; outline: none; transition: border-color 0.2s;
-  box-sizing: border-box;
-}
-.pf-form-field input:focus {
-  border-color: #667eea; box-shadow: 0 0 0 3px rgba(102,126,234,0.15);
-}
-.pf-form-field input::placeholder { color: var(--text2); opacity: 0.5; }
-.pf-form-field input.ticker-input {
-  text-transform: uppercase; font-size: 20px; font-weight: 700; letter-spacing: 0.06em;
-}
-.pf-form-row { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 14px; }
-.pf-form-row .pf-form-field { margin-bottom: 0; }
+.pf-section-title { font-size: 14px; font-weight: 600; color: var(--text); }
+.pf-section-note { font-size: 12px; color: var(--text2); }
 
-@media (max-width: 500px) {
-  .pf-modal-box { margin: 16px; }
+.pf-table { width: 100%; border-collapse: collapse; }
+.pf-table th {
+  font-size: 11px; font-weight: 500; color: var(--text2); text-align: right;
+  padding: 0 0 10px; border-bottom: 1px solid var(--border); white-space: nowrap;
+}
+.pf-table th:first-child, .pf-table td:first-child { text-align: left; }
+.pf-table th:last-child, .pf-table td:last-child { text-align: right; width: 64px; }
+.pf-table td {
+  padding: 14px 0; text-align: right;
+  border-bottom: 1px solid var(--border2);
+  font-size: 13px; color: var(--text);
+}
+.pf-table th + th, .pf-table td + td { padding-left: 18px; }
+.pf-table tbody tr:hover { background: var(--bg2); }
+.pf-cell-sub { font-size: 11px; color: var(--text2); margin-top: 3px; }
+
+.pf-name { font-weight: 600; font-size: 13px; }
+.pf-company {
+  font-size: 11px; color: var(--text2); margin-top: 2px;
+  max-width: 360px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+}
+.pf-memo { font-size: 11px; color: var(--text2); margin-top: 3px; opacity: 0.85; }
+.pf-muted { color: var(--text2); }
+
+/* 비중 — 한 가지 색, 막대는 보조 정보 */
+.pf-weight-val { font-size: 13px; font-weight: 600; }
+.pf-weight-track {
+  display: block; height: 3px; margin-top: 6px; margin-left: auto;
+  width: 100%; max-width: 96px;
+  background: var(--border2); border-radius: 2px; overflow: hidden;
+}
+.pf-weight-fill { display: block; height: 100%; background: var(--accent); opacity: 0.55; border-radius: 2px; }
+
+/* 행 수정 버튼 — 호버 시 드러나되 모바일/키보드에서는 항상 보인다 */
+.pf-row-edit { opacity: 0; transition: opacity 0.15s; }
+tr:hover .pf-row-edit, .pf-row-edit:focus-visible { opacity: 1; }
+
+.pf-table tfoot td {
+  padding: 14px 0; border-top: 1px solid var(--border); border-bottom: none;
+  font-weight: 600; font-size: 13px;
+}
+.pf-table tfoot td + td { padding-left: 18px; }
+
+/* ── 비어 있을 때 ── */
+.pf-empty { padding: 72px 0; text-align: center; }
+.pf-empty-title { font-size: 15px; font-weight: 600; color: var(--text); margin-bottom: 6px; }
+.pf-empty-msg { font-size: 13px; color: var(--text2); margin-bottom: 20px; }
+
+.pf-foot { font-size: 11px; color: var(--text2); padding: 28px 0 8px; }
+
+/* ── 수정 시트 (보기 화면을 덮는 별도의 편집 모드) ── */
+.pf-sheet-backdrop {
+  display: none; position: fixed; inset: 0; z-index: 900;
+  background: rgba(15,23,42,0.35);
+  padding: 24px; overflow-y: auto;
+}
+.pf-sheet-backdrop.open { display: block; }
+.pf-sheet {
+  background: var(--bg); border: 1px solid var(--border); border-radius: 14px;
+  width: 100%; max-width: 420px; margin: 56px auto;
+  overflow: hidden;
+}
+.pf-sheet-head {
+  display: flex; align-items: flex-start; justify-content: space-between;
+  gap: 12px; padding: 20px 22px 16px; border-bottom: 1px solid var(--border);
+}
+.pf-sheet-mode {
+  font-size: 11px; font-weight: 600; letter-spacing: 0.4px;
+  color: var(--accent); margin-bottom: 4px;
+}
+.pf-sheet-head h2 { font-size: 16px; font-weight: 700; color: var(--text); }
+.pf-sheet-body { padding: 20px 22px 4px; }
+.pf-field { margin-bottom: 18px; }
+.pf-field label { display: block; font-size: 12px; font-weight: 500; color: var(--text); margin-bottom: 6px; }
+.pf-field input {
+  width: 100%; padding: 9px 12px;
+  border: 1px solid var(--border); border-radius: 8px;
+  background: var(--bg); color: var(--text); font-size: 14px;
+  font-family: inherit; transition: border-color 0.15s;
+}
+.pf-field input:focus { outline: none; border-color: var(--accent); }
+.pf-field input[readonly] { background: var(--bg2); color: var(--text2); }
+.pf-field-hint { font-size: 11px; color: var(--text2); margin-top: 6px; }
+.pf-field-row { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+
+.pf-sheet-actions {
+  display: flex; align-items: center; gap: 8px;
+  padding: 16px 22px 20px; border-top: 1px solid var(--border); margin-top: 4px;
+}
+.pf-sheet-actions .spacer { margin-left: auto; }
+
+/* ── 갱신 오버레이 ── */
+.pf-overlay {
+  display: none; position: fixed; inset: 0; z-index: 950;
+  background: var(--bg); opacity: 0.94;
+  flex-direction: column; align-items: center; justify-content: center; gap: 14px;
+}
+.pf-overlay.open { display: flex; }
+.pf-overlay-text { font-size: 13px; color: var(--text2); }
+
+/* ── 저장·삭제 결과 ── */
+.pf-toast {
+  position: fixed; left: 50%; bottom: 28px; transform: translateX(-50%);
+  background: var(--text); color: var(--bg);
+  font-size: 13px; padding: 10px 18px; border-radius: 8px;
+  opacity: 0; pointer-events: none; transition: opacity 0.25s; z-index: 1000;
+}
+.pf-toast.show { opacity: 0.95; }
+
+/* ── 모바일: 표를 행 단위 블록으로 ── */
+@media (max-width: 760px) {
+  .page-wrap { padding-left: 16px; padding-right: 16px; }
+  .pf-overview { gap: 22px 28px; padding: 24px 0; }
+  .pf-metric.lead .pf-metric-value { font-size: 28px; }
+
+  .pf-table thead { display: none; }
+  .pf-table, .pf-table tbody, .pf-table tfoot, .pf-table tr, .pf-table td { display: block; width: 100%; }
+  .pf-table tr { padding: 16px 0; border-bottom: 1px solid var(--border2); position: relative; }
+  .pf-table td {
+    padding: 3px 0 !important; border: none; text-align: right;
+    display: flex; align-items: baseline; justify-content: space-between; gap: 16px;
+  }
+  .pf-table td::before {
+    content: attr(data-label); font-size: 11px; color: var(--text2);
+    text-align: left; flex-shrink: 0;
+  }
+  .pf-table td:first-child { display: block; margin-bottom: 8px; padding-right: 64px !important; }
+  .pf-table td:first-child::before { content: none; }
+  .pf-table td:last-child { position: absolute; top: 14px; right: 0; width: auto; }
+  .pf-weight-track { margin-left: 0; max-width: 100%; width: 120px; }
+  .pf-row-edit { opacity: 1; }
+  .pf-table tfoot tr { border-top: 1px solid var(--border); border-bottom: none; }
+  .pf-sheet { margin: 12px auto; }
 }
 </style>
 
+<div class="pf">
 
-<!-- ══════════════════════════════════════
-     PAGE HEADER
-══════════════════════════════════════ -->
-<div class="pf-header">
-  <div class="pf-header-left">
-    <h1>해외 포트폴리오</h1>
-    <p>{{ items | length }}개 종목 · Yahoo Finance 기준</p>
-  </div>
-  <button class="btn-gradient" onclick="openModal(null)">
-    <span style="font-size:16px;line-height:1;">+</span> 종목 추가
-  </button>
-</div>
-
-{% if error %}
-<div class="pf-error-banner" id="errorBanner">
-  <span>⚠️ {{ error }}</span>
-  <button class="close-btn" onclick="document.getElementById('errorBanner').remove()">✕</button>
-</div>
-{% endif %}
-
-{% if stale_tickers and stale_tickers != '[]' %}
-<div id="refreshBanner" style="display:flex;align-items:center;gap:10px;background:rgba(245,158,11,0.06);border:1px solid rgba(245,158,11,0.12);color:var(--amber);border-radius:12px;padding:12px 16px;margin-bottom:16px;font-size:13px;font-weight:500;">
-  <div style="width:16px;height:16px;border:2px solid rgba(245,158,11,0.2);border-top-color:var(--amber);border-radius:50%;animation:spin 0.8s linear infinite;flex-shrink:0;"></div>
-  데이터 갱신 중… 완료 후 자동으로 새로고침됩니다
-</div>
-{% endif %}
-
-
-{% if items %}
-
-<!-- ══════════════════════════════════════
-     SUMMARY BAR
-══════════════════════════════════════ -->
-<div class="pf-summary">
-  <div class="pf-sum-card main">
-    <div class="pf-sum-label">총 평가액</div>
-    <div class="pf-sum-value" id="sumTotal">—</div>
-    <div class="pf-sum-sub" id="sumTotalKrw">환율 적용 원화 환산</div>
-  </div>
-  <div class="pf-sum-card">
-    <div class="pf-sum-label">총 투자금</div>
-    <div class="pf-sum-value" id="sumCost">—</div>
-    <div class="pf-sum-sub" id="sumCostKrw">매수 기준</div>
-  </div>
-  <div class="pf-sum-card">
-    <div class="pf-sum-label">평가 손익</div>
-    <div class="pf-sum-value" id="sumPnl">—</div>
-    <div class="pf-sum-sub" id="sumPnlPct">수익률</div>
-  </div>
-  <div class="pf-sum-card">
-    <div class="pf-sum-label">보유 종목</div>
-    <div class="pf-sum-value">{{ items | length }}</div>
-    <div class="pf-sum-sub">개 종목</div>
-  </div>
-</div>
-
-
-<!-- ══════════════════════════════════════
-     ALLOCATION BAR
-══════════════════════════════════════ -->
-<div class="pf-alloc-section">
-  <div class="pf-alloc-label">포트폴리오 구성</div>
-  <div class="pf-alloc-bar" id="allocBar"></div>
-  <div class="pf-alloc-legend" id="allocLegend"></div>
-</div>
-
-
-<!-- ══════════════════════════════════════
-     STOCK LIST
-══════════════════════════════════════ -->
-<div class="pf-list-card">
-  <!-- Header -->
-  <div class="pf-list-head">
-    <div>종목</div>
-    <div>보유주</div>
-    <div>평균단가</div>
-    <div>현재가</div>
-    <div>수익률</div>
-    <div>평가액</div>
-    <div></div>
-  </div>
-
-  <!-- Rows -->
-  {% for item in items %}
-  {% set gain_pct = ((item.current_price - item.avg_price) / item.avg_price * 100) if item.avg_price > 0 and item.current_price > 0 else none %}
-  {% set eval_usd = item.shares_owned * item.current_price if item.current_price > 0 else 0 %}
-  <div class="pf-list-row {% if gain_pct is not none %}{% if gain_pct >= 0 %}gain-pos{% else %}gain-neg{% endif %}{% endif %}"
-       data-shares="{{ item.shares_owned }}"
-       data-avg="{{ item.avg_price }}"
-       data-cur="{{ item.current_price }}"
-       data-ticker="{{ item.ticker }}">
-
-    <!-- 종목 -->
-    <div class="pf-ticker-cell">
-      <div class="pf-logo">
-        <img src="/resources/icons/{{ item.ticker }}.png"
-             onerror="this.style.display='none';this.parentElement.querySelector('.pf-logo-fb').style.display='flex';" />
-        <div class="pf-logo-fb">{{ item.ticker[:3] }}</div>
-      </div>
-      <div>
-        <div class="pf-ticker-name">{{ item.ticker }}</div>
-        <div class="pf-ticker-fullname" title="{{ item.name or '' }}">{{ item.name or '—' }}</div>
-        {% if item.memo %}
-        <div style="font-size:10px;color:var(--blue);margin-top:2px;" title="{{ item.memo }}">💬 {{ item.memo[:28] }}{% if item.memo|length > 28 %}…{% endif %}</div>
-        {% endif %}
+  <!-- ── 헤더 ── -->
+  <header class="pf-top">
+    <div>
+      <h1>해외 포트폴리오</h1>
+      <div class="pf-top-sub">
+        {{ items | length }}개 종목 · 현재가 Yahoo Finance · 환율 {{ "{:,.0f}".format(fx_default) }}원 적용
       </div>
     </div>
+    {% if items %}
+    <button class="pf-btn primary" onclick="openAdd()">종목 추가</button>
+    {% endif %}
+  </header>
 
-    <!-- 보유주 -->
-    <div class="pf-col-shares">
-      <div class="pf-num">{{ item.shares_owned | int if item.shares_owned == (item.shares_owned | int) else item.shares_owned }}</div>
-      <div class="pf-num-sub">주</div>
-    </div>
-
-    <!-- 평균단가 -->
-    <div class="pf-col-avg">
-      {% if item.avg_price > 0 %}
-      <div class="pf-num">${{ "%.2f"|format(item.avg_price) }}</div>
-      {% else %}
-      <div class="pf-num" style="color:var(--text2);">—</div>
-      {% endif %}
-    </div>
-
-    <!-- 현재가 -->
-    <div class="pf-col-cur">
-      {% if item.current_price > 0 %}
-      <div class="pf-num">${{ "%.2f"|format(item.current_price) }}</div>
-      {% else %}
-      <div class="pf-num" style="color:var(--text2);">—</div>
-      {% endif %}
-    </div>
-
-    <!-- 수익률 -->
-    <div class="pf-col-gain">
-      {% if gain_pct is not none %}
-      <span class="pf-badge {% if gain_pct >= 0 %}pos{% else %}neg{% endif %}">
-        {{ '+' if gain_pct >= 0 else '' }}{{ "%.1f"|format(gain_pct) }}%
-      </span>
-      {% else %}
-      <span class="pf-badge neu">—</span>
-      {% endif %}
-    </div>
-
-    <!-- 평가액 -->
-    <div class="pf-col-eval">
-      {% if eval_usd > 0 %}
-      <div class="pf-num" style="color:var(--blue);">${{ "{:,.0f}".format(eval_usd) }}</div>
-      <div class="pf-num-sub eval-krw"></div>
-      {% else %}
-      <div class="pf-num" style="color:var(--text2);">—</div>
-      {% endif %}
-    </div>
-
-    <!-- 액션 -->
-    <div class="pf-col-actions">
-      <div class="pf-row-actions">
-        <button class="btn-soft"
-                data-ticker="{{ item.ticker }}"
-                data-shares="{{ item.shares_owned }}"
-                data-avg="{{ item.avg_price }}"
-                data-memo="{{ item.memo or '' }}"
-                onclick="openModalFromBtn(this)"
-                title="수정">✏️</button>
-        <form method="post" action="/portfolio/delete/{{ item.id }}"
-              onsubmit="return confirm('{{ item.ticker }} 종목을 삭제하시겠습니까?')" style="margin:0;">
-          <button type="submit" class="btn-soft danger" title="삭제">🗑️</button>
-        </form>
-      </div>
-    </div>
+  {% if error %}
+  <div class="pf-note error" id="errorNote">
+    <span>{{ error }}</span>
+    <button class="pf-note-close" onclick="document.getElementById('errorNote').remove()" aria-label="닫기">✕</button>
   </div>
-  {% endfor %}
-</div>
+  {% endif %}
 
-{% else %}
+  {% if stale_tickers and stale_tickers != '[]' %}
+  <div class="pf-note">
+    <span class="pf-spinner"></span>
+    <span>현재가를 갱신하고 있습니다. 완료되면 자동으로 새로고침됩니다.</span>
+  </div>
+  {% endif %}
 
-<!-- ══════════════════════════════════════
-     EMPTY STATE
-══════════════════════════════════════ -->
-<div style="background:var(--bg);border:1px solid var(--glass-border);border-radius:var(--r-xl);margin-bottom:20px;">
+  {% if items %}
+
+  <!-- ── 요약: 지금 얼마인가 → 얼마 벌었나 → 얼마 넣었나 → 어디에 쏠렸나 ── -->
+  <section class="pf-overview">
+    <div class="pf-metric lead">
+      <div class="pf-metric-label">총 평가액</div>
+      <div class="pf-metric-value" id="sumTotal">—</div>
+      <div class="pf-metric-note" id="sumTotalKrw"></div>
+    </div>
+    <div class="pf-metric">
+      <div class="pf-metric-label">평가손익</div>
+      <div class="pf-metric-value" id="sumPnl">—</div>
+      <div class="pf-metric-note" id="sumPnlNote"></div>
+    </div>
+    <div class="pf-metric">
+      <div class="pf-metric-label">투자 원금</div>
+      <div class="pf-metric-value" id="sumCost">—</div>
+      <div class="pf-metric-note" id="sumCostNote"></div>
+    </div>
+    <div class="pf-metric">
+      <div class="pf-metric-label">가장 큰 종목</div>
+      <div class="pf-metric-value" id="sumTop">—</div>
+      <div class="pf-metric-note" id="sumTopNote"></div>
+    </div>
+  </section>
+
+  <!-- ── 보유 종목 ── -->
+  <div class="pf-section-head">
+    <div class="pf-section-title">보유 종목</div>
+    <div class="pf-section-note">평가액이 큰 순서 · 오른쪽 “수정”에서 수량·평단·메모를 바꿀 수 있습니다</div>
+  </div>
+
+  <table class="pf-table">
+    <thead>
+      <tr>
+        <th>종목</th>
+        <th>보유</th>
+        <th>현재가 / 평단</th>
+        <th>평가액</th>
+        <th>평가손익</th>
+        <th>비중</th>
+        <th></th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for item in items %}
+      {% set gain_pct = ((item.current_price - item.avg_price) / item.avg_price * 100) if item.avg_price > 0 and item.current_price > 0 else none %}
+      {% set eval_usd = item.shares_owned * item.current_price if item.current_price > 0 else 0 %}
+      <tr data-ticker="{{ item.ticker }}"
+          data-shares="{{ item.shares_owned }}"
+          data-avg="{{ item.avg_price }}"
+          data-cur="{{ item.current_price }}">
+
+        <td>
+          <div class="pf-name">{{ item.ticker }}</div>
+          <div class="pf-company" title="{{ item.name or '' }}">{{ item.name or '—' }}</div>
+          {% if item.memo %}<div class="pf-memo" title="{{ item.memo }}">{{ item.memo }}</div>{% endif %}
+        </td>
+
+        <td data-label="보유">
+          <span class="pf-num">{{ item.shares_owned | int if item.shares_owned == (item.shares_owned | int) else item.shares_owned }}</span>주
+        </td>
+
+        <td data-label="현재가 / 평단">
+          {% if item.current_price > 0 %}
+          <div class="pf-num">${{ "%.2f"|format(item.current_price) }}</div>
+          {% else %}
+          <div class="pf-muted">—</div>
+          {% endif %}
+          <div class="pf-cell-sub">{{ '평단 $' + "%.2f"|format(item.avg_price) if item.avg_price > 0 else '평단 미입력' }}</div>
+        </td>
+
+        <td data-label="평가액">
+          {% if eval_usd > 0 %}
+          <div class="pf-num">${{ "{:,.0f}".format(eval_usd) }}</div>
+          <div class="pf-cell-sub eval-krw"></div>
+          {% else %}
+          <div class="pf-muted">—</div>
+          {% endif %}
+        </td>
+
+        <td data-label="평가손익">
+          {% if gain_pct is not none %}
+          {% set gain_usd = (item.current_price - item.avg_price) * item.shares_owned %}
+          <div class="pf-num {{ 'pos' if gain_usd >= 0 else 'neg' }}">
+            {{ '+' if gain_usd >= 0 else '-' }}${{ "{:,.0f}".format(gain_usd | abs) }}
+          </div>
+          <div class="pf-cell-sub {{ 'pos' if gain_pct >= 0 else 'neg' }}">
+            {{ '+' if gain_pct >= 0 else '' }}{{ "%.1f"|format(gain_pct) }}%
+          </div>
+          {% else %}
+          <div class="pf-muted">—</div>
+          <div class="pf-cell-sub">평단 입력 시 계산</div>
+          {% endif %}
+        </td>
+
+        <td data-label="비중">
+          <div class="pf-weight-val">—</div>
+          <span class="pf-weight-track"><span class="pf-weight-fill" style="width:0%;"></span></span>
+        </td>
+
+        <td>
+          <button class="pf-btn quiet pf-row-edit"
+                  data-id="{{ item.id }}"
+                  data-ticker="{{ item.ticker }}"
+                  data-shares="{{ item.shares_owned }}"
+                  data-avg="{{ item.avg_price }}"
+                  data-memo="{{ item.memo or '' }}"
+                  onclick="openEdit(this)">수정</button>
+        </td>
+      </tr>
+      {% endfor %}
+    </tbody>
+    <tfoot>
+      <tr>
+        <td>합계 · {{ items | length }}종목</td>
+        <td data-label="보유"></td>
+        <td data-label="현재가 / 평단"></td>
+        <td data-label="평가액">
+          <div class="pf-num" id="totEval">—</div>
+          <div class="pf-cell-sub" id="totEvalKrw"></div>
+        </td>
+        <td data-label="평가손익">
+          <div class="pf-num" id="totGain">—</div>
+          <div class="pf-cell-sub" id="totGainPct"></div>
+        </td>
+        <td data-label="비중">100%</td>
+        <td></td>
+      </tr>
+    </tfoot>
+  </table>
+
+  {% else %}
+
   <div class="pf-empty">
-    <div class="icon">📭</div>
-    <div class="title">보유 종목이 없습니다</div>
-    <div class="msg">상단 "+ 종목 추가" 버튼으로 첫 종목을 추가하세요.</div>
-    <button class="btn-gradient" onclick="openModal(null)">+ 종목 추가</button>
+    <div class="pf-empty-title">아직 보유 종목이 없습니다</div>
+    <div class="pf-empty-msg">티커와 보유 수량을 입력하면 현재가·평가액·비중이 자동으로 계산됩니다.</div>
+    <button class="pf-btn primary" onclick="openAdd()">첫 종목 추가</button>
   </div>
+
+  {% endif %}
+
+  <div class="pf-foot">종목을 추가하면 Yahoo Finance에서 재무 데이터를 가져와 24시간 동안 보관합니다.</div>
 </div>
 
-{% endif %}
 
-<div class="pf-disclaimer">
-  ※ 종목 추가 시 Yahoo Finance에서 재무 데이터를 자동으로 가져옵니다. 데이터는 24시간 캐시됩니다.
-</div>
-
-
-<!-- ══════════════════════════════════════
-     MODAL
-══════════════════════════════════════ -->
-<div id="modal" class="pf-modal-overlay">
-  <div class="pf-modal-box">
-    <div class="pf-modal-header">
-      <h2 id="modalTitle">종목 추가</h2>
-      <button onclick="closeModal()" class="pf-modal-close">✕</button>
+<!-- ══════════════════════════════════════════════════════════
+     수정 모드 — 보기 화면과 분리된 편집 시트
+     ══════════════════════════════════════════════════════════ -->
+<div class="pf-sheet-backdrop" id="sheet" onclick="if(event.target===this) closeSheet()">
+  <div class="pf-sheet" role="dialog" aria-modal="true" aria-labelledby="sheetTitle">
+    <div class="pf-sheet-head">
+      <div>
+        <div class="pf-sheet-mode" id="sheetMode">종목 추가</div>
+        <h2 id="sheetTitle">새 종목</h2>
+      </div>
+      <button class="pf-btn quiet" onclick="closeSheet()" aria-label="닫기">✕</button>
     </div>
-    <div class="pf-modal-body">
-      <form method="post" action="/portfolio/add" id="addForm">
-        <div class="pf-form-field">
-          <label>티커 (Ticker)</label>
-          <input type="text" name="ticker" id="f-ticker" class="ticker-input"
-                 placeholder="NVDA" required maxlength="12" />
+
+    <div class="pf-sheet-body">
+      <form method="post" action="/portfolio/add" id="pfForm">
+        <div class="pf-field">
+          <label for="f-ticker">티커</label>
+          <input type="text" name="ticker" id="f-ticker" placeholder="NVDA" required maxlength="12" autocomplete="off" />
+          <div class="pf-field-hint" id="tickerHint">Yahoo Finance에서 쓰는 심볼을 입력하세요.</div>
         </div>
-        <div class="pf-form-row">
-          <div class="pf-form-field">
-            <label>보유 주식 수</label>
-            <input type="number" name="shares_owned" id="f-shares"
-                   placeholder="100" min="0" step="0.01" required />
+
+        <div class="pf-field-row">
+          <div class="pf-field">
+            <label for="f-shares">보유 수량</label>
+            <input type="number" name="shares_owned" id="f-shares" placeholder="10" min="0" step="0.01" required />
           </div>
-          <div class="pf-form-field">
-            <label>평균 매수단가 ($)</label>
-            <input type="number" name="avg_price" id="f-price"
-                   placeholder="0.00" min="0" step="0.01" />
+          <div class="pf-field">
+            <label for="f-price">평균 매수단가 ($)</label>
+            <input type="number" name="avg_price" id="f-price" placeholder="선택" min="0" step="0.01" />
           </div>
         </div>
-        <div class="pf-form-field" style="margin-bottom:24px;">
-          <label>메모 (선택)</label>
-          <input type="text" name="memo" id="f-memo"
-                 placeholder="메모..." maxlength="200" />
+        <div class="pf-field" style="margin-top:-8px;">
+          <div class="pf-field-hint">평단을 입력하면 평가손익과 수익률이 계산됩니다.</div>
         </div>
-        <div style="display:flex;gap:10px;justify-content:flex-end;">
-          <button type="button" class="btn-soft" onclick="closeModal()">취소</button>
-          <button type="submit" class="btn-gradient" style="padding:10px 24px;">저장</button>
+
+        <div class="pf-field">
+          <label for="f-memo">메모</label>
+          <input type="text" name="memo" id="f-memo" placeholder="선택 — 매수 이유 등" maxlength="200" />
         </div>
       </form>
     </div>
+
+    <div class="pf-sheet-actions">
+      <form method="post" id="pfDelete" style="display:none;" onsubmit="return onDelete()">
+        <button type="submit" class="pf-btn danger">삭제</button>
+      </form>
+      <div class="spacer"></div>
+      <button type="button" class="pf-btn" onclick="closeSheet()">취소</button>
+      <button type="submit" class="pf-btn primary" form="pfForm" id="saveBtn">저장</button>
+    </div>
   </div>
 </div>
 
+<!-- 갱신 중 -->
+<div class="pf-overlay" id="overlay">
+  <span class="pf-spinner" style="width:20px;height:20px;border-width:2.5px;"></span>
+  <div class="pf-overlay-text">현재가를 불러오는 중입니다…</div>
+</div>
 
-<!-- ══════════════════════════════════════
-     SCRIPT
-══════════════════════════════════════ -->
+<div class="pf-toast" id="toast"></div>
+
+
 <script>
-// ── 티커 색상 ─────────────────────────────────────────────
-const TICKER_COLORS = {
-  "AAPL":"#F5F5F7","MSFT":"#0078D4","GOOGL":"#4285F4","GOOG":"#4285F4",
-  "AMZN":"#FF9900","META":"#0866FF","NVDA":"#76B900","TSLA":"#E31937",
-  "NFLX":"#E50914","ORCL":"#F80000","CRM":"#00A1E0","ADBE":"#FF0000",
-  "NOW":"#00A1E0","SNOW":"#29B5E8","TEAM":"#0052CC","MDB":"#00ED64",
-  "DDOG":"#632CA6","NET":"#F38020","ZS":"#005DAA","CRWD":"#FC1D2D",
-  "PANW":"#00C0E8","SHOP":"#96BF48","PLTR":"#1a1a1a","V":"#1A1F71",
-  "MA":"#CF4500","LLY":"#D52B1E","NVO":"#004B87","TSM":"#EB0029",
-  "AVGO":"#CC0000","ASML":"#F58220","KLAC":"#007BC6","INTC":"#0071C5",
-  "AMD":"#ED1C24","QCOM":"#3253DC","AMAT":"#00A3E0","ARM":"#0091BD",
-  "MU":"#E1251B","UBER":"#000000","ABNB":"#FF5A5F","SPOT":"#1ED760",
-  "APP":"#001026","DUOL":"#58CC02","TTD":"#0085CA","HUBS":"#FF7A59",
-  "COIN":"#0052FF","CELH":"#E31837","IOT":"#1A56DB","MPWR":"#E31837",
-};
-const FALLBACK_COLORS = ['#667eea','#10b981','#f59e0b','#22d3ee','#ec4899','#8b5cf6','#f97316'];
-const _THEME_AWARE = {
-  "PLTR": { light:"#1a1a1a", dark:"#ffffff" },
-  "APP":  { light:"#001026", dark:"#ffffff" },
-  "AAPL": { light:"#1d1d1f", dark:"#F5F5F7" },
-};
-let _fi = 0;
-function tickerColor(ticker) {
-  if (_THEME_AWARE[ticker]) {
-    return document.documentElement.getAttribute('data-theme') === 'dark'
-      ? _THEME_AWARE[ticker].dark : _THEME_AWARE[ticker].light;
-  }
-  return TICKER_COLORS[ticker] || FALLBACK_COLORS[_fi++ % FALLBACK_COLORS.length];
-}
-
-// ── 원화 포맷 ─────────────────────────────────────────────
+// ── 표시 형식 ──────────────────────────────────────────────
 function fmtKRW(w) {
   var s = w < 0 ? '-' : '', a = Math.abs(w);
-  if (a >= 1e12) return s + (a/1e12).toFixed(2) + '조원';
-  if (a >= 1e8)  return s + (a/1e8 ).toFixed(2) + '억원';
-  if (a >= 1e4)  return s + Math.round(a/1e4).toLocaleString() + '만원';
+  if (a >= 1e12) return s + (a / 1e12).toFixed(2) + '조원';
+  if (a >= 1e8)  return s + (a / 1e8).toFixed(2) + '억원';
+  if (a >= 1e4)  return s + Math.round(a / 1e4).toLocaleString() + '만원';
   return s + Math.round(a).toLocaleString() + '원';
 }
-function fmtUSD(v) {
-  if (v >= 1e6) return '$' + (v/1e6).toFixed(2) + 'M';
-  if (v >= 1e3) return '$' + Math.round(v).toLocaleString();
-  return '$' + v.toFixed(2);
-}
+function fmtUSD(v) { return '$' + Math.round(v).toLocaleString(); }
+function el(id) { return document.getElementById(id); }
 
-// ── 초기화 ───────────────────────────────────────────────
+// ── 요약·비중 계산 ─────────────────────────────────────────
 (function() {
   var fxRate = {{ fx_default|int }};
-  var rows   = document.querySelectorAll('[data-shares][data-avg][data-cur]');
+  var rows = document.querySelectorAll('tbody tr[data-ticker]');
+  if (!rows.length) return;
 
   var totalVal = 0, totalCost = 0, totalCur = 0;
-  var allocData = [];
+  var valued = [];   // 평가액이 잡히는 종목만 (비중 계산용)
 
   rows.forEach(function(row) {
-    var ticker = row.dataset.ticker;
     var shares = parseFloat(row.dataset.shares) || 0;
     var avg    = parseFloat(row.dataset.avg)    || 0;
     var cur    = parseFloat(row.dataset.cur)    || 0;
-    var evalV  = cur > 0 ? shares * cur : 0;
+    var value  = cur > 0 ? shares * cur : 0;
 
-    if (evalV > 0) { totalVal += evalV; }
+    if (value > 0) {
+      totalVal += value;
+      valued.push({ row: row, ticker: row.dataset.ticker, value: value });
+      var krw = row.querySelector('.eval-krw');
+      if (krw) krw.textContent = '≈ ' + fmtKRW(value * fxRate);
+    }
     if (avg > 0 && cur > 0) { totalCost += shares * avg; totalCur += shares * cur; }
-
-    // 원화 평가액
-    var krwEl = row.querySelector('.eval-krw');
-    if (krwEl && cur > 0) krwEl.textContent = '≈ ' + fmtKRW(evalV * fxRate);
-
-    // 할당 데이터
-    if (evalV > 0) allocData.push({ ticker, val: evalV, color: tickerColor(ticker) });
   });
 
-  // ── Summary ─────────────────────────────────────────────
-  var el = function(id) { return document.getElementById(id); };
+  // 행별 비중 (서버가 이미 평가액 내림차순으로 정렬해 내려준다)
+  valued.forEach(function(d) {
+    var pct = totalVal > 0 ? d.value / totalVal * 100 : 0;
+    d.row.querySelector('.pf-weight-val').textContent = pct.toFixed(1) + '%';
+    d.row.querySelector('.pf-weight-fill').style.width = pct + '%';
+  });
+
   if (totalVal > 0) {
     el('sumTotal').textContent    = fmtUSD(totalVal);
     el('sumTotalKrw').textContent = '≈ ' + fmtKRW(totalVal * fxRate);
+    el('totEval').textContent     = fmtUSD(totalVal);
+    el('totEvalKrw').textContent  = '≈ ' + fmtKRW(totalVal * fxRate);
+
+    var top = valued[0];
+    var topPct = top.value / totalVal * 100;
+    el('sumTop').textContent = top.ticker + ' ' + topPct.toFixed(0) + '%';
+    if (valued.length > 3) {
+      var top3 = (valued[0].value + valued[1].value + valued[2].value) / totalVal * 100;
+      el('sumTopNote').textContent = '상위 3종목이 ' + top3.toFixed(0) + '%';
+    } else {
+      el('sumTopNote').textContent = '총 ' + valued.length + '종목';
+    }
   }
+
   if (totalCost > 0) {
-    el('sumCost').textContent    = fmtUSD(totalCost);
-    el('sumCostKrw').textContent = '매수 기준';
     var pnl = totalCur - totalCost;
     var pnlPct = pnl / totalCost * 100;
-    var pnlEl = el('sumPnl'), pctEl = el('sumPnlPct');
-    if (pnlEl) {
-      pnlEl.textContent = (pnl >= 0 ? '+' : '') + fmtUSD(Math.abs(pnl)).replace('$',pnl>=0?'+$':'-$').replace('+-','$+');
-      pnlEl.textContent = (pnl >= 0 ? '+$' : '-$') + fmtUSD(Math.abs(pnl)).slice(1);
-      pnlEl.style.color = pnl >= 0 ? 'var(--green)' : 'var(--red)';
-    }
-    if (pctEl) {
-      pctEl.textContent = (pnlPct >= 0 ? '+' : '') + pnlPct.toFixed(1) + '%';
-      pctEl.style.color = pnlPct >= 0 ? 'var(--green)' : 'var(--red)';
-    }
-  }
+    var sign = pnl >= 0 ? '+' : '-';
+    var cls  = pnl >= 0 ? 'pos' : 'neg';
 
-  // ── Allocation bar ──────────────────────────────────────
-  var bar    = el('allocBar');
-  var legend = el('allocLegend');
-  if (bar && totalVal > 0) {
-    allocData.sort(function(a,b) { return b.val - a.val; });
-    allocData.forEach(function(d) {
-      var pct = d.val / totalVal * 100;
-      var seg = document.createElement('div');
-      seg.className = 'pf-alloc-segment';
-      seg.style.cssText = 'flex:' + pct + ';background:' + d.color + ';opacity:0.85;';
-      seg.title = d.ticker + ' ' + pct.toFixed(1) + '%';
-      bar.appendChild(seg);
+    el('sumPnl').textContent = sign + fmtUSD(Math.abs(pnl));
+    el('sumPnl').classList.add(cls);
+    el('sumPnlNote').textContent = (pnlPct >= 0 ? '+' : '') + pnlPct.toFixed(1) + '% · 평단 입력된 종목 기준';
 
-      var dot = document.createElement('div');
-      dot.className = 'pf-alloc-dot';
-      dot.innerHTML = '<span style="width:8px;height:8px;border-radius:50%;background:' + d.color + ';flex-shrink:0;display:inline-block;"></span>'
-        + d.ticker + ' <span>' + pct.toFixed(1) + '%</span>';
-      legend.appendChild(dot);
-    });
+    el('sumCost').textContent     = fmtUSD(totalCost);
+    el('sumCostNote').textContent = '≈ ' + fmtKRW(totalCost * fxRate);
+
+    el('totGain').textContent = sign + fmtUSD(Math.abs(pnl));
+    el('totGain').classList.add(cls);
+    el('totGainPct').textContent = (pnlPct >= 0 ? '+' : '') + pnlPct.toFixed(1) + '%';
+    el('totGainPct').classList.add(cls);
+  } else {
+    el('sumPnlNote').textContent = '평단을 입력하면 계산됩니다';
+    el('sumCostNote').textContent = '평단 미입력';
   }
 })();
 
-// ── Modal ─────────────────────────────────────────────────
-function openModal(ticker) {
-  document.getElementById('modalTitle').textContent = '종목 추가';
-  document.getElementById('f-ticker').value = '';
-  document.getElementById('f-ticker').readOnly = false;
-  document.getElementById('f-ticker').style.opacity = '1';
-  document.getElementById('f-shares').value = '';
-  document.getElementById('f-price').value  = '';
-  document.getElementById('f-memo').value   = '';
-  document.getElementById('modal').style.display = 'block';
-  setTimeout(function() { document.getElementById('f-ticker').focus(); }, 50);
+// ── 수정 시트 ──────────────────────────────────────────────
+var sheet = el('sheet');
+
+function openAdd() {
+  el('sheetMode').textContent = '종목 추가';
+  el('sheetTitle').textContent = '새 종목';
+  el('f-ticker').value = '';
+  el('f-ticker').readOnly = false;
+  el('tickerHint').textContent = 'Yahoo Finance에서 쓰는 심볼을 입력하세요.';
+  el('f-shares').value = '';
+  el('f-price').value  = '';
+  el('f-memo').value   = '';
+  el('pfDelete').style.display = 'none';
+  openSheet();
+  setTimeout(function() { el('f-ticker').focus(); }, 40);
 }
 
-function openModalFromBtn(btn) {
-  var ticker = btn.dataset.ticker;
-  document.getElementById('modalTitle').textContent = ticker + ' 수정';
-  document.getElementById('f-ticker').value = ticker;
-  document.getElementById('f-ticker').readOnly = true;
-  document.getElementById('f-ticker').style.opacity = '0.5';
-  document.getElementById('f-shares').value = btn.dataset.shares;
-  document.getElementById('f-price').value  = btn.dataset.avg;
-  document.getElementById('f-memo').value   = btn.dataset.memo;
-  document.getElementById('modal').style.display = 'block';
+function openEdit(btn) {
+  var t = btn.dataset.ticker;
+  el('sheetMode').textContent = '보유 내용 수정';
+  el('sheetTitle').textContent = t;
+  el('f-ticker').value = t;
+  el('f-ticker').readOnly = true;
+  el('tickerHint').textContent = '티커는 변경할 수 없습니다. 다른 종목이라면 삭제 후 새로 추가하세요.';
+  el('f-shares').value = btn.dataset.shares;
+  el('f-price').value  = parseFloat(btn.dataset.avg) > 0 ? btn.dataset.avg : '';
+  el('f-memo').value   = btn.dataset.memo;
+  var del = el('pfDelete');
+  del.action = '/portfolio/delete/' + btn.dataset.id;
+  del.dataset.ticker = t;
+  del.style.display = '';
+  openSheet();
+  setTimeout(function() { el('f-shares').focus(); }, 40);
 }
 
-function closeModal() {
-  document.getElementById('modal').style.display = 'none';
-}
+function openSheet()  { sheet.classList.add('open'); document.body.style.overflow = 'hidden'; }
+function closeSheet() { sheet.classList.remove('open'); document.body.style.overflow = ''; }
 
-document.getElementById('modal').addEventListener('click', function(e) {
-  if (e.target === this) closeModal();
+document.addEventListener('keydown', function(e) {
+  if (e.key === 'Escape' && sheet.classList.contains('open')) closeSheet();
 });
 
-document.getElementById('f-ticker').addEventListener('input', function() {
-  this.value = this.value.toUpperCase();
+el('f-ticker').addEventListener('input', function() { this.value = this.value.toUpperCase(); });
+
+// 저장·삭제 결과는 새로고침 뒤에 알려준다
+el('pfForm').addEventListener('submit', function() {
+  var btn = el('saveBtn');
+  btn.disabled = true; btn.textContent = '저장 중…';
+  sessionStorage.setItem('pfToast', (el('f-ticker').value || '종목') + ' 저장했습니다');
 });
 
-// ── 자동 갱신 ─────────────────────────────────────────────
+function onDelete() {
+  var t = el('pfDelete').dataset.ticker || '종목';
+  if (!confirm(t + '을(를) 보유 목록에서 삭제할까요?')) return false;
+  sessionStorage.setItem('pfToast', t + ' 삭제했습니다');
+  return true;
+}
+
+(function() {
+  var msg = sessionStorage.getItem('pfToast');
+  if (!msg) return;
+  sessionStorage.removeItem('pfToast');
+  var toast = el('toast');
+  toast.textContent = msg;
+  toast.classList.add('show');
+  setTimeout(function() { toast.classList.remove('show'); }, 2600);
+})();
+
+// ── 현재가 자동 갱신 ───────────────────────────────────────
 var STALE = {{ stale_tickers | safe }};
 var NEEDS_REFRESH = {{ needs_refresh | safe }};
 if (NEEDS_REFRESH) {
-  var overlay = document.getElementById('priceLoadingOverlay');
-  overlay.style.display = 'flex';
+  el('overlay').classList.add('open');
   fetch('/api/refresh-prices')
     .then(function() { location.reload(); })
-    .catch(function() { overlay.style.display = 'none'; });
+    .catch(function() { el('overlay').classList.remove('open'); });
 } else if (STALE.length > 0) {
   Promise.all(STALE.map(function(t) {
     return fetch('/api/stock/' + t).catch(function() { return null; });
