@@ -15,6 +15,8 @@
   --r-2xl: 20px;
   --green: #10b981; --amber: #f59e0b; --blue: #667eea; --red: #ef4444;
 }
+/* 전역 .page-wrap이 820px로 묶고 있어 이 페이지에서만 넓은 레이아웃으로 푼다 */
+.page-wrap { max-width: 1680px !important; padding-left: 20px; padding-right: 20px; }
 
 /* ── Header ── */
 .at-header {
@@ -101,7 +103,7 @@
 
 /* ── Metric Cards ── */
 .metric-grid {
-  display: grid; grid-template-columns: repeat(3, 1fr);
+  display: grid; grid-template-columns: repeat(auto-fit, minmax(190px, 1fr));
   gap: 10px; margin-bottom: 16px;
 }
 @media (max-width: 680px) { .metric-grid { grid-template-columns: repeat(2, 1fr); } }
@@ -148,7 +150,7 @@
 
 /* ── Doughnut + summary row ── */
 .at-donut-row {
-  display: grid; grid-template-columns: 200px 1fr;
+  display: grid; grid-template-columns: 220px 1fr;
   gap: 24px; align-items: start;
 }
 @media (max-width: 640px) { .at-donut-row { grid-template-columns: 1fr; } }
@@ -263,6 +265,13 @@
 .acc-row .amount { font-weight: 600; font-variant-numeric: tabular-nums; }
 .acc-row .pct { font-size: 11px; color: var(--text2); min-width: 40px; text-align: right; }
 .acc-row.zero { opacity: 0.35; }
+
+/* 넓은 화면에서는 카테고리 카드를 2열로 배치 (행 내부 드래그 정렬은 카드 단위라 영향 없음) */
+@media (min-width: 1180px) {
+  #accountBreakdown { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; align-items: start; }
+  #accountBreakdown .acc-category-card { margin-bottom: 0; }
+  #accountBreakdown .deactivated-panel, #accountBreakdown .empty-state-box { grid-column: 1 / -1; }
+}
 
 .deactivated-panel { background: var(--bg2); border-radius: var(--r-xl); padding: 14px 18px; margin-top: 8px; }
 .deactivated-panel .title { font-size: 12px; font-weight: 600; color: var(--text2); margin-bottom: 10px; }
