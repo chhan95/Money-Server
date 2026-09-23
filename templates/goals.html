@@ -13,6 +13,9 @@
   --r-2xl: 20px;
   --green: #10b981; --amber: #f59e0b; --blue: #667eea; --red: #ef4444;
 }
+/* 전역 .page-wrap이 820px로 묶고 있어 이 페이지에서만 넓은 레이아웃으로 푼다
+   (7단계 카드와 상세 패널의 지표·함정 그리드가 한 줄에 펼쳐진다) */
+.page-wrap { max-width: 1680px !important; padding-left: 20px; padding-right: 20px; }
 
 /* ── Page Header ── */
 .gl-header {
@@ -114,6 +117,20 @@
 .stage-key {
   display: inline-block; font-size: 11px; font-weight: 600;
   margin-top: 7px; padding: 4px 10px; border-radius: 20px;
+}
+
+/* 넓은 화면에서는 단계 카드를 가로로 펼친다 (제목·범위 / 설명 / 핵심 과제) */
+@media (min-width: 1100px) {
+  .stage-body {
+    display: grid;
+    grid-template-columns: minmax(200px, 260px) minmax(0, 1fr) auto;
+    grid-template-areas: "title desc key" "range desc key";
+    column-gap: 22px;
+  }
+  .stage-title { grid-area: title; align-self: flex-end; margin-bottom: 0; }
+  .stage-range { grid-area: range; align-self: flex-start; margin-bottom: 0; }
+  .stage-desc  { grid-area: desc; align-self: center; max-width: 860px; }
+  .stage-key   { grid-area: key; align-self: center; justify-self: end; margin-top: 0; }
 }
 
 .you-marker {
