@@ -18,6 +18,9 @@
   --r-xl: 16px;
   --r-2xl: 20px;
 }
+/* 전역 .page-wrap이 820px로 묶고 있어 이 페이지에서만 넓은 레이아웃으로 푼다
+   (타임라인 시간축이 스크롤 없이 더 넓게 보인다) */
+.page-wrap { max-width: 1680px !important; padding-left: 20px; padding-right: 20px; }
 
 /* ── Page Header ── */
 .ms-page-header {
@@ -73,12 +76,18 @@
 .ms-hero {
   background: var(--ms-gradient);
   border-radius: var(--r-2xl);
-  padding: 28px 32px;
+  padding: 20px 28px;
   color: white;
   position: relative;
   overflow: hidden;
   box-shadow: var(--shadow-glow), var(--shadow-lg);
-  margin-bottom: 28px;
+  margin-bottom: 20px;
+  display: grid;
+  grid-template-columns: auto 1fr;
+  grid-template-areas: "pct top" "pct bar";
+  column-gap: 28px;
+  row-gap: 9px;
+  align-items: center;
 }
 .ms-hero::before {
   content: '';
@@ -101,10 +110,10 @@
   pointer-events: none;
 }
 .ms-hero-top {
+  grid-area: top;
   display: flex;
   justify-content: space-between;
-  align-items: center;
-  margin-bottom: 16px;
+  align-items: flex-end;
   position: relative;
   z-index: 1;
 }
@@ -121,6 +130,8 @@
   opacity: 0.9;
 }
 .ms-hero-bar-track {
+  grid-area: bar;
+  align-self: start;
   background: rgba(255,255,255,0.15);
   border-radius: 99px;
   height: 12px;
@@ -150,13 +161,14 @@
   box-shadow: 0 0 8px rgba(255,255,255,0.6);
 }
 .ms-hero-pct {
-  text-align: center;
-  font-size: 36px;
+  grid-area: pct;
+  font-size: 42px;
   font-weight: 800;
-  letter-spacing: -1px;
-  margin-top: 14px;
+  letter-spacing: -1.4px;
+  line-height: 1;
   position: relative;
   z-index: 1;
+  font-variant-numeric: tabular-nums;
 }
 .ms-hero-pct span {
   font-size: 18px;
@@ -862,8 +874,13 @@
 
 /* ── Responsive ── */
 @media (max-width: 600px) {
-  .ms-hero { padding: 24px 20px; }
-  .ms-hero-pct { font-size: 28px; }
+  .ms-hero {
+    padding: 22px 20px;
+    grid-template-columns: 1fr;
+    grid-template-areas: "top" "bar" "pct";
+    row-gap: 12px;
+  }
+  .ms-hero-pct { font-size: 30px; text-align: center; }
   .ms-card { padding: 16px 18px; }
   .ms-card .actions, .ms-done-card .actions { opacity: 1; }
   .modal-box { margin: 16px; padding: 24px; }
