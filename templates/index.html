@@ -160,6 +160,80 @@
 .hm-empty { text-align: center; padding: 60px 24px; color: var(--text2); background: var(--bg); border: 1px solid var(--glass-border); border-radius: var(--r-xl); }
 .hm-empty .icon { font-size: 40px; margin-bottom: 12px; opacity: 0.25; }
 .hm-empty a { color: var(--blue); text-decoration: none; font-weight: 600; }
+
+/* ══ 보유 종목 편집 (포트폴리오 화면을 홈으로 합치면서 들어온 부분) ══ */
+.hm-add-btn {
+  display: flex; align-items: center; gap: 6px; padding: 7px 14px; border-radius: 9px;
+  background: var(--accent); border: 1px solid var(--accent); color: #fff;
+  font-size: 12px; font-weight: 600; cursor: pointer; transition: filter 0.15s; white-space: nowrap;
+}
+.hm-add-btn:hover { filter: brightness(1.08); }
+
+.hm-row-edit {
+  border: none; background: transparent; color: var(--text2);
+  font-size: 11.5px; padding: 4px 8px; border-radius: 6px; cursor: pointer;
+  opacity: 0; transition: opacity 0.15s, background 0.15s, color 0.15s;
+}
+.hm-table tbody tr:hover .hm-row-edit, .hm-row-edit:focus-visible { opacity: 1; }
+.hm-row-edit:hover { background: rgba(102,126,234,0.1); color: var(--blue); }
+
+.hm-notice {
+  display: flex; align-items: center; gap: 8px;
+  font-size: 13px; color: var(--red); padding: 10px 14px; margin-bottom: 12px;
+  background: rgba(239,68,68,0.06); border: 1px solid rgba(239,68,68,0.18); border-radius: 10px;
+}
+.hm-notice button { margin-left: auto; background: none; border: none; color: inherit; cursor: pointer; opacity: 0.6; }
+.hm-notice button:hover { opacity: 1; }
+
+.hm-sheet-backdrop {
+  display: none; position: fixed; inset: 0; z-index: 9000;
+  background: rgba(15,23,42,0.4); padding: 24px; overflow-y: auto;
+}
+.hm-sheet-backdrop.open { display: block; }
+.hm-sheet {
+  background: var(--bg); border: 1px solid var(--glass-border); border-radius: 14px;
+  width: 100%; max-width: 420px; margin: 56px auto; overflow: hidden;
+}
+.hm-sheet-head {
+  display: flex; align-items: flex-start; justify-content: space-between; gap: 12px;
+  padding: 18px 20px 14px; border-bottom: 1px solid var(--glass-border);
+}
+.hm-sheet-mode { font-size: 11px; font-weight: 700; letter-spacing: 0.4px; color: var(--blue); margin-bottom: 3px; }
+.hm-sheet-head h2 { font-size: 16px; font-weight: 700; }
+.hm-sheet-body { padding: 18px 20px 2px; }
+.hm-field { margin-bottom: 16px; }
+.hm-field label { display: block; font-size: 12px; font-weight: 600; margin-bottom: 6px; }
+.hm-field input {
+  width: 100%; padding: 9px 12px; border: 1px solid var(--glass-border); border-radius: 8px;
+  background: var(--bg); color: var(--text); font-size: 14px; font-family: inherit;
+}
+.hm-field input:focus { outline: none; border-color: var(--blue); }
+.hm-field input[readonly] { background: var(--bg2); color: var(--text2); }
+.hm-field-hint { font-size: 11px; color: var(--text2); margin-top: 6px; }
+.hm-field-row { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+.hm-sheet-actions {
+  display: flex; align-items: center; gap: 8px;
+  padding: 14px 20px 18px; border-top: 1px solid var(--glass-border); margin-top: 4px;
+}
+.hm-sheet-actions .spacer { margin-left: auto; }
+.hm-btn {
+  border: 1px solid var(--glass-border); background: var(--bg); color: var(--text);
+  padding: 8px 16px; border-radius: 8px; font-size: 13px; font-weight: 500; cursor: pointer;
+}
+.hm-btn:hover { background: var(--bg2); }
+.hm-btn.primary { background: var(--accent); border-color: var(--accent); color: #fff; font-weight: 600; }
+.hm-btn.primary:hover { filter: brightness(1.08); }
+.hm-btn.danger { border-color: transparent; background: transparent; color: var(--red); }
+.hm-btn.danger:hover { background: rgba(239,68,68,0.08); }
+.hm-btn:disabled { opacity: 0.55; cursor: default; }
+
+.hm-toast {
+  position: fixed; left: 50%; bottom: 28px; transform: translateX(-50%);
+  background: var(--text); color: var(--bg); font-size: 13px;
+  padding: 10px 18px; border-radius: 8px; opacity: 0; pointer-events: none;
+  transition: opacity 0.25s; z-index: 9500;
+}
+.hm-toast.show { opacity: 0.95; }
 </style>
 
 <div class="hm-wrap">
@@ -170,6 +244,7 @@
     </div>
     <div class="hm-header-right">
       <span class="hm-fx-chip">💱 <b>{{ fx_default|int }}원/$</b> · Yahoo Finance</span>
+      <button class="hm-add-btn" onclick="openAddHolding()">+ 종목 추가</button>
       {% if has_items %}
       <button class="hm-refresh-btn" id="forceRefreshBtn" onclick="forceRefreshPrices()">
         <svg id="forceRefreshIcon" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="23 4 23 10 17 10"/><path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"/></svg>
@@ -179,10 +254,18 @@
     </div>
   </div>
 
+  {% if error %}
+  <div class="hm-notice" id="hmError">
+    <span>{{ error }}</span>
+    <button onclick="document.getElementById('hmError').remove()" aria-label="닫기">✕</button>
+  </div>
+  {% endif %}
+
   {% if not has_items %}
   <div class="hm-empty">
     <div class="icon">📂</div>
-    <div style="font-size:14px;line-height:1.7;">아직 보유 종목이 없습니다.<br><a href="/portfolio">포트폴리오 관리</a>에서 종목을 추가하세요.</div>
+    <div style="font-size:14px;line-height:1.7;">아직 보유 종목이 없습니다.<br>티커와 보유 수량을 입력하면 현재가·평가액·월 소득이 자동으로 계산됩니다.</div>
+    <div style="margin-top:16px;"><button class="hm-add-btn" style="margin:0 auto;" onclick="openAddHolding()">+ 종목 추가</button></div>
   </div>
   {% else %}
 
@@ -254,13 +337,64 @@
   <div class="hm-table-card">
     <div class="hm-table-head">
       <div class="hm-card-title">보유 종목 · 지분비례 월 소득</div>
-      <div class="hm-card-sub">헤더 클릭 정렬 · 순이익 기준 · 현재 FY 예상</div>
+      <div class="hm-card-sub">헤더 클릭 정렬 · 행 오른쪽 “수정”에서 보유 주식 수·평단가 변경</div>
     </div>
     <div class="hm-table-scroll"><table class="hm-table" id="incomeTable"></table></div>
   </div>
 
   {% endif %}
 </div>
+
+<!-- ══ 보유 종목 추가 / 수정 ══ -->
+<div class="hm-sheet-backdrop" id="hmSheet" onclick="if(event.target===this) closeHolding()">
+  <div class="hm-sheet" role="dialog" aria-modal="true" aria-labelledby="hmSheetTitle">
+    <div class="hm-sheet-head">
+      <div>
+        <div class="hm-sheet-mode" id="hmSheetMode">종목 추가</div>
+        <h2 id="hmSheetTitle">새 종목</h2>
+      </div>
+      <button class="hm-btn" style="border:none;background:none;padding:4px 8px;" onclick="closeHolding()" aria-label="닫기">✕</button>
+    </div>
+
+    <div class="hm-sheet-body">
+      <form method="post" action="/portfolio/add" id="hmForm">
+        <input type="hidden" name="next_url" value="/">
+        <div class="hm-field">
+          <label for="hm-ticker">티커</label>
+          <input type="text" name="ticker" id="hm-ticker" placeholder="NVDA" required maxlength="12" autocomplete="off">
+          <div class="hm-field-hint" id="hmTickerHint">Yahoo Finance에서 쓰는 심볼을 입력하세요.</div>
+        </div>
+        <div class="hm-field-row">
+          <div class="hm-field">
+            <label for="hm-shares">보유 주식 수</label>
+            <input type="number" name="shares_owned" id="hm-shares" placeholder="10" min="0" step="0.01" required>
+          </div>
+          <div class="hm-field">
+            <label for="hm-avg">평균 매수단가 ($)</label>
+            <input type="number" name="avg_price" id="hm-avg" placeholder="선택" min="0" step="0.01">
+          </div>
+        </div>
+        <div class="hm-field-hint" style="margin:-8px 0 16px;">평단가를 입력하면 평가이익과 수익률이 계산됩니다.</div>
+        <div class="hm-field">
+          <label for="hm-memo">메모</label>
+          <input type="text" name="memo" id="hm-memo" placeholder="선택 — 매수 이유 등" maxlength="200">
+        </div>
+      </form>
+    </div>
+
+    <div class="hm-sheet-actions">
+      <form method="post" id="hmDelete" style="display:none;" onsubmit="return onDeleteHolding()">
+        <input type="hidden" name="next_url" value="/">
+        <button type="submit" class="hm-btn danger">삭제</button>
+      </form>
+      <div class="spacer"></div>
+      <button type="button" class="hm-btn" onclick="closeHolding()">취소</button>
+      <button type="submit" class="hm-btn primary" form="hmForm" id="hmSaveBtn">저장</button>
+    </div>
+  </div>
+</div>
+
+<div class="hm-toast" id="hmToast"></div>
 
 <script>
 const ITEMS         = {{ items_json | safe }};
@@ -294,6 +428,7 @@ function fmtKRWraw(w) {
 }
 function fmtKRW(usdM) { return fmtKRWraw(usdM*1e6*fxRate); }
 function fmtUSDraw(v) { const s=v<0?'-':'', a=Math.abs(v); return s+'$'+Math.round(a).toLocaleString(); }
+function escAttr(v) { return String(v).replace(/&/g,'&amp;').replace(/"/g,'&quot;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
 function setText(id, v) { const e=document.getElementById(id); if(e) e.textContent=v; }
 function setHTML(id, v) { const e=document.getElementById(id); if(e) e.innerHTML=v; }
 const sgn = v => v>=0?'+':'';
@@ -509,7 +644,7 @@ function renderTable(rows, totalValue) {
     if (av==null && bv==null) return 0; if (av==null) return 1; if (bv==null) return -1;
     return (col.str ? String(av).localeCompare(String(bv)) : av-bv) * sortDir; });
   const na = '<span class="mut">—</span>';
-  const head = '<thead><tr>'+COLS.map(c=>`<th class="${c.k===sortKey?'sorted':''}" onclick="setSort('${c.k}')">${c.l}${c.k===sortKey?(sortDir===1?' ▲':' ▼'):''}</th>`).join('')+'</tr></thead>';
+  const head = '<thead><tr>'+COLS.map(c=>`<th class="${c.k===sortKey?'sorted':''}" onclick="setSort('${c.k}')">${c.l}${c.k===sortKey?(sortDir===1?' ▲':' ▼'):''}</th>`).join('')+'<th></th></tr></thead>';
   const body = sorted.map(r => { const it=r.item, c=COLORS[it.ticker], w = totalValue? r.value/totalValue*100 : 0;
     return `<tr>
       <td><div class="hm-tick-cell">${tickerBadge(it.ticker,c,'hm-tick-badge')}<div><div class="hm-tick-name">${it.ticker}</div><div class="hm-tick-company">${it.name}</div></div></div></td>
@@ -521,16 +656,85 @@ function renderTable(rows, totalValue) {
       <td class="hm-income-val">${fmtUSDraw(r.mUsd*1e6)}<div class="hm-sub" style="font-weight:400;">≈ ${fmtKRWraw(r.mKrw)}</div></td>
       <td>${r.yieldPct===null?na:r.yieldPct.toFixed(2)+'%'}</td>
       <td>${r.fcUsd===null?na:`<span class="hm-fc-val">${fmtUSDraw(r.fcUsd*1e6)}</span><div class="hm-sub">≈ ${fmtKRWraw(r.fcKrw)}${it.forecast?.label?' · '+it.forecast.label:''}</div>`}</td>
-      <td>${r.growth===null?na:pill(r.growth)}</td></tr>`; }).join('');
+      <td>${r.growth===null?na:pill(r.growth)}</td>
+      <td><button class="hm-row-edit"
+            data-id="${it.portfolio_id}" data-ticker="${it.ticker}"
+            data-shares="${it.shares_owned}" data-avg="${it.avg_price}"
+            data-memo="${escAttr(it.memo||'')}"
+            onclick="openEditHolding(this)">수정</button></td></tr>`; }).join('');
   const tKrw = rows.reduce((s,r)=>s+r.mKrw,0), fcRows=rows.filter(r=>r.fcKrw!==null), tFc=fcRows.reduce((s,r)=>s+r.fcKrw,0);
   const costRows=rows.filter(r=>r.gain!==null), tGain=costRows.reduce((s,r)=>s+r.gain,0), tCost=costRows.reduce((s,r)=>s+r.cost,0);
   const tY = totalValue>0 ? tKrw/fxRate*12/totalValue*100 : null;
   const total = `<tr class="total-row"><td colspan="3">합계 · ${rows.length}종목</td><td>${fmtUSDraw(totalValue)}<div class="hm-sub">${fmtKRWraw(totalValue*fxRate)}</div></td><td>100%</td>
     <td>${costRows.length?`<span class="${cls(tGain)}">${sgn(tGain)}${fmtUSDraw(tGain)}</span><div class="hm-sub">${pill(tCost?tGain/tCost*100:0)}</div>`:na}</td>
     <td class="hm-income-val">${fmtUSDraw(tKrw/fxRate)}/월<div class="hm-sub" style="font-weight:400;">≈ ${fmtKRWraw(tKrw)}</div></td><td>${tY===null?na:tY.toFixed(2)+'%'}</td>
-    <td class="hm-fc-val">${fcRows.length?fmtUSDraw(tFc/fxRate)+'/월<div class="hm-sub" style="font-weight:400;">≈ '+fmtKRWraw(tFc)+'</div>':na}</td><td>${(fcRows.length&&tKrw>0)?pill((tFc-tKrw)/tKrw*100):na}</td></tr>`;
+    <td class="hm-fc-val">${fcRows.length?fmtUSDraw(tFc/fxRate)+'/월<div class="hm-sub" style="font-weight:400;">≈ '+fmtKRWraw(tFc)+'</div>':na}</td><td>${(fcRows.length&&tKrw>0)?pill((tFc-tKrw)/tKrw*100):na}</td><td></td></tr>`;
   document.getElementById('incomeTable').innerHTML = head+'<tbody>'+body+total+'</tbody>';
 }
+
+// ══ 보유 종목 추가 / 수정 ══════════════════════════════════
+const hmSheet = document.getElementById('hmSheet');
+const gel = id => document.getElementById(id);
+
+function openAddHolding() {
+  gel('hmSheetMode').textContent  = '종목 추가';
+  gel('hmSheetTitle').textContent = '새 종목';
+  gel('hm-ticker').value = '';
+  gel('hm-ticker').readOnly = false;
+  gel('hmTickerHint').textContent = 'Yahoo Finance에서 쓰는 심볼을 입력하세요.';
+  gel('hm-shares').value = '';
+  gel('hm-avg').value    = '';
+  gel('hm-memo').value   = '';
+  gel('hmDelete').style.display = 'none';
+  openHolding();
+  setTimeout(()=>gel('hm-ticker').focus(), 40);
+}
+
+function openEditHolding(btn) {
+  const t = btn.dataset.ticker;
+  gel('hmSheetMode').textContent  = '보유 내용 수정';
+  gel('hmSheetTitle').textContent = t;
+  gel('hm-ticker').value = t;
+  gel('hm-ticker').readOnly = true;
+  gel('hmTickerHint').textContent = '티커는 변경할 수 없습니다. 다른 종목이라면 삭제 후 새로 추가하세요.';
+  gel('hm-shares').value = btn.dataset.shares;
+  gel('hm-avg').value    = parseFloat(btn.dataset.avg) > 0 ? btn.dataset.avg : '';
+  gel('hm-memo').value   = btn.dataset.memo || '';
+  const del = gel('hmDelete');
+  del.action = '/portfolio/delete/' + btn.dataset.id;
+  del.dataset.ticker = t;
+  del.style.display = '';
+  openHolding();
+  setTimeout(()=>gel('hm-shares').focus(), 40);
+}
+
+function openHolding()  { hmSheet.classList.add('open');    document.body.style.overflow = 'hidden'; }
+function closeHolding() { hmSheet.classList.remove('open'); document.body.style.overflow = ''; }
+
+document.addEventListener('keydown', e => {
+  if (e.key === 'Escape' && hmSheet.classList.contains('open')) closeHolding();
+});
+gel('hm-ticker').addEventListener('input', function() { this.value = this.value.toUpperCase(); });
+gel('hmForm').addEventListener('submit', () => {
+  const btn = gel('hmSaveBtn');
+  btn.disabled = true; btn.textContent = '저장 중…';
+  sessionStorage.setItem('hmToast', (gel('hm-ticker').value || '종목') + ' 저장했습니다');
+});
+function onDeleteHolding() {
+  const t = gel('hmDelete').dataset.ticker || '종목';
+  if (!confirm(t + '을(를) 보유 목록에서 삭제할까요? 분석 데이터는 과거 보유 종목으로 남습니다.')) return false;
+  sessionStorage.setItem('hmToast', t + ' 삭제했습니다');
+  return true;
+}
+(function() {
+  const msg = sessionStorage.getItem('hmToast');
+  if (!msg) return;
+  sessionStorage.removeItem('hmToast');
+  const toast = gel('hmToast');
+  toast.textContent = msg;
+  toast.classList.add('show');
+  setTimeout(()=>toast.classList.remove('show'), 2600);
+})();
 
 function doRefresh() {
   document.getElementById('refreshBtn').style.display='none';

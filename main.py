@@ -378,6 +378,7 @@ def page_home(request: Request, db: Session = Depends(get_db)):
                 "latest":        latest,
                 "forecast":      forecast,
                 "portfolio_id":  p.id,
+                "memo":          p.memo or "",
                 "fiscal_data":   sd["fiscalData"],
                 "year_keys":     sd["yearKeys"],
                 "forecast_keys": sd.get("forecastKeys", []),
@@ -395,6 +396,7 @@ def page_home(request: Request, db: Session = Depends(get_db)):
                 "latest":        {},
                 "forecast":      None,
                 "portfolio_id":  p.id,
+                "memo":          p.memo or "",
                 "fiscal_data":   {},
                 "year_keys":     [],
                 "forecast_keys": [],
@@ -528,62 +530,17 @@ def page_home(request: Request, db: Session = Depends(get_db)):
         "stale_tickers":  json.dumps(stale_tickers),
         "needs_refresh":  json.dumps(needs_refresh),
         "sector_alloc":   json.dumps(sector_alloc, ensure_ascii=False),
+        "error":          request.query_params.get("error", ""),
         "active":         "home",
     })
     resp.headers["Cache-Control"] = "no-store"
     return resp
 
 
-@app.get("/portfolio", response_class=HTMLResponse)
-def page_portfolio(request: Request, db: Session = Depends(get_db)):
-    # 오늘 아직 갱신 안 된 종목이 있으면 클라이언트에서 로딩 화면 후 갱신
-    today = _today_utc()
-    needs_refresh_pf = any(
-        (lambda s: s is None or s.fetched_at is None or s.fetched_at.date() < today)(
-            db.query(models.Stock).filter(models.Stock.ticker == p.ticker).first()
-        )
-        for p in db.query(models.Portfolio).all()
-    )
-
-    portfolio = (
-        db.query(models.Portfolio)
-        .order_by(models.Portfolio.display_order, models.Portfolio.created_at)
-        .all()
-    )
-    items = []
-    stale_tickers = []
-    for p in portfolio:
-        stock = db.query(models.Stock).filter(models.Stock.ticker == p.ticker).first()
-        if _is_stale(stock):
-            stale_tickers.append(p.ticker)
-        items.append({
-            "id":            p.id,
-            "ticker":        p.ticker,
-            "name":          stock.name if stock else p.ticker,
-            "shares_owned":  p.shares_owned,
-            "avg_price":     p.avg_price or 0,
-            "current_price": stock.current_price if stock else 0,
-            "memo":          p.memo or "",
-        })
-
-    items.sort(key=lambda x: x["shares_owned"] * x["current_price"], reverse=True)
-
-    try:
-        fx_rate = fetcher.fetch_krw_rate()
-    except Exception:
-        fx_rate = 1380.0
-
-    resp = templates.TemplateResponse("portfolio.html", {
-        "request":        request,
-        "items":          items,
-        "active":         "portfolio",
-        "fx_default":     fx_rate,
-        "error":          request.query_params.get("error", ""),
-        "stale_tickers":  json.dumps(stale_tickers),
-        "needs_refresh":  json.dumps(needs_refresh_pf),
-    })
-    resp.headers["Cache-Control"] = "no-store"
-    return resp
+# 포트폴리오 화면은 홈으로 통합했다. 기존 북마크/링크는 홈으로 넘긴다.
+@app.get("/portfolio")
+def page_portfolio():
+    return RedirectResponse("/", status_code=307)
 
 
 @app.get("/history", response_class=HTMLResponse)
@@ -768,8 +725,8 @@ def portfolio_add(
     next_url:    str    = Form(""),
     db: Session = Depends(get_db),
 ):
-    # 다른 화면(/quality 등)에서 추가한 경우 그 화면으로 되돌아간다. 외부 URL은 허용하지 않음.
-    dest = next_url if (next_url.startswith("/") and not next_url.startswith("//")) else "/portfolio"
+    # 추가한 화면(홈, /quality 등)으로 되돌아간다. 외부 URL은 허용하지 않음.
+    dest = next_url if (next_url.startswith("/") and not next_url.startswith("//")) else "/"
     ticker = ticker.strip().upper()
     if not ticker:
         return RedirectResponse(f"{dest}?error=티커를+입력해주세요", status_code=303)
@@ -804,7 +761,7 @@ def portfolio_delete(item_id: int, next_url: str = Form(""), db: Session = Depen
     # 보유 목록에서만 제거한다. stocks의 분석 캐시는 남겨 과거 보유 이력에서 조회 가능.
     db.query(models.Portfolio).filter(models.Portfolio.id == item_id).delete()
     db.commit()
-    dest = next_url if (next_url.startswith("/") and not next_url.startswith("//")) else "/portfolio"
+    dest = next_url if (next_url.startswith("/") and not next_url.startswith("//")) else "/"
     return RedirectResponse(dest, status_code=303)
 
 
