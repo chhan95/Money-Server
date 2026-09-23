@@ -80,63 +80,89 @@
 .btn-icon:hover { background: var(--bg2); border-color: var(--glass-border); color: var(--text); }
 .btn-icon.danger:hover { background: rgba(239,68,68,0.08); border-color: rgba(239,68,68,0.2); color: var(--red); }
 
-/* ── Hero Card ── */
+/* ── KPI 스트립 (히어로 + 보조 지표) ── */
+.at-kpis { display: grid; grid-template-columns: 1.7fr repeat(5, 1fr); gap: 8px; margin-bottom: 14px; }
+@media (max-width: 1200px) { .at-kpis { grid-template-columns: repeat(3, 1fr); } .hero-card { grid-column: 1 / -1; } }
+@media (max-width: 620px)  { .at-kpis { grid-template-columns: 1fr 1fr; } }
+
 .hero-card {
-  background: var(--ms-gradient); border-radius: var(--r-2xl);
-  padding: 26px 28px; color: white;
+  background: var(--ms-gradient); border-radius: var(--r-xl);
+  padding: 15px 18px 36px; color: white;
   position: relative; overflow: hidden;
-  box-shadow: 0 4px 24px rgba(102,126,234,0.3);
-  margin-bottom: 14px;
+  box-shadow: 0 4px 20px rgba(102,126,234,0.28);
 }
 .hero-card::before {
-  content: ''; position: absolute; top: -50%; right: -10%;
-  width: 240px; height: 240px;
-  background: radial-gradient(circle, rgba(255,255,255,0.1) 0%, transparent 70%);
+  content: ''; position: absolute; top: -60%; right: -10%;
+  width: 220px; height: 220px;
+  background: radial-gradient(circle, rgba(255,255,255,0.12) 0%, transparent 70%);
   pointer-events: none;
 }
-.hero-label { font-size: 10px; font-weight: 700; opacity: 0.65; text-transform: uppercase; letter-spacing: 1.5px; margin-bottom: 10px; }
-.hero-value { font-size: 32px; font-weight: 800; letter-spacing: -1px; margin-bottom: 4px; position: relative; z-index: 1; }
-.hero-sub { display: flex; align-items: center; gap: 10px; font-size: 13px; opacity: 0.75; position: relative; z-index: 1; }
-.hero-badge { display: inline-flex; align-items: center; gap: 4px; padding: 3px 10px; border-radius: 20px; font-weight: 700; font-size: 12px; }
-.hero-badge.up   { background: rgba(16,185,129,0.25); color: #6ee7b7; }
-.hero-badge.down { background: rgba(239,68,68,0.25);  color: #fca5a5; }
-
-/* ── Metric Cards ── */
-.metric-grid {
-  display: grid; grid-template-columns: repeat(auto-fit, minmax(190px, 1fr));
-  gap: 10px; margin-bottom: 16px;
+.hero-spark { position: absolute; left: 0; right: 0; bottom: 0; height: 42px; opacity: 0.72; pointer-events: none; z-index: 0; }
+.hero-asof {
+  position: absolute; top: 12px; right: 14px; z-index: 2;
+  font-size: 10.5px; font-weight: 600; opacity: 0.85;
+  background: rgba(255,255,255,0.14); border-radius: 99px; padding: 2px 9px;
 }
-@media (max-width: 680px) { .metric-grid { grid-template-columns: repeat(2, 1fr); } }
-@media (max-width: 420px) { .metric-grid { grid-template-columns: 1fr; } }
 
-.metric-card {
+/* 보조 KPI 카드 */
+.at-kpi {
   background: var(--bg); border: 1px solid var(--glass-border);
-  border-radius: var(--r-xl); padding: 16px 18px;
-  position: relative; overflow: hidden;
+  border-radius: var(--r-xl); padding: 11px 13px;
+  border-left: 3px solid var(--blue);
   transition: box-shadow 0.2s var(--ease-out);
 }
-.metric-card:hover { box-shadow: var(--shadow-md); }
-.metric-card::before {
-  content: ''; position: absolute; left: 0; top: 0; bottom: 0;
-  width: 3px; border-radius: 3px 0 0 3px;
+.at-kpi:hover { box-shadow: var(--shadow-md); }
+.at-kpi.green { border-left-color: var(--green); }
+.at-kpi.amber { border-left-color: var(--amber); }
+.at-kpi.red   { border-left-color: var(--red); }
+.at-kpi.purple{ border-left-color: #a78bfa; }
+.at-kpi-l { font-size: 9.5px; font-weight: 700; color: var(--text2); text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 4px; }
+.at-kpi-v { font-size: 17px; font-weight: 800; letter-spacing: -0.4px; line-height: 1.15; font-variant-numeric: tabular-nums; }
+.at-kpi-s { font-size: 10px; color: var(--text2); margin-top: 3px; font-variant-numeric: tabular-nums; }
+.at-pos { color: var(--green); } .at-neg { color: var(--red); } .at-mut { color: var(--text2); }
+.at-pill { display: inline-block; font-size: 10px; font-weight: 700; padding: 1px 7px; border-radius: 99px; }
+.at-pill.at-pos { background: rgba(16,185,129,0.12); }
+.at-pill.at-neg { background: rgba(239,68,68,0.10); }
+
+/* 섹션 구분 라벨 */
+.at-eyebrow {
+  font-size: 10px; font-weight: 800; letter-spacing: .7px; text-transform: uppercase;
+  color: var(--text2); margin: 16px 0 8px; display: flex; align-items: center; gap: 8px;
 }
-.metric-card[data-cat="pension"]::before    { background: #6366f1; }
-.metric-card[data-cat="invest"]::before     { background: var(--green); }
-.metric-card[data-cat="savings"]::before    { background: var(--amber); }
-.metric-card[data-cat="liquid"]::before     { background: #3b82f6; }
-.metric-card[data-cat="realestate"]::before { background: #a78bfa; }
-.metric-card[data-cat="loan"]::before       { background: var(--red); }
-.metric-card .dot {
-  width: 7px; height: 7px; border-radius: 50%;
-  display: inline-block; margin-right: 6px;
+.at-eyebrow::after { content: ''; flex: 1; height: 1px; background: var(--border); }
+
+/* 2열 배치 */
+.at-row2 { display: grid; grid-template-columns: 1.35fr 1fr; gap: 10px; }
+.at-row2.even { grid-template-columns: 1fr 1fr; }
+@media (max-width: 1100px) { .at-row2, .at-row2.even { grid-template-columns: 1fr; } }
+
+/* 전월 대비 변화 — 발산형 막대 */
+.at-delta-head { display: flex; align-items: baseline; gap: 10px; margin: 2px 0 12px; flex-wrap: wrap; }
+.at-delta-total { font-size: 24px; font-weight: 800; letter-spacing: -0.6px; font-variant-numeric: tabular-nums; }
+.at-delta-period { font-size: 11px; color: var(--text2); }
+.at-delta-list { display: flex; flex-direction: column; gap: 3px; }
+.at-delta-row { display: grid; grid-template-columns: 72px 1fr 78px; align-items: center; gap: 8px; padding: 3px 0; }
+.at-delta-name { font-size: 11.5px; font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.at-delta-track { position: relative; height: 16px; }
+.at-delta-track::before {
+  content: ''; position: absolute; left: 50%; top: -2px; bottom: -2px;
+  width: 1px; background: var(--border);
 }
-.metric-card .label {
-  font-size: 10px; font-weight: 700; color: var(--text2);
-  text-transform: uppercase; letter-spacing: 0.5px;
-  margin-bottom: 8px; display: flex; align-items: center;
+.at-delta-fill { position: absolute; top: 3px; height: 10px; border-radius: 3px; }
+.at-delta-val { font-size: 11.5px; font-weight: 700; text-align: right; font-variant-numeric: tabular-nums; }
+.at-delta-foot { font-size: 10.5px; color: var(--text2); margin-top: 10px; padding-top: 9px; border-top: 1px solid var(--border2, var(--glass-border)); }
+.at-delta-empty { font-size: 12px; color: var(--text2); padding: 10px 0; }
+.hero-label { font-size: 9.5px; font-weight: 700; opacity: 0.75; text-transform: uppercase; letter-spacing: 1.2px; margin-bottom: 5px; position: relative; z-index: 1; }
+.hero-value {
+  font-size: 26px; font-weight: 800; letter-spacing: -0.8px; line-height: 1.1;
+  margin-bottom: 3px; position: relative; z-index: 1;
+  font-variant-numeric: tabular-nums;
+  display: flex; align-items: baseline; gap: 7px; flex-wrap: wrap;
 }
-.metric-card .value { font-size: 18px; font-weight: 800; letter-spacing: -0.4px; }
-.metric-card.loan-card .value { color: var(--red); }
+.hero-sub { font-size: 11.5px; opacity: 0.75; position: relative; z-index: 1; }
+.hero-badge { display: inline-flex; align-items: center; gap: 4px; padding: 1px 8px; border-radius: 99px; font-weight: 700; font-size: 10.5px; }
+.hero-badge.up   { background: rgba(255,255,255,0.18); color: #d1fae5; }
+.hero-badge.down { background: rgba(255,255,255,0.18); color: #fecaca; }
 
 /* ── Section Card ── */
 .section-card {
@@ -150,8 +176,8 @@
 
 /* ── Doughnut + summary row ── */
 .at-donut-row {
-  display: grid; grid-template-columns: 220px 1fr;
-  gap: 24px; align-items: start;
+  display: grid; grid-template-columns: 190px 1fr;
+  gap: 20px; align-items: center;
 }
 @media (max-width: 640px) { .at-donut-row { grid-template-columns: 1fr; } }
 .chart-container { height: 200px; position: relative; }
@@ -170,18 +196,27 @@
 
 /* Type list */
 .at-type-head {
-  display: grid; grid-template-columns: 2fr 1.5fr 0.7fr;
+  display: grid; grid-template-columns: 96px 1fr 84px 56px 82px;
   font-size: 10px; font-weight: 700; color: var(--text2);
-  text-transform: uppercase; letter-spacing: .05em;
+  text-transform: uppercase; letter-spacing: .05em; gap: 10px;
   padding: 0 4px 8px; border-bottom: 1px solid var(--glass-border);
 }
-.at-type-head > *:not(:first-child) { text-align: right; }
+.at-type-head > *:not(:first-child):not(.at-th-bar) { text-align: right; }
 #accountTypeRows .type-row {
-  display: grid; grid-template-columns: 2fr 1.5fr 0.7fr;
-  align-items: center; padding: 9px 4px;
+  display: grid; grid-template-columns: 96px 1fr 84px 56px 82px;
+  align-items: center; gap: 10px; padding: 8px 4px;
   border-bottom: 1px solid rgba(128,128,128,0.05);
 }
-#accountTypeRows .type-row > *:not(:first-child) { text-align: right; }
+#accountTypeRows .type-row:last-child { border-bottom: none; }
+#accountTypeRows .type-row > *:not(:first-child):not(.at-share) { text-align: right; }
+/* 폭이 좁으면 비중 막대를 접고 숫자만 남긴다 */
+@media (max-width: 1000px) {
+  .at-type-head, #accountTypeRows .type-row { grid-template-columns: 96px 1fr 56px 78px; }
+  .at-th-bar, .at-share { display: none; }
+}
+.at-share { height: 6px; border-radius: 99px; background: rgba(128,128,128,0.12); overflow: hidden; }
+[data-theme="dark"] .at-share { background: rgba(255,255,255,0.07); }
+.at-share > span { display: block; height: 100%; border-radius: 99px; }
 
 /* ── Total chart ── */
 .at-chart-section {
@@ -353,7 +388,6 @@
 .preview-row.total { font-weight: 700; font-size: 15px; padding-top: 9px; }
 
 @media (max-width: 600px) {
-  .metric-grid { grid-template-columns: repeat(2,1fr); }
   .form-grid { grid-template-columns: 1fr; }
   .modal-box { margin: 12px; padding: 20px; }
   .at-donut-row { grid-template-columns: 1fr; }
@@ -388,113 +422,116 @@
 ══════════════════════════════════════ -->
 <div id="pg0">
 
-  <!-- Hero -->
-  <div class="hero-card">
-    <div class="hero-label">TOTAL ASSETS</div>
-    <div class="hero-value" id="cardTotal">—</div>
-    <div class="hero-sub">
-      <span id="cardTotalDate">데이터 없음</span>
-      <span class="hero-badge" id="cardTotalChange" style="display:none;"></span>
+  <!-- ── KPI 스트립: 순자산을 중심으로 총자산·부채·성장을 한 줄에 ── -->
+  <div class="at-kpis">
+    <div class="hero-card">
+      <span class="hero-asof" id="heroAsOf">—</span>
+      <div class="hero-label">순자산 · NET WORTH</div>
+      <div class="hero-value">
+        <span id="cardTotal">—</span>
+        <span class="hero-badge" id="cardTotalChange" style="display:none;"></span>
+      </div>
+      <div class="hero-sub" id="cardTotalDate">데이터 없음</div>
+      <canvas class="hero-spark" id="heroSpark"></canvas>
+    </div>
+
+    <div class="at-kpi green">
+      <div class="at-kpi-l">총자산</div>
+      <div class="at-kpi-v" id="kpiGross">—</div>
+      <div class="at-kpi-s" id="kpiGrossSub">대출 차감 전</div>
+    </div>
+    <div class="at-kpi red">
+      <div class="at-kpi-l">부채</div>
+      <div class="at-kpi-v" id="kpiLoan">—</div>
+      <div class="at-kpi-s" id="kpiLoanSub">대출 잔액</div>
+    </div>
+    <div class="at-kpi amber">
+      <div class="at-kpi-l">부채비율</div>
+      <div class="at-kpi-v" id="kpiDebtRatio">—</div>
+      <div class="at-kpi-s" id="kpiDebtRatioSub">부채 ÷ 총자산</div>
+    </div>
+    <div class="at-kpi">
+      <div class="at-kpi-l">12개월 증가</div>
+      <div class="at-kpi-v" id="kpiYear">—</div>
+      <div class="at-kpi-s" id="kpiYearSub">순자산 기준</div>
+    </div>
+    <div class="at-kpi purple">
+      <div class="at-kpi-l">월평균 증감</div>
+      <div class="at-kpi-v" id="kpiAvg">—</div>
+      <div class="at-kpi-s" id="kpiAvgSub">최근 12개월</div>
     </div>
   </div>
 
-  <!-- Metric Cards: 3열 -->
-  <div class="metric-grid">
-    <div class="metric-card" data-cat="pension">
-      <div class="label"><span class="dot" style="background:#6366f1;"></span>연금</div>
-      <div class="value" id="cardPension">—</div>
-    </div>
-    <div class="metric-card" data-cat="invest">
-      <div class="label"><span class="dot" style="background:#10b981;"></span>투자</div>
-      <div class="value" id="cardInvest">—</div>
-    </div>
-    <div class="metric-card" data-cat="savings">
-      <div class="label"><span class="dot" style="background:#f59e0b;"></span>저축(청약)</div>
-      <div class="value" id="cardSavings">—</div>
-    </div>
-    <div class="metric-card" data-cat="liquid">
-      <div class="label"><span class="dot" style="background:#3b82f6;"></span>자유입출금</div>
-      <div class="value" id="cardLiquid">—</div>
-    </div>
-    <div class="metric-card" data-cat="realestate">
-      <div class="label"><span class="dot" style="background:#a78bfa;"></span>부동산</div>
-      <div class="value" id="cardRealestate">—</div>
-    </div>
-    <div class="metric-card loan-card" data-cat="loan">
-      <div class="label"><span class="dot" style="background:#ef4444;"></span>대출</div>
-      <div class="value" id="cardLoan">—</div>
-    </div>
-  </div>
+  <div class="at-eyebrow">구성 · 변화</div>
+  <div class="at-row2">
 
-  <!-- 계좌 유형별 구성 -->
-  <div class="section-card">
-    <div class="at-donut-row">
-
-      <!-- 도넛 차트 -->
-      <div>
-        <div class="section-title">계좌 유형별 구성</div>
-        <div class="section-subtitle">총자산 기준 비중</div>
-        <div style="position:relative;height:200px;">
+    <!-- 자산 구성: 도넛 + 유형별 금액·비중·전월비 (기존 메트릭 카드 흡수) -->
+    <div class="section-card">
+      <div class="section-title">자산 구성</div>
+      <div class="section-subtitle" id="compositionSub">총자산 기준 비중</div>
+      <div class="at-donut-row">
+        <div style="position:relative;height:190px;">
           <canvas id="accountDoughnutChart"></canvas>
         </div>
-      </div>
-
-      <!-- 우측: 미니 스탯 + 유형 목록 -->
-      <div>
-        <div class="at-donut-stats">
-          <div class="at-donut-stat">
-            <div class="lbl">총자산</div>
-            <div class="val" id="doughnutSummaryGross">—</div>
+        <div>
+          <div class="at-type-head">
+            <div>유형</div><div class="at-th-bar"></div><div>금액</div><div>비중</div><div>전월比</div>
           </div>
-          <div class="at-donut-stat">
-            <div class="lbl">순자산</div>
-            <div class="val" style="color:var(--blue);" id="doughnutSummaryNet">—</div>
-          </div>
-          <div class="at-donut-stat">
-            <div class="lbl">부채비율</div>
-            <div class="val" style="color:var(--red);" id="doughnutDebtRatio">—</div>
-          </div>
+          <div id="accountTypeRows"></div>
         </div>
-        <div class="at-type-head">
-          <div>유형</div><div>금액</div><div>비중</div>
-        </div>
-        <div id="accountTypeRows"></div>
       </div>
-
     </div>
+
+    <!-- 전월 대비 순자산 변화 기여도 -->
+    <div class="section-card">
+      <div class="section-title">전월 대비 변화</div>
+      <div class="section-subtitle" id="deltaSub">무엇이 순자산을 움직였는지</div>
+      <div class="at-delta-head">
+        <div class="at-delta-total" id="deltaTotal">—</div>
+        <div class="at-delta-period" id="deltaPeriod"></div>
+      </div>
+      <div class="at-delta-list" id="deltaList">
+        <div class="at-delta-empty">데이터 로딩 중…</div>
+      </div>
+      <div class="at-delta-foot" id="deltaFoot"></div>
+    </div>
+
   </div>
 
-  <!-- 순자산 차트 -->
-  <div class="at-chart-section">
-    <div class="at-chart-header">
-      <div>
-        <div class="at-chart-title">순자산 추이</div>
-        <div class="at-chart-subtitle">전체 기간 월별 변화</div>
-      </div>
-    </div>
-    <div style="height:220px;position:relative;">
-      <canvas id="chartTotal"></canvas>
-    </div>
-  </div>
+  <div class="at-eyebrow">추이</div>
+  <div class="at-row2 even">
 
-  <!-- 카테고리 차트 -->
-  <div class="at-chart-section">
-    <div class="at-chart-header">
-      <div>
-        <div class="at-chart-title">카테고리 차트</div>
-        <div class="at-chart-subtitle">최근 12개월</div>
+    <div class="at-chart-section">
+      <div class="at-chart-header">
+        <div>
+          <div class="at-chart-title">순자산 추이</div>
+          <div class="at-chart-subtitle">전체 기간 월별 · 막대 색은 전월 대비 증감</div>
+        </div>
       </div>
-      <div class="cat-legend">
-        <span class="cat-legend-item"><span class="cat-legend-dot" style="background:#6366f1;"></span>연금</span>
-        <span class="cat-legend-item"><span class="cat-legend-dot" style="background:#10b981;"></span>투자</span>
-        <span class="cat-legend-item"><span class="cat-legend-dot" style="background:#f59e0b;"></span>저축</span>
-        <span class="cat-legend-item"><span class="cat-legend-dot" style="background:#a78bfa;"></span>부동산</span>
-        <span class="cat-legend-item"><span class="cat-legend-dot" style="background:#3b82f6;"></span>자유입출금</span>
+      <div style="height:230px;position:relative;">
+        <canvas id="chartTotal"></canvas>
       </div>
     </div>
-    <div style="height:220px;position:relative;">
-      <canvas id="chartCategory"></canvas>
+
+    <div class="at-chart-section">
+      <div class="at-chart-header">
+        <div>
+          <div class="at-chart-title">구성 추이</div>
+          <div class="at-chart-subtitle">최근 12개월 · 총자산 누적</div>
+        </div>
+        <div class="cat-legend">
+          <span class="cat-legend-item"><span class="cat-legend-dot" style="background:#6366f1;"></span>연금</span>
+          <span class="cat-legend-item"><span class="cat-legend-dot" style="background:#10b981;"></span>투자</span>
+          <span class="cat-legend-item"><span class="cat-legend-dot" style="background:#f59e0b;"></span>저축</span>
+          <span class="cat-legend-item"><span class="cat-legend-dot" style="background:#a78bfa;"></span>부동산</span>
+          <span class="cat-legend-item"><span class="cat-legend-dot" style="background:#3b82f6;"></span>자유입출금</span>
+        </div>
+      </div>
+      <div style="height:230px;position:relative;">
+        <canvas id="chartCategory"></canvas>
+      </div>
     </div>
+
   </div>
 
 </div><!-- /pg0 -->
@@ -789,63 +826,199 @@ async function loadData() {
   updateBuiltinFieldVisibility();
 }
 
+/* ── 카테고리 합계 헬퍼 ──
+   totalCapital은 대출을 뺀 순자산이므로, 총자산(gross)과 부채(loan)를 여기서 파생한다. */
+const ASSET_CATS = [
+  {key:'invest',     field:'investTotal',     label:'투자',       color:'#10b981'},
+  {key:'pension',    field:'pensionTotal',    label:'연금',       color:'#6366f1'},
+  {key:'realestate', field:'realestateTotal', label:'부동산',     color:'#a78bfa'},
+  {key:'liquid',     field:'liquidTotal',     label:'자유입출금', color:'#3b82f6'},
+  {key:'savings',    field:'savingsTotal',    label:'저축',       color:'#f59e0b'},
+];
+const grossOf = d => ASSET_CATS.reduce((sum, c) => sum + (d[c.field] || 0), 0);
+const NOISE = 10000;   // 1만원 미만 차이는 반올림 노이즈로 간주
+const netOf   = d => d.totalCapital || 0;
+const loanOf  = d => grossOf(d) - netOf(d);
+
+const atSgn  = v => v >= 0 ? '+' : '-';
+const atCls  = v => v > 0 ? 'at-pos' : v < 0 ? 'at-neg' : 'at-mut';
+const atAmt  = v => atSgn(v) + fmtKrw(Math.abs(v));
+function atPill(pct) {
+  return `<span class="at-pill ${atCls(pct)}">${atSgn(pct)}${Math.abs(pct).toFixed(1)}%</span>`;
+}
+function setTxt(id, v) { const e = document.getElementById(id); if (e) e.textContent = v; }
+function setHtm(id, v) { const e = document.getElementById(id); if (e) e.innerHTML = v; }
+
 function renderCards() {
   if (!allData.length) return;
-  const last = allData[allData.length - 1];
-  const prev = allData.length > 1 ? allData[allData.length - 2] : null;
-  document.getElementById('cardTotal').textContent     = fmtKrw(last.totalCapital);
-  document.getElementById('cardTotalDate').textContent = last.date + ' 기준';
-  if (prev && prev.totalCapital) {
-    const diff = last.totalCapital - prev.totalCapital;
-    const pct  = (diff / Math.abs(prev.totalCapital) * 100).toFixed(1);
-    const sign = diff >= 0 ? '+' : '';
-    const el   = document.getElementById('cardTotalChange');
-    el.textContent = `${sign}${pct}% 전월比`;
+  const n    = allData.length;
+  const last = allData[n - 1];
+  const prev = n > 1 ? allData[n - 2] : null;
+
+  const gross = grossOf(last), net = netOf(last), loan = loanOf(last);
+
+  /* ── 히어로: 순자산 ── */
+  setTxt('cardTotal', fmtKrw(net));
+  setTxt('heroAsOf', last.date.replace(/\//g, '.'));
+  if (prev && netOf(prev)) {
+    const diff = net - netOf(prev), pct = diff / Math.abs(netOf(prev)) * 100;
+    const el = document.getElementById('cardTotalChange');
+    el.textContent = `${atSgn(diff)}${Math.abs(pct).toFixed(1)}% 전월`;
     el.className = 'hero-badge ' + (diff >= 0 ? 'up' : 'down');
     el.style.display = 'inline-flex';
+    setTxt('cardTotalDate', `${last.date} 기준 · 전월 대비 ${atAmt(diff)}`);
+  } else {
+    setTxt('cardTotalDate', `${last.date} 기준`);
   }
-  document.getElementById('cardPension').textContent     = fmtKrw(last.pensionTotal);
-  document.getElementById('cardInvest').textContent      = fmtKrw(last.investTotal);
-  document.getElementById('cardSavings').textContent     = fmtKrw(last.savingsTotal);
-  document.getElementById('cardLiquid').textContent      = fmtKrw(last.liquidTotal);
-  document.getElementById('cardRealestate').textContent  = fmtKrw(last.realestateTotal);
-  document.getElementById('cardLoan').textContent        = last.hanaLoan > 0 ? '-' + fmtKrw(last.hanaLoan) : '없음';
-  renderAccountDoughnut(last);
+
+  /* ── 총자산 / 부채 / 부채비율 ── */
+  setTxt('kpiGross', fmtKrw(gross));
+  setHtm('kpiGrossSub', prev ? `${atPill((gross - grossOf(prev)) / Math.max(1, grossOf(prev)) * 100)} 대출 차감 전`
+                             : '대출 차감 전');
+
+  setHtm('kpiLoan', loan > 0 ? `<span class="at-neg">-${fmtKrw(loan)}</span>` : '없음');
+  if (prev) {
+    const ld = loan - loanOf(prev);
+    setHtm('kpiLoanSub', Math.abs(ld) < NOISE ? '전월과 동일'
+      : `전월 대비 <span class="${atCls(-ld)}">${atAmt(ld)}</span>`);
+  }
+
+  const ratio = gross > 0 ? loan / gross * 100 : 0;
+  setTxt('kpiDebtRatio', ratio.toFixed(1) + '%');
+  if (prev) {
+    const pr = grossOf(prev) > 0 ? loanOf(prev) / grossOf(prev) * 100 : 0;
+    const d  = ratio - pr;
+    setHtm('kpiDebtRatioSub', `전월 ${pr.toFixed(1)}% <span class="${atCls(-d)}">(${atSgn(d)}${Math.abs(d).toFixed(1)}p)</span>`);
+  }
+
+  /* ── 12개월 증가 / 월평균 (구간이 짧으면 있는 만큼) ── */
+  const baseIdx = Math.max(0, n - 13);
+  const months  = n - 1 - baseIdx;
+  if (months > 0) {
+    const base = netOf(allData[baseIdx]), grow = net - base;
+    setHtm('kpiYear', `<span class="${atCls(grow)}">${atAmt(grow)}</span>`);
+    setHtm('kpiYearSub', base ? `${atPill(grow / Math.abs(base) * 100)} ${allData[baseIdx].date.slice(0,7)} 이후` : '순자산 기준');
+    const avg = grow / months;
+    setHtm('kpiAvg', `<span class="${atCls(avg)}">${atAmt(avg)}</span>`);
+    setTxt('kpiAvgSub', `최근 ${months}개월 평균`);
+  } else {
+    setTxt('kpiYear', 'N/A'); setTxt('kpiYearSub', '기록이 2개월 이상 필요');
+    setTxt('kpiAvg',  'N/A'); setTxt('kpiAvgSub',  '기록이 2개월 이상 필요');
+  }
+
+  renderHeroSpark();
+  renderAccountDoughnut(last, prev);
+  renderDelta(last, prev);
 }
 
-function renderAccountDoughnut(last) {
-  const grossAssets = (last.pensionTotal||0) + (last.investTotal||0) + (last.savingsTotal||0) + (last.liquidTotal||0) + (last.realestateTotal||0);
-  const loan        = grossAssets - last.totalCapital;
-  const netAsset    = last.totalCapital;
-  const debtRatio   = grossAssets > 0 ? (loan / grossAssets * 100).toFixed(1) : '0.0';
+/* ── 히어로 스파크라인: 순자산 전체 추이 ── */
+let heroSpark = null;
+function renderHeroSpark() {
+  const el = document.getElementById('heroSpark');
+  if (!el || allData.length < 2) return;
+  const pts = allData.map(d => netOf(d));
+  if (heroSpark) heroSpark.destroy();
+  heroSpark = new Chart(el.getContext('2d'), {
+    type: 'line',
+    data: { labels: allData.map(d => d.date.slice(0, 7)), datasets: [{
+      data: pts, borderColor: 'rgba(255,255,255,0.9)', borderWidth: 1.5,
+      pointRadius: 0, tension: 0.35, fill: true,
+      backgroundColor: c => {
+        const g = c.chart.ctx.createLinearGradient(0, 0, 0, c.chart.height);
+        g.addColorStop(0, 'rgba(255,255,255,0.3)'); g.addColorStop(1, 'rgba(255,255,255,0)');
+        return g;
+      },
+    }]},
+    options: {
+      responsive: true, maintainAspectRatio: false, animation: { duration: 400 },
+      plugins: { legend: { display: false }, tooltip: { enabled: false } },
+      scales: { x: { display: false }, y: { display: false, min: Math.min(...pts) * 0.99 } },
+    },
+  });
+}
 
-  document.getElementById('doughnutSummaryGross').textContent = fmtKrw(grossAssets);
-  document.getElementById('doughnutSummaryNet').textContent   = fmtKrw(netAsset);
-  document.getElementById('doughnutDebtRatio').textContent    = debtRatio + '%';
+/* ── 전월 대비 순자산 변화 분해 ──
+   Δ순자산 = Σ(자산 카테고리 증감) − Δ부채 — 항목 기여의 합이 정확히 총변화와 일치한다. */
+function renderDelta(last, prev) {
+  const list = document.getElementById('deltaList');
+  const foot = document.getElementById('deltaFoot');
+  if (!prev) {
+    list.innerHTML = '<div class="at-delta-empty">비교할 이전 달 기록이 없습니다.</div>';
+    foot.textContent = ''; return;
+  }
+  const items = ASSET_CATS.map(c => ({
+    label: c.label, color: c.color, v: (last[c.field] || 0) - (prev[c.field] || 0),
+  }));
+  const loanDelta = loanOf(last) - loanOf(prev);
+  items.push({ label: '대출', color: '#ef4444', v: -loanDelta });  // 부채 증가 = 순자산 감소
 
-  const cats = [
-    {label:'투자',      color:'#10b981', val: last.investTotal||0},
-    {label:'연금',      color:'#6366f1', val: last.pensionTotal||0},
-    {label:'저축',      color:'#f59e0b', val: last.savingsTotal||0},
-    {label:'자유입출금',color:'#3b82f6', val: last.liquidTotal||0},
-    {label:'부동산',    color:'#a78bfa', val: last.realestateTotal||0},
-    {label:'대출',      color:'#ef4444', val: loan},
-  ];
+  const netDelta = netOf(last) - netOf(prev);
+  const prevNet  = netOf(prev);
+  setHtm('deltaTotal', `<span class="${atCls(netDelta)}">${atAmt(netDelta)}</span>`);
+  setTxt('deltaPeriod', `${prev.date.slice(0,7)} → ${last.date.slice(0,7)} 순자산 변화`
+    + (prevNet ? ` · ${atSgn(netDelta)}${Math.abs(netDelta / prevNet * 100).toFixed(1)}%` : ''));
+  const moved = items.filter(i => Math.abs(i.v) >= NOISE).sort((a, b) => Math.abs(b.v) - Math.abs(a.v));
+  if (!moved.length) {
+    list.innerHTML = '<div class="at-delta-empty">1만원 이상 변동한 항목이 없습니다.</div>';
+    foot.textContent = '';
+    return;
+  }
+  const max = Math.max(...moved.map(i => Math.abs(i.v)));
+  list.innerHTML = moved.map(i => {
+    const w = max ? Math.abs(i.v) / max * 50 : 0;   // 중앙 기준 좌우 최대 50%
+    const side = i.v >= 0 ? `left:50%;width:${w}%;` : `right:50%;width:${w}%;`;
+    const bg = i.v >= 0 ? i.color : '#ef4444';
+    return `<div class="at-delta-row" title="${i.label} ${atAmt(i.v)}">
+      <div class="at-delta-name">${i.label}</div>
+      <div class="at-delta-track"><div class="at-delta-fill" style="${side}background:${bg};opacity:.8;"></div></div>
+      <div class="at-delta-val ${atCls(i.v)}">${atAmt(i.v)}</div>
+    </div>`;
+  }).join('');
+
+  const top = moved[0];
+  const others = moved.length - 1;
+  foot.innerHTML = `가장 큰 변화는 <b>${top.label}</b> <b class="${atCls(top.v)}">${atAmt(top.v)}</b>`
+    + (others > 0 ? ` · 나머지 ${others}개 항목 합계 <b class="${atCls(netDelta - top.v)}">${atAmt(netDelta - top.v)}</b>` : '')
+    + ` · 막대는 순자산 기여 방향 (대출 증가는 감소로 표시)`;
+}
+
+function renderAccountDoughnut(last, prev) {
+  const grossAssets = grossOf(last);
+  const loan        = loanOf(last);
+
+  // 도넛은 총자산 구성만 보여주고, 부채는 아래 행에 별도로 둔다
+  const cats = ASSET_CATS
+    .map(c => ({label: c.label, color: c.color, val: last[c.field] || 0,
+                delta: prev ? (last[c.field] || 0) - (prev[c.field] || 0) : null}))
+    .sort((a, b) => b.val - a.val);
 
   const total = grossAssets;
   const rows = cats.map(c => {
-    const pct = total > 0 ? (c.val / total * 100).toFixed(1) : '0.0';
-    const isLoan = c.label === '대출';
+    const pct = total > 0 ? c.val / total * 100 : 0;
     return `<div class="type-row">
-      <div style="display:flex;align-items:center;gap:8px;">
-        <span style="width:7px;height:7px;border-radius:2px;background:${c.color};flex-shrink:0;display:inline-block;"></span>
-        <span style="font-size:13px;font-weight:500;${isLoan?'color:#ef4444;':''}">${c.label}</span>
+      <div style="display:flex;align-items:center;gap:8px;min-width:0;">
+        <span style="width:8px;height:8px;border-radius:2px;background:${c.color};flex-shrink:0;display:inline-block;"></span>
+        <span style="font-size:12.5px;font-weight:600;overflow:hidden;text-overflow:ellipsis;">${c.label}</span>
       </div>
-      <div style="font-size:13px;color:var(--text2);">${isLoan&&c.val>0?'-':''}${fmtKrw(c.val)}</div>
-      <div style="font-size:13px;font-weight:700;color:${c.color};">${pct}%</div>
+      <div class="at-share"><span style="width:${pct}%;background:${c.color};opacity:.75;"></span></div>
+      <div style="font-size:12.5px;font-variant-numeric:tabular-nums;">${fmtKrw(c.val)}</div>
+      <div style="font-size:12.5px;font-weight:700;color:${c.color};font-variant-numeric:tabular-nums;">${pct.toFixed(1)}%</div>
+      <div class="at-delta-val ${c.delta === null ? 'at-mut' : atCls(c.delta)}" style="font-size:11.5px;">${
+        c.delta === null || Math.abs(c.delta) < NOISE ? '—' : atAmt(c.delta)}</div>
     </div>`;
-  }).join('');
+  }).join('') + `<div class="type-row" style="border-top:1px solid var(--glass-border);">
+      <div style="display:flex;align-items:center;gap:8px;">
+        <span style="width:8px;height:8px;border-radius:2px;background:#ef4444;flex-shrink:0;display:inline-block;"></span>
+        <span style="font-size:12.5px;font-weight:600;color:var(--red);">대출</span>
+      </div>
+      <div class="at-share"><span style="width:${total > 0 ? Math.min(100, loan / total * 100) : 0}%;background:#ef4444;opacity:.6;"></span></div>
+      <div style="font-size:12.5px;color:var(--red);font-variant-numeric:tabular-nums;">${loan > 0 ? '-' + fmtKrw(loan) : '—'}</div>
+      <div style="font-size:12.5px;font-weight:700;color:#ef4444;font-variant-numeric:tabular-nums;">${total > 0 ? (loan / total * 100).toFixed(1) : '0.0'}%</div>
+      <div class="at-delta-val ${prev ? atCls(-(loan - loanOf(prev))) : 'at-mut'}" style="font-size:11.5px;">${
+        !prev || Math.abs(loan - loanOf(prev)) < NOISE ? '—' : atAmt(-(loan - loanOf(prev)))}</div>
+    </div>`;
   document.getElementById('accountTypeRows').innerHTML = rows;
+  setTxt('compositionSub', `${last.date} 기준 · 총자산 ${fmtKrw(grossAssets)}`);
 
   const isDark = document.documentElement.getAttribute('data-theme') === 'dark';
   const centerTextColor = isDark ? '#ebebeb' : '#1a1a1a';
