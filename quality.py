@@ -92,8 +92,9 @@ def growth_window(years, field, n, currency=""):
                    na=f"{label} 계산에 {n + 1}개 회계연도 값 필요 — 값이 있는 연도 {len(pts)}개")
     (y0, v0), (y1, v1) = pts[-(n + 1)], pts[-1]
     if n == 1:
-        if not v0:
-            return rec(None, period_type=label, na="직전 연도 값이 0")
+        if v0 <= 0 or v1 < 0:
+            return rec(None, period=f"{_fy(y0)}→{_fy(y1)}", period_type=label,
+                       na="직전 또는 최근 값이 적자(0 이하) — 성장률 정의 불가")
         return rec((v1 - v0) / abs(v0), period=f"{_fy(y0)}→{_fy(y1)}", period_type=label,
                    currency=currency, basis="Calculated", as_of=y1.get("end", ""),
                    formula="(최근 FY − 직전 FY) ÷ |직전 FY|")
@@ -125,9 +126,12 @@ def year_metrics(y, prev, currency):
                    na=None if v is not None else f"{fy} {formula} 데이터 없음")
 
     def yoy_rec(cur, pre, what):
-        if cur is None or pre is None or pre == 0:
+        if cur is None or pre is None:
             return rec(None, period=fy, period_type="1Y YoY",
                        na=f"{fy} {what} 직전 연도 비교 불가")
+        if pre <= 0 or cur < 0:
+            return rec(None, period=fy, period_type="1Y YoY",
+                       na=f"{fy} {what} 적자 구간 — 성장률 정의 불가")
         return rec((cur - pre) / abs(pre), period=f"FY{prev.get('fy')}→{fy}", period_type="1Y YoY",
                    basis="Calculated", as_of=end, formula="(당해 − 직전) ÷ |직전|")
 

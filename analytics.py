@@ -292,6 +292,8 @@ def peg(payload: dict, forecasts: list | None = None) -> dict:
         e0, e1 = _num(forecasts[0].get("eps")), _num(forecasts[1].get("eps"))
         if e0 and e1 and e0 > 0:
             g = (e1 / e0 - 1) * 100
+    if g is not None and g > 100:
+        return NA("예상 EPS 성장률 100% 초과 (기저 효과) — PEG 의미 없음")
     if fpe and g and g > 3:
         return M(fpe / g, "Forward P/E ÷ 애널리스트 예상 EPS 성장률", payload.get("fetched_at", ""))
     return NA("성장률 3% 이하 또는 예상치 없음 — PEG 의미 없음")
@@ -345,6 +347,8 @@ def analysis_to_dict(payload: dict, forecasts: list | None = None,
     years = payload.get("years") or []
     ttm = payload.get("ttm") or {}
     as_of = payload.get("fetched_at", "")
+    # yfinance의 EV/EBITDA·P/S는 시가총액(시세 통화) ÷ 재무제표(보고 통화)라 통화가 다르면 틀린 값
+    fx_mismatch = payload.get("fin_currency") != payload.get("quote_currency")
     rs = roic_series(years)
     roic_vals = [r["roic"] for r in rs if r["roic"] is not None]
 
@@ -399,10 +403,12 @@ def analysis_to_dict(payload: dict, forecasts: list | None = None,
                           if ttm.get("forward_pe") else NA("Forward P/E 없음"),
         "trailing_pe":    M(_num(ttm.get("trailing_pe")), "yfinance trailingPE", as_of)
                           if ttm.get("trailing_pe") else NA("P/E 없음"),
-        "ev_ebitda":      M(_num(ttm.get("ev_ebitda")), "yfinance enterpriseToEbitda", as_of)
-                          if ttm.get("ev_ebitda") else NA("EV/EBITDA 없음"),
-        "ps_ttm":         M(_num(ttm.get("ps_ttm")), "yfinance priceToSalesTrailing12Months", as_of)
-                          if ttm.get("ps_ttm") else NA("P/S 없음"),
+        "ev_ebitda":      (NA("재무제표 통화와 시가총액 통화 불일치") if fx_mismatch else
+                           M(_num(ttm.get("ev_ebitda")), "yfinance enterpriseToEbitda", as_of)
+                           if ttm.get("ev_ebitda") else NA("EV/EBITDA 없음")),
+        "ps_ttm":         (NA("재무제표 통화와 시가총액 통화 불일치") if fx_mismatch else
+                           M(_num(ttm.get("ps_ttm")), "yfinance priceToSalesTrailing12Months", as_of)
+                           if ttm.get("ps_ttm") else NA("P/S 없음")),
         "fcf_yield":      fcf_yield(payload),
         "mult_vs_hist":   multiple_vs_history(payload),
 

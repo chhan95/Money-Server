@@ -224,6 +224,9 @@ def score_valuation(d):
            0.30, unit="x", src=(d.get("mult_vs_hist") or {}).get("src", "")),
         _c("FCF 수익률", fcfy, band(fcfy, [(1, 20), (2, 40), (4, 60), (6, 80), (8, 100)]), 0.20),
     ]
+    # 구성요소 하나만으로는 판단하지 않는다 (예: 상장 초기 기업의 PEG 단독 100점)
+    if sum(1 for c in comps if c["score"] is not None) < 2:
+        return None, comps
     return _blend(comps)
 
 
