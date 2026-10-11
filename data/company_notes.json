@@ -145,5 +145,29 @@
       "technology_disruption": {"level": "medium", "note": "경구용 등 차세대 치료제 등장"}
     },
     "key_risks": ["비만 치료제 경쟁 심화와 가격 인하 압력", "약가 규제", "소수 제품군 의존도"]
+  },
+  "SPCX": {
+    "written_at": "2026-10-11",
+    "author": "Claude 초안 — 사용자 검증 필요",
+    "business_one_liner": "재사용 로켓 발사 역량을 바탕으로 저궤도 위성 인터넷(Starlink)을 운영하고, AI 플랫폼(Grok·X)까지 수직 통합한 우주·통신 기업",
+    "revenue_sources": ["Connectivity (Starlink 위성 인터넷 — 소비자·기업·정부)", "Space (Falcon·Starship 발사, Dragon 유인·화물 수송, 정부 우주 프로그램)", "AI (Grok LLM, X 플랫폼, AI 연산 인프라)"],
+    "moat": {
+      "factors": [
+        {"type": "Cost Advantage", "rating": "strong", "evidence": "재사용 발사체로 자사 위성 배치와 외부 발사 서비스의 단위 원가를 낮춤"},
+        {"type": "Scale Advantage", "rating": "strong", "evidence": "자체 발사 능력으로 대규모 저궤도 위성군을 빠르게 구축·교체할 수 있는 규모"},
+        {"type": "IP / Technology", "rating": "strong", "evidence": "발사체·엔진·위성·단말기를 내재화한 수직 통합 설계·제조 역량"},
+        {"type": "Regulatory Advantage", "rating": "moderate", "evidence": "선점한 주파수·궤도 사용 허가와 정부 발사·유인 수송 인증"},
+        {"type": "Network Effect", "rating": "moderate", "evidence": "X 플랫폼의 사용자·콘텐츠 네트워크 (AI 부문)"}
+      ]
+    },
+    "growth_duration": {"level": "High", "rationale": ["위성 인터넷 가입자·정부 수요 확대 여지", "Starship 상용화 시 발사 원가와 탑재량 구조가 추가 개선", "AI 부문은 대규모 연산 투자 회수가 불확실한 변수"]},
+    "risks": {
+      "capital_allocation": {"level": "high", "note": "AI 연산 인프라·Starship·위성 투자로 FCF 적자 확대 (대시보드 자본배분 표로 확인)"},
+      "technology_disruption": {"level": "medium", "note": "Starship 개발 지연·발사 실패 시 비용과 일정 부담"},
+      "competition": {"level": "medium", "note": "AI 부문의 프런티어 모델 경쟁, 저궤도 위성 인터넷 후발 사업자"},
+      "regulatory": {"level": "medium", "note": "발사 인허가, 주파수 규제, 국가별 위성 인터넷 사업 승인"},
+      "customer_concentration": {"level": "medium", "note": "발사·우주 부문의 정부 계약 의존"}
+    },
+    "key_risks": ["AI·Starship 대규모 투자에 따른 FCF 적자와 자본효율 저하", "상장 초기라 재무 이력이 짧아 정량 평가 제한", "AI 부문 경쟁과 투자 회수 불확실성"]
   }
 }
