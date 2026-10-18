@@ -695,8 +695,11 @@ def build_portfolio(companies):
         c["one_liner"] = one_liner(c, ranks, c["risk_flags"])
 
     summary = portfolio_summary(companies)
-    qs = [c["scores"]["business_quality"]["score"] for c in companies]
-    qs = [q for q in qs if q is not None]
+    # 보유금액 가중 (보유금액이 없으면 단순 평균)
+    q_row = next((r for r in summary["rows"] if r["key"] == "quality"), {})
+    pq = q_row.get("holding_weighted")
+    if pq is None:
+        pq = q_row.get("simple")
 
     for c in companies:
         c.pop("_metrics", None)
@@ -707,7 +710,7 @@ def build_portfolio(companies):
         "summary": summary,
         "headline": headline(companies, summary),
         "questions": eight_questions(companies),
-        "portfolio_quality": round(sum(qs) / len(qs), 1) if qs else None,
+        "portfolio_quality": round(pq, 1) if pq is not None else None,
         "medians": {"business_quality": bq_med, "valuation": val_med, "reinvestment": rr_med},
         "as_of": (dates[0] if len(dates) == 1 else f"{dates[0]} ~ {dates[-1]}") if dates else None,
         "mixed_dates": len(dates) > 1,
