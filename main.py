@@ -576,13 +576,20 @@ def page_kr_history(request: Request, db: Session = Depends(get_db)):
 
 
 @app.get("/api/kr-history")
-def api_kr_history(db: Session = Depends(get_db)):
-    """국내 포트폴리오 월별 스냅샷 데이터 반환."""
+def api_kr_history(granularity: str = "monthly", db: Session = Depends(get_db)):
+    """국내 포트폴리오 스냅샷 반환. granularity=monthly(기본, 각 월 마지막 스냅샷) 또는 daily(전체)."""
     snapshots = (
         db.query(models.KrDailySnapshot)
         .order_by(models.KrDailySnapshot.snapshot_date)
         .all()
     )
+    if granularity == "daily":
+        return [{
+            "date":              s.snapshot_date.isoformat(),
+            "totalValueKrw":     s.total_value_krw     or 0,
+            "monthlyNetKrw":     s.monthly_net_krw     or 0,
+            "unrealizedGainKrw": s.unrealized_gain_krw or 0,
+        } for s in snapshots]
     monthly: dict = {}
     for s in snapshots:
         month_key = s.snapshot_date.strftime("%Y-%m")
@@ -885,6 +892,9 @@ def page_kr_home(request: Request, db: Session = Depends(get_db)):
             "shares_owned":  p.shares_owned,
             "avg_price":     p.avg_price or 0,
             "current_price": stock.current_price if stock else 0,
+            "portfolio_id":  p.id,
+            "memo":          p.memo or "",
+            "fiscal":        fiscal,
             "latest_fy":     latest_fy,
             "forecast_cur":  forecast_cur,
             "forecast_nxt":  forecast_nxt,
@@ -904,55 +914,17 @@ def page_kr_home(request: Request, db: Session = Depends(get_db)):
         "has_items":     len(portfolio) > 0,
         "stale_tickers": json.dumps(stale_tickers),
         "needs_refresh": json.dumps(needs_refresh),
+        "error":         request.query_params.get("error", ""),
         "active":        "kr_home",
     })
     resp.headers["Cache-Control"] = "no-store"
     return resp
 
 
-@app.get("/kr-portfolio", response_class=HTMLResponse)
-def page_kr_portfolio(request: Request, db: Session = Depends(get_db)):
-    today = _today_utc()
-    needs_refresh_kr = any(
-        (lambda s: s is None or s.fetched_at is None or s.fetched_at.date() < today)(
-            db.query(models.KrStock).filter(models.KrStock.ticker == p.ticker).first()
-        )
-        for p in db.query(models.KrPortfolio).all()
-    )
-
-    portfolio = (
-        db.query(models.KrPortfolio)
-        .order_by(models.KrPortfolio.display_order, models.KrPortfolio.created_at)
-        .all()
-    )
-    items = []
-    stale_tickers = []
-    for p in portfolio:
-        stock = db.query(models.KrStock).filter(models.KrStock.ticker == p.ticker).first()
-        if _is_kr_stale(stock):
-            stale_tickers.append(p.ticker)
-        items.append({
-            "id":            p.id,
-            "ticker":        p.ticker,
-            "name":          stock.name if stock else p.ticker,
-            "shares_owned":  p.shares_owned,
-            "avg_price":     p.avg_price or 0,
-            "current_price": stock.current_price if stock else 0,
-            "memo":          p.memo or "",
-        })
-
-    items.sort(key=lambda x: x["shares_owned"] * x["current_price"], reverse=True)
-
-    resp = templates.TemplateResponse("kr_portfolio.html", {
-        "request":       request,
-        "items":         items,
-        "active":        "kr_portfolio",
-        "error":         request.query_params.get("error", ""),
-        "stale_tickers": json.dumps(stale_tickers),
-        "needs_refresh": json.dumps(needs_refresh_kr),
-    })
-    resp.headers["Cache-Control"] = "no-store"
-    return resp
+# 국내 포트폴리오 화면은 국내 홈으로 통합했다. 기존 북마크/링크는 국내 홈으로 넘긴다.
+@app.get("/kr-portfolio")
+def page_kr_portfolio():
+    return RedirectResponse("/kr-home", status_code=307)
 
 
 @app.get("/api/kr-stock/{ticker}")
@@ -981,11 +953,14 @@ def kr_portfolio_add(
     shares_owned: float = Form(...),
     avg_price:    float = Form(0),
     memo:         str   = Form(""),
+    next_url:     str   = Form(""),
     db: Session = Depends(get_db),
 ):
+    # 추가한 화면으로 되돌아간다. 외부 URL은 허용하지 않음.
+    dest = next_url if (next_url.startswith("/") and not next_url.startswith("//")) else "/kr-home"
     ticker = ticker.strip().upper()
     if not ticker:
-        return RedirectResponse("/kr-portfolio?error=티커를+입력해주세요", status_code=303)
+        return RedirectResponse(f"{dest}?error=티커를+입력해주세요", status_code=303)
 
     # .KS / .KQ 없이 숫자만 입력한 경우도 처리 — fetch에서 suffix 추가
     existing = db.query(models.KrPortfolio).filter(models.KrPortfolio.ticker == ticker).first()
@@ -1001,7 +976,7 @@ def kr_portfolio_add(
         # 실제 티커 확인 (suffix 결정)
         data = fetcher.fetch_kr_stock(ticker)
         if data is None:
-            return RedirectResponse(f"/kr-portfolio?error={ticker}+종목을+찾을+수+없습니다", status_code=303)
+            return RedirectResponse(f"{dest}?error={ticker}+종목을+찾을+수+없습니다", status_code=303)
         real_ticker = data["ticker"]
 
         # KrStock 업서트
@@ -1020,14 +995,15 @@ def kr_portfolio_add(
         ))
         db.commit()
 
-    return RedirectResponse("/kr-portfolio", status_code=303)
+    return RedirectResponse(dest, status_code=303)
 
 
 @app.post("/kr-portfolio/delete/{item_id}")
-def kr_portfolio_delete(item_id: int, db: Session = Depends(get_db)):
+def kr_portfolio_delete(item_id: int, next_url: str = Form(""), db: Session = Depends(get_db)):
     db.query(models.KrPortfolio).filter(models.KrPortfolio.id == item_id).delete()
     db.commit()
-    return RedirectResponse("/kr-portfolio", status_code=303)
+    dest = next_url if (next_url.startswith("/") and not next_url.startswith("//")) else "/kr-home"
+    return RedirectResponse(dest, status_code=303)
 
 
 # ════════════════════════════════════════════════════════════
