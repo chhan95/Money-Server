@@ -139,6 +139,11 @@ class KrStock(Base):
     forecasts_json = Column(Text, default='[]')             # [{period, label, net, eps}] (KRW 백만원 / 원)
     fetched_at     = Column(DateTime)
 
+    # ── 국내 리서치 터미널(/kr-research) 전용 — Stock의 같은 이름 컬럼과 형식이 같다 ──
+    analysis_json       = Column(Text)
+    analysis_fetched_at = Column(DateTime)
+    analysis_ver        = Column(Integer, default=0)
+
     kr_portfolio = relationship("KrPortfolio", back_populates="stock", uselist=False)
 
 

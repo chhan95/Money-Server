@@ -1,5 +1,5 @@
 {% extends "base.html" %}
-{% block title %}Money — 리서치 터미널{% endblock %}
+{% block title %}Money — {% if market == 'kr' %}국내 {% endif %}리서치 터미널{% endblock %}
 {% block content %}
 
 <style>
@@ -272,7 +272,7 @@
 
 <div class="rs-wide">
   <div class="rs-header">
-    <h1>리서치 터미널</h1>
+    <h1>{% if market == 'kr' %}국내 {% endif %}리서치 터미널</h1>
     <p>보유 종목의 수익성·자본효율·성장의 질을 한 화면에서 비교합니다.
        모든 수치는 yfinance 기준이며 출처와 기준일을 함께 표시합니다.
        없는 데이터는 추정하지 않고 <b>N/A</b>로 둡니다.</p>
@@ -377,6 +377,7 @@
     데이터가 없는 항목은 <b>0점이 아니라 총점에서 제외</b>하고 가중치를 재정규화하며, 커버리지를 함께 표시합니다.
     <br><b>ROIC 계열(자본효율·해자·재투자)이 총점의 약 35%를 좌우합니다</b> — 장기 복리투자 관점을 반영한 의도된 가중입니다.
     <br>해자·가격결정력 점수는 숫자에서 도출한 <b>정량 프록시</b>이며 서술형 해자 분석이 아닙니다.
+    {% if market == 'kr' %}<br>WACC의 무위험수익률은 미국 10년물(^TNX)을 그대로 쓰므로 국내 종목의 WACC·스프레드는 참고치로만 보세요.{% endif %}
     <br>이 점수는 공식 기반 자체 산출이며 투자 권유가 아닙니다.
   </div>
 </div>
@@ -384,6 +385,8 @@
 <script>
 const RESEARCH = {{ research_json | safe }};
 const UNCACHED = {{ uncached | safe }};
+const REFRESH_URL = '{{ refresh_url }}';
+const HOME_URL    = '{{ home_url }}';
 
 let sortKey = 'score', sortDir = -1, expanded = null;
 
@@ -431,17 +434,19 @@ function fmtNum(v) { return v.toFixed(2); }
 
 function cellVal(row, col) {
   if (col.type === 'score') return row.has_data && row.score.total !== null ? row.score.total : null;
-  if (col.type === 'text')  return row.name;
+  if (col.type === 'text')  return row.label;
   return mv(row, col.m);
 }
 
 function renderCell(row, col) {
   if (col.type === 'text') {
     return `<div class="rs-tk">
-      <img class="rs-logo" src="/resources/icons/${row.ticker}.png" alt=""
-           onerror="logoFallback(this)" data-tk="${row.ticker.slice(0,4)}">
-      <div><div class="rs-tk-name">${row.ticker}</div>
-           <div class="rs-tk-sub">${row.has_data ? (row.industry || '') : (row.name || '')}</div></div>
+      <img class="rs-logo" src="/resources/icons/${row.icon}.png" alt=""
+           onerror="logoFallback(this)" data-tk="${row.label.slice(0,4)}">
+      <div><div class="rs-tk-name">${row.label}</div>
+           <div class="rs-tk-sub">${[row.label !== row.ticker ? row.icon : '',
+                                     row.has_data ? (row.industry || '') : (row.label !== row.name ? row.name : '')]
+                                    .filter(Boolean).join(' · ')}</div></div>
     </div>`;
   }
   if (col.type === 'score') {
@@ -517,7 +522,7 @@ const PD = RESEARCH.filter(r => r.has_data).map(r => {
   const g = k => (m[k] && m[k].v !== null && m[k].v !== undefined) ? m[k].v : null;
   const na = k => (m[k] && m[k].na) ? m[k].na : '데이터 없음';
   return {
-    ticker: r.ticker, name: r.name, industry: r.industry, asOf: r.as_of,
+    ticker: r.ticker, label: r.label, name: r.name, industry: r.industry, asOf: r.as_of,
     score: s.total, coverage: s.coverage, subs: s.subs, excluded: s.excluded,
     roic: g('roic'), roicNa: na('roic'),
     roicMedian: g('roic_median'),
@@ -591,10 +596,10 @@ function renderKpis() {
         cmp.length ? `${above} / ${cmp.length}` : 'N/A',
         cmp.length < PD.length ? `${PD.length - cmp.length}개 제외 (WACC N/A)` : '전 종목 비교 가능'),
     kpi('최고 ROIC',
-        topRoic ? topRoic.ticker : 'N/A',
+        topRoic ? topRoic.label : 'N/A',
         topRoic ? pct1(topRoic.roic) : '데이터 없음'),
     kpi('최고 증분 ROIC',
-        withIncr.length ? withIncr[0].ticker : 'N/A',
+        withIncr.length ? withIncr[0].label : 'N/A',
         withIncr.length ? pct1(withIncr[0].incr) : '증분 ROIC 데이터 없음'),
     kpi('평균 Coverage',
         covs.length ? (covs.reduce((a, b) => a + b, 0) / covs.length).toFixed(0) + '%' : 'N/A',
@@ -609,14 +614,14 @@ function renderSignals() {
 
   // 1) 증분 ROIC < WACC — 신규 투입 자본이 자본비용 미만
   PD.filter(p => p.incr !== null && p.wacc !== null && p.incr < p.wacc).forEach(p => {
-    sig.push({ lv: 'warn', tag: '자본효율', tk: p.ticker,
+    sig.push({ lv: 'warn', tag: '자본효율', tk: p.ticker, lb: p.label,
       body: `증분 ROIC ${pct1(p.incr)} vs WACC(추정) ${pct1(p.wacc)} — 최근 추가 투입 자본이
              추정 자본비용을 밑돌고 있습니다. 신규 투자 효율의 추가 확인이 필요합니다.` });
   });
   // 2) ROIC 추세 하락
   PD.filter(p => p.roic !== null && p.roicMedian !== null &&
                  p.roic < p.roicMedian * 0.85).forEach(p => {
-    sig.push({ lv: 'warn', tag: 'ROIC 추세', tk: p.ticker,
+    sig.push({ lv: 'warn', tag: 'ROIC 추세', tk: p.ticker, lb: p.label,
       body: `최근 ROIC ${pct1(p.roic)}가 자체 중앙값 ${pct1(p.roicMedian)} 대비 낮습니다.
              일시적 요인인지 구조적 둔화인지 확인이 필요합니다.` });
   });
@@ -624,7 +629,7 @@ function renderSignals() {
   PD.forEach(p => {
     const s = p.gmSeries;
     if (s.length >= 3 && s[s.length - 1].v < s[0].v - 0.03) {
-      sig.push({ lv: 'warn', tag: '마진', tk: p.ticker,
+      sig.push({ lv: 'warn', tag: '마진', tk: p.ticker, lb: p.label,
         body: `매출총이익률이 ${pct1(s[0].v)} → ${pct1(s[s.length - 1].v)}로 낮아졌습니다.
                가격결정력 약화 가능성을 확인해볼 필요가 있습니다.` });
     }
@@ -632,13 +637,13 @@ function renderSignals() {
   // 4) 고성장이지만 ROIC는 하락
   PD.filter(p => p.revCagr !== null && p.revCagr > 0.15 &&
                  p.roic !== null && p.roicMedian !== null && p.roic < p.roicMedian).forEach(p => {
-    sig.push({ lv: 'info', tag: '성장의 질', tk: p.ticker,
+    sig.push({ lv: 'info', tag: '성장의 질', tk: p.ticker, lb: p.label,
       body: `매출은 ${pct1(p.revCagr)} 성장 중이나 ROIC는 자체 중앙값을 밑돕니다.
              성장에 투입된 자본의 회수 속도를 함께 볼 필요가 있습니다.` });
   });
   // 5) 점수는 높은데 커버리지가 낮음
   PD.filter(p => p.score !== null && p.score >= 75 && p.coverage < 85).forEach(p => {
-    sig.push({ lv: 'info', tag: '데이터 커버리지', tk: p.ticker,
+    sig.push({ lv: 'info', tag: '데이터 커버리지', tk: p.ticker, lb: p.label,
       body: `Score ${p.score}이지만 실제 데이터 반영률이 ${p.coverage}%입니다
              (제외: ${p.excluded.join(', ') || '없음'}). 점수 해석에 주의가 필요합니다.` });
   });
@@ -663,7 +668,7 @@ function renderSignals() {
     <div class="rs-signal ${s.lv}" onclick="selectTicker('${s.tk}')" style="cursor:pointer;">
       <div class="rs-signal-top">
         <span class="rs-signal-tag">${s.lv === 'warn' ? '⚠' : 'ℹ'} ${s.tag}</span>
-        <span class="rs-signal-tk">${s.tk}</span>
+        <span class="rs-signal-tk">${s.lb}</span>
       </div>
       <div class="rs-signal-body">${s.body}</div>
     </div>`).join('');
@@ -678,14 +683,14 @@ function renderScatter() {
   document.getElementById('rsSrc1').textContent = dateRange();
   document.getElementById('rsExcl1').innerHTML = excluded.length
     ? `<div class="rs-excluded">${excluded.length}개 종목 제외 — ${
-        excluded.map(p => `${p.ticker}: ${p.waccNa}`).join(' · ')}</div>` : '';
+        excluded.map(p => `${p.label}: ${p.waccNa}`).join(' · ')}</div>` : '';
 
   if (charts.scatter) charts.scatter.destroy();
   const cv = document.getElementById('chScatter');
   if (!usable.length) {
     cv.parentElement.innerHTML =
       `<div class="rs-chart-na">비교 가능한 데이터가 없습니다.<br>
-       ${excluded.map(p => `${p.ticker}: ${p.waccNa}`).join('<br>')}</div>`;
+       ${excluded.map(p => `${p.label}: ${p.waccNa}`).join('<br>')}</div>`;
     return;
   }
 
@@ -698,7 +703,7 @@ function renderScatter() {
     data: {
       datasets: [
         ...usable.map(p => ({
-          label: p.ticker,
+          label: p.label, tk: p.ticker,
           data: [{ x: p.wacc * 100, y: p.roic * 100,
                    r: maxCap && p.marketCap ? 7 + 15 * Math.sqrt(p.marketCap / maxCap) : 11 }],
           backgroundColor: colorOf(p.ticker) + (selected && selected !== p.ticker ? '33' : 'cc'),
@@ -720,7 +725,7 @@ function renderScatter() {
           callbacks: {
             title: c => c[0].dataset.label,
             label: c => {
-              const p = usable.find(x => x.ticker === c.dataset.label);
+              const p = usable.find(x => x.ticker === c.dataset.tk);
               if (!p) return '';
               return [`ROIC ${pct1(p.roic)}`, `WACC(추정) ${pct1(p.wacc)}`,
                       `스프레드 ${(p.spread * 100).toFixed(1)}pp`,
@@ -732,7 +737,7 @@ function renderScatter() {
       onClick: (e, els) => {
         if (els.length) {
           const ds = charts.scatter.data.datasets[els[0].datasetIndex];
-          if (ds.label !== 'ROIC = WACC') selectTicker(ds.label);
+          if (ds.tk) selectTicker(ds.tk);
         }
       },
       scales: {
@@ -788,7 +793,7 @@ function renderGrowth() {
     type: 'bubble',
     data: {
       datasets: usable.map(p => ({
-        label: p.ticker,
+        label: p.label, tk: p.ticker,
         data: [{ x: p.revCagr * 100, y: p.roic * 100, r: 11 }],
         backgroundColor: colorOf(p.ticker) + (selected && selected !== p.ticker ? '33' : 'cc'),
         borderColor: colorOf(p.ticker),
@@ -804,7 +809,7 @@ function renderGrowth() {
           callbacks: {
             title: c => c[0].dataset.label,
             label: c => {
-              const p = usable.find(x => x.ticker === c.dataset.label);
+              const p = usable.find(x => x.ticker === c.dataset.tk);
               if (!p) return '';
               return [`ROIC ${pct1(p.roic)}`,
                       `매출 CAGR ${pct1(p.revCagr)}`,
@@ -816,7 +821,7 @@ function renderGrowth() {
         },
       },
       onClick: (e, els) => {
-        if (els.length) selectTicker(charts.growth.data.datasets[els[0].datasetIndex].label);
+        if (els.length) selectTicker(charts.growth.data.datasets[els[0].datasetIndex].tk);
       },
       scales: {
         x: { title: { display: true, text: '매출 CAGR (%)', color: t.tick, font: { size: 10 } },
@@ -879,7 +884,7 @@ function renderTrend() {
     data: {
       labels: yrs.map(y => 'FY' + y),
       datasets: usable.map(p => ({
-        label: p.ticker,
+        label: p.label, tk: p.ticker,
         data: yrs.map(y => {
           const h = p.roicHistory.find(x => x.fy === y);
           return h ? h.roic * 100 : null;
@@ -901,7 +906,7 @@ function renderTrend() {
           backgroundColor: t.tipBg, padding: 11, cornerRadius: 9,
           callbacks: {
             label: c => {
-              const p = usable.find(x => x.ticker === c.dataset.label);
+              const p = usable.find(x => x.ticker === c.dataset.tk);
               const fy = yrs[c.dataIndex];
               const h = p && p.roicHistory.find(x => x.fy === fy);
               if (!h) return `${c.dataset.label}: N/A`;
@@ -915,7 +920,7 @@ function renderTrend() {
         },
       },
       onClick: (e, els) => {
-        if (els.length) selectTicker(charts.trend.data.datasets[els[0].datasetIndex].label);
+        if (els.length) selectTicker(charts.trend.data.datasets[els[0].datasetIndex].tk);
       },
       scales: {
         x: { ticks: { color: t.tick, font: { size: 10 } }, grid: { display: false },
@@ -942,7 +947,7 @@ function renderIncr() {
       ? `<span class="rs-na">N/A</span>`
       : `<div class="rs-ir-bar"><span style="width:${w(v)}%;background:${color};"></span></div>`;
     return `<tr class="${selected === p.ticker ? 'sel' : ''}" onclick="selectTicker('${p.ticker}')">
-      <td><b>${p.ticker}</b></td>
+      <td><b>${p.label}</b></td>
       <td>${p.roic !== null ? pct1(p.roic) : `<span class="rs-na">N/A</span>`}</td>
       <td style="width:22%;">${bar(p.roic, colorOf(p.ticker))}</td>
       <td>${p.incr !== null ? pct1(p.incr) : `<span class="rs-na" title="${p.incrNa}">N/A</span>`}
@@ -987,7 +992,7 @@ function renderHeat() {
 
   let html = `<div></div>` + PD.map(p =>
     `<div class="rs-heat-collabel ${selected === p.ticker ? 'sel' : ''}"
-          onclick="selectTicker('${p.ticker}')">${p.ticker}</div>`).join('');
+          onclick="selectTicker('${p.ticker}')">${p.label}</div>`).join('');
 
   SUB_KEYS.forEach(k => {
     const label = (PD[0].subs[k] || {}).label || k;
@@ -1007,7 +1012,7 @@ function renderHeat() {
           : c.unit === 'x' ? c.raw.toFixed(2) + 'x' : Math.round(c.raw));
         return `${c.name}: ${raw}`;
       }).join('\n');
-      const tip = `${p.ticker} · ${label}\n가중 반영 ${wt.toFixed(1)} / ${s.weight}` +
+      const tip = `${p.label} · ${label}\n가중 반영 ${wt.toFixed(1)} / ${s.weight}` +
                   `\n원점수 ${s.score} / 100\n\n${comps}\n\nCoverage ${p.coverage}%`;
       html += `<div class="rs-heat-cell" style="background:${heatColor(s.score / 100)};
                     outline-color:${selected === p.ticker ? 'var(--rs-blue)' : 'transparent'};"
@@ -1022,7 +1027,7 @@ function renderComp() {
   const t = theme();
   const p = PD.find(x => x.ticker === selected);
   document.getElementById('rsCompTitle').textContent =
-    p ? `${p.ticker} · Score ${p.score ?? 'N/A'}` : '점수 구성';
+    p ? `${p.label} · Score ${p.score ?? 'N/A'}` : '점수 구성';
   document.getElementById('rsCompSub').textContent =
     p ? `가중 반영 점수 · Coverage ${p.coverage}%${p.excluded.length ? ' · 제외: ' + p.excluded.join(', ') : ''}`
       : '종목을 선택하면 표시됩니다 (표·차트·히트맵 클릭)';
@@ -1106,7 +1111,7 @@ function render() {
   const body = document.getElementById('rsBody');
   if (!RESEARCH.length) {
     body.innerHTML = `<div class="rs-empty"><div class="ic">📊</div>
-      <div>보유 종목이 없습니다. <a href="/">홈</a>에서 먼저 추가해주세요.</div></div>`;
+      <div>보유 종목이 없습니다. <a href="${HOME_URL}">홈</a>에서 먼저 추가해주세요.</div></div>`;
     return;
   }
 
@@ -1158,7 +1163,7 @@ async function refreshAll() {
   document.getElementById('rsStatusMsg').textContent =
     `${RESEARCH.length}개 종목 수집 중… (Yahoo 제한을 피해 순차 처리하므로 30초 이상 걸릴 수 있습니다)`;
   try {
-    const res = await fetch('/api/research/refresh', {
+    const res = await fetch(REFRESH_URL, {
       method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({}),
     });
     if (!res.ok) throw new Error('HTTP ' + res.status);

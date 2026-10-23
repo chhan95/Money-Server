@@ -1268,7 +1268,7 @@ ANALYSIS_CACHE_HOURS = 24 * 7
 ANALYSIS_VER = 2   # fetcher.ANALYSIS_VER과 맞춘다
 
 
-def _analysis_stale(stock: models.Stock | None) -> bool:
+def _analysis_stale(stock: models.Stock | models.KrStock | None) -> bool:
     if stock is None or not stock.analysis_json or stock.analysis_fetched_at is None:
         return True
     if (stock.analysis_ver or 0) < ANALYSIS_VER:
@@ -1276,10 +1276,11 @@ def _analysis_stale(stock: models.Stock | None) -> bool:
     return _now() - stock.analysis_fetched_at > timedelta(hours=ANALYSIS_CACHE_HOURS)
 
 
-def refresh_analysis(ticker: str, db: Session) -> bool:
-    """분석 데이터 수집 후 저장. 실패해도 기존 캐시는 보존한다."""
+def refresh_analysis(ticker: str, db: Session, model=models.Stock) -> bool:
+    """분석 데이터 수집 후 저장. 실패해도 기존 캐시는 보존한다.
+    model은 models.Stock(해외) 또는 models.KrStock(국내) — 분석 캐시 컬럼 구성이 같다."""
     ticker = ticker.upper()
-    stock = db.query(models.Stock).filter(models.Stock.ticker == ticker).first()
+    stock = db.query(model).filter(model.ticker == ticker).first()
     if stock is None:
         return False
     payload = fetcher.fetch_analysis(ticker)
@@ -1293,11 +1294,14 @@ def refresh_analysis(ticker: str, db: Session) -> bool:
     return True
 
 
-def _build_research_row(stock: models.Stock) -> dict:
-    """캐시된 분석 데이터 → 화면용 행. 네트워크 호출 없음."""
+def _build_research_row(stock: models.Stock | models.KrStock) -> dict:
+    """캐시된 분석 데이터 → 화면용 행. 네트워크 호출 없음.
+    label은 차트·표에 보이는 이름, icon은 /resources/icons 파일명. 해외는 둘 다 티커."""
     base = {
         "ticker": stock.ticker,
         "name":   stock.name or stock.ticker,
+        "label":  stock.ticker,
+        "icon":   stock.ticker,
         "price":  stock.current_price or 0,
     }
     if not stock.analysis_json:
@@ -1348,6 +1352,9 @@ def page_research(request: Request, db: Session = Depends(get_db)):
         "research_json": json.dumps(rows, ensure_ascii=False, default=str),
         "uncached":      json.dumps(uncached),
         "weights_json":  json.dumps(scoring.WEIGHTS),
+        "market":        "us",
+        "refresh_url":   "/api/research/refresh",
+        "home_url":      "/",
     })
 
 
@@ -1366,6 +1373,58 @@ async def api_research_refresh(request: Request, db: Session = Depends(get_db)):
             await asyncio.sleep(0.5)
         try:
             results[t] = "ok" if refresh_analysis(t, db) else "fail"
+        except Exception as e:
+            logger.error("[%s] refresh 오류: %s", t, e)
+            results[t] = "fail"
+    return {"results": results}
+
+
+@app.get("/kr-research", response_class=HTMLResponse)
+def page_kr_research(request: Request, db: Session = Depends(get_db)):
+    """국내 보유 종목 비교 화면. /research와 같은 분석·스코어링을 쓰고 캐시만 읽는다."""
+    holdings = (db.query(models.KrPortfolio)
+                  .order_by(models.KrPortfolio.display_order, models.KrPortfolio.id).all())
+    rows, uncached = [], []
+    for h in holdings:
+        stock = db.query(models.KrStock).filter(models.KrStock.ticker == h.ticker).first()
+        if stock is None:
+            continue
+        row = _build_research_row(stock)
+        # 국내는 종목코드보다 회사명이 읽기 쉽다. 아이콘 파일은 .KS/.KQ 없는 코드로 저장돼 있다.
+        row["label"] = stock.name or stock.ticker
+        row["icon"]  = stock.ticker.split(".")[0]
+        row["shares_owned"] = h.shares_owned
+        rows.append(row)
+        if not row.get("has_data") or row.get("stale"):
+            uncached.append(h.ticker)
+
+    return templates.TemplateResponse("research.html", {
+        "request":       request,
+        "active":        "kr_research",
+        "research_json": json.dumps(rows, ensure_ascii=False, default=str),
+        "uncached":      json.dumps(uncached),
+        "weights_json":  json.dumps(scoring.WEIGHTS),
+        "market":        "kr",
+        "refresh_url":   "/api/kr-research/refresh",
+        "home_url":      "/kr-home",
+    })
+
+
+@app.post("/api/kr-research/refresh")
+async def api_kr_research_refresh(request: Request, db: Session = Depends(get_db)):
+    """국내 분석 데이터 수집. /api/research/refresh와 같은 방식으로 순차 처리."""
+    import asyncio
+    body = await request.json() if request.headers.get("content-type", "").startswith("application/json") else {}
+    tickers = body.get("tickers")
+    if not tickers:
+        tickers = [h.ticker for h in db.query(models.KrPortfolio).all()]
+
+    results = {}
+    for i, t in enumerate(tickers):
+        if i:
+            await asyncio.sleep(0.5)
+        try:
+            results[t] = "ok" if refresh_analysis(t, db, models.KrStock) else "fail"
         except Exception as e:
             logger.error("[%s] refresh 오류: %s", t, e)
             results[t] = "fail"

@@ -109,7 +109,9 @@ def create_tables():
         except Exception:
             pass
         # kr_stocks 신규 컬럼 마이그레이션
-        for col_def in ["fiscal_json TEXT DEFAULT '[]'", "forecasts_json TEXT DEFAULT '[]'"]:
+        for col_def in ["fiscal_json TEXT DEFAULT '[]'", "forecasts_json TEXT DEFAULT '[]'",
+                        "analysis_json TEXT", "analysis_fetched_at DATETIME",
+                        "analysis_ver INTEGER DEFAULT 0"]:
             try:
                 conn.execute(text(f"ALTER TABLE kr_stocks ADD COLUMN {col_def}"))
                 conn.commit()
