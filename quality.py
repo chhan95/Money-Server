@@ -401,7 +401,8 @@ def data_risk_flags(metrics, groups, period, val_median):
 #  기업 단위 뷰모델
 # ─────────────────────────────────────────────────────────────
 
-def build_company(stock_row, payload, metrics, score, note, holding=None):
+def build_company(stock_row, payload, metrics, score, note, holding=None, label=None):
+    """label은 화면에 보이는 이름. 해외는 티커, 국내는 회사명을 넘긴다."""
     years = _augment(payload.get("years") or [])
     currency = payload.get("fin_currency") or ""
     quote_cur = payload.get("quote_currency") or ""
@@ -419,6 +420,7 @@ def build_company(stock_row, payload, metrics, score, note, holding=None):
 
     return {
         "ticker": payload.get("ticker"),
+        "label": label or payload.get("ticker"),
         "name": profile.get("name") or getattr(stock_row, "name", "") or payload.get("ticker"),
         "sector": payload.get("sector") or "", "industry": payload.get("industry") or "",
         "country": profile.get("country"), "exchange": profile.get("exchange"),
@@ -609,9 +611,9 @@ def eight_questions(companies):
     def best(path, label, fmt="pct", filt=None):
         pool = [c for c in companies if _val(c, path) is not None and (filt is None or filt(c))]
         if not pool:
-            return {"q": label, "ticker": None, "value": None, "na": "비교 가능한 데이터 없음"}
+            return {"q": label, "ticker": None, "label": None, "value": None, "na": "비교 가능한 데이터 없음"}
         c = max(pool, key=lambda x: _val(x, path))
-        return {"q": label, "ticker": c["ticker"], "value": _val(c, path), "fmt": fmt}
+        return {"q": label, "ticker": c["ticker"], "label": c["label"], "value": _val(c, path), "fmt": fmt}
 
     # Q4: 자본비용을 넘는 ROIC와 중앙값 이상의 성장을 '동시에' 갖춘 기업 중 두 순위 합이 가장 좋은 기업
     growth_of = lambda c: _val(c, ("period", "FY", "rev_growth"))
@@ -625,9 +627,9 @@ def eight_questions(companies):
         rk_r = {x["ticker"]: i for i, x in enumerate(sorted(qual, key=lambda x: -x["roic"]["v"]))}
         rk_g = {x["ticker"]: i for i, x in enumerate(sorted(qual, key=lambda x: -growth_of(x)))}
         pick = min(qual, key=lambda x: (rk_r[x["ticker"]] + rk_g[x["ticker"]], -x["roic"]["v"]))
-        q4 = {"q": q4_label, "ticker": pick["ticker"], "value": pick["roic"]["v"], "fmt": "pct"}
+        q4 = {"q": q4_label, "ticker": pick["ticker"], "label": pick["label"], "value": pick["roic"]["v"], "fmt": "pct"}
     else:
-        q4 = {"q": q4_label, "ticker": None, "value": None, "na": "조건을 만족하는 기업 없음"}
+        q4 = {"q": q4_label, "ticker": None, "label": None, "value": None, "na": "조건을 만족하는 기업 없음"}
     q4["basis"] = ("ROIC > 자본비용(WACC 추정, 없으면 10% 가정) 이면서 매출 성장률 ≥ 보유 기업 중앙값인 "
                    "기업 중 ROIC·성장률 순위 합이 가장 좋은 기업 (표시값: ROIC)")
 
@@ -673,7 +675,7 @@ def headline(companies, summary):
         wlabel, g, om = "기업별 단순", rows["rev_growth"]["simple"], rows["op_margin"]["simple"]
     if g is not None and om is not None:
         parts.append(f"{wlabel} 평균 매출 성장률 {g * 100:.1f}%, 영업이익률 {om * 100:.1f}%.")
-    pricey = [c["ticker"] for c in companies if c.get("qp_label") == "좋은 기업 · 가격 부담"]
+    pricey = [c["label"] for c in companies if c.get("qp_label") == "좋은 기업 · 가격 부담"]
     if pricey:
         parts.append(f"사업 품질은 상대적으로 높지만 가격 부담이 있는 기업: {', '.join(pricey)}.")
     return " ".join(parts)

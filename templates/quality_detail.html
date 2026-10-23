@@ -88,7 +88,7 @@
 </style>
 
 <div class="d-wrap">
-  <a class="d-back" href="/quality">← Portfolio Business Quality Dashboard</a>
+  <a class="d-back" href="{{ links.base }}">← {% if market == 'kr' %}국내 {% endif %}Portfolio Business Quality Dashboard</a>
   <div id="dRoot"></div>
 </div>
 
@@ -102,11 +102,19 @@ function isNum(v) { return typeof v === 'number' && isFinite(v); }
 const pct = v => (v * 100).toFixed(1) + '%';
 function money(v, cur) {
   if (!isNum(v)) return 'N/A';
+  if (cur === 'KRW') return wonMoney(v);
   const a = Math.abs(v), s = v < 0 ? '-' : '', sym = cur === 'USD' ? '$' : (cur ? cur + ' ' : '');
   if (a >= 1e12) return s + sym + (a / 1e12).toFixed(2) + 'T';
   if (a >= 1e9) return s + sym + (a / 1e9).toFixed(2) + 'B';
   if (a >= 1e6) return s + sym + (a / 1e6).toFixed(1) + 'M';
   return s + sym + a.toFixed(2);
+}
+// 원화는 조·억 단위가 읽기 쉽다 (주가·EPS처럼 작은 값은 원 단위 그대로)
+function wonMoney(v) {
+  const a = Math.abs(v), s = v < 0 ? '-' : '';
+  if (a >= 1e12) return s + (a / 1e12).toFixed(2) + '조원';
+  if (a >= 1e8) return s + Math.round(a / 1e8).toLocaleString() + '억원';
+  return s + Math.round(a).toLocaleString() + '원';
 }
 function tip(r) {
   if (!r) return '';
@@ -445,7 +453,7 @@ function baseOpts(yFmt, y2Fmt) {
   if (y2Fmt) o.scales.y2 = { position: 'right', ticks: { color: t.tick, font: { size: 10 }, callback: y2Fmt }, grid: { display: false }, border: { display: false } };
   return o;
 }
-const shortMoney = v => money(v, c.currency === 'USD' ? 'USD' : '');
+const shortMoney = v => money(v, (c.currency === 'USD' || c.currency === 'KRW') ? c.currency : '');
 const pctTick = v => (v * 100).toFixed(0) + '%';
 
 function drawCharts() {

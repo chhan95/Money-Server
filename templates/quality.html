@@ -1,5 +1,5 @@
 {% extends "base.html" %}
-{% block title %}Money — Portfolio Business Quality{% endblock %}
+{% block title %}Money — {% if market == 'kr' %}국내 {% endif %}Portfolio Business Quality{% endblock %}
 {% block content %}
 
 <style>
@@ -130,7 +130,7 @@
 <div class="q-wrap">
   <div class="q-head">
     <div>
-      <h1>Portfolio Business Quality Dashboard</h1>
+      <h1>{% if market == 'kr' %}국내 {% endif %}Portfolio Business Quality Dashboard</h1>
       <div class="q-sub">내가 보유한 기업들이 돈을 얼마나 잘 벌고, 그 돈을 얼마나 효율적으로 재투자하며,
         장기적으로 얼마나 강한 복리를 만들어내는가?</div>
       <div class="q-meta" id="qMeta"></div>
@@ -248,9 +248,9 @@
   <div class="q-grid2">
     <div class="q-card">
       <div class="q-card-title" style="margin-bottom:8px;">종목 추가 / 수량 변경</div>
-      <form method="post" action="/portfolio/add" class="q-add">
-        <input type="hidden" name="next_url" value="/quality">
-        <input class="q-input" name="ticker" placeholder="티커 (예: AAPL)" required style="min-width:120px;">
+      <form method="post" action="{{ links.add_url }}" class="q-add">
+        <input type="hidden" name="next_url" value="{{ links.base }}">
+        <input class="q-input" name="ticker" placeholder="{% if market == 'kr' %}종목코드 (예: 005930){% else %}티커 (예: AAPL){% endif %}" required style="min-width:120px;">
         <input class="q-input" name="shares_owned" type="number" step="any" min="0" placeholder="보유 수량" required style="min-width:110px;">
         <input class="q-input" name="avg_price" type="number" step="any" min="0" placeholder="평균 단가 (선택)" style="min-width:130px;">
         <button class="q-btn" style="margin-top:0;" type="submit">추가</button>
@@ -274,6 +274,9 @@
 <script>
 const Q = {{ quality_json | safe }};
 const C = Q.companies || [];
+const LINKS = {{ links | tojson }};
+const MARKET = '{{ market }}';
+const detailUrl = t => LINKS.base + '/' + encodeURIComponent(t);
 
 // 기본은 보유금액 가중. 보유 수량이 없어 계산 불가면 단순 평균으로 대체
 let PERIOD = 'FY', WEIGHT = (Q.summary && Q.summary.has_holding) ? 'holding_weighted' : 'simple', sortKey = 'bq', sortDir = -1;
@@ -327,10 +330,10 @@ function renderHeader() {
 
   const alerts = [];
   if ((Q.pending || []).length) {
-    alerts.push(`<div class="q-alert">분석 데이터가 없는 보유 종목: <b>${Q.pending.map(p => esc(p.ticker)).join(', ')}</b>
+    alerts.push(`<div class="q-alert">분석 데이터가 없는 보유 종목: <b>${Q.pending.map(p => esc(p.label || p.ticker)).join(', ')}</b>
       — 비교표·점수에서 제외했습니다. <b>데이터 수집 / 갱신</b>을 눌러주세요.</div>`);
   }
-  const stale = C.filter(c => c.stale).map(c => c.ticker);
+  const stale = C.filter(c => c.stale).map(c => esc(c.label));
   if (stale.length) {
     alerts.push(`<div class="q-alert">캐시가 오래됐거나 이전 형식인 종목: <b>${stale.join(', ')}</b> — 수집 버튼으로 갱신할 수 있습니다.</div>`);
   }
@@ -366,10 +369,10 @@ document.querySelectorAll('#qWeightSeg button').forEach(b => b.addEventListener(
 function renderQuestions() {
   document.getElementById('qQs').innerHTML = (Q.questions || []).map(q => {
     const val = !isNum(q.value) ? '' : q.fmt === 'score' ? q.value.toFixed(1) : pct(q.value);
-    const go = q.ticker ? `onclick="location.href='/quality/${encodeURIComponent(q.ticker)}'"` : '';
+    const go = q.ticker ? `onclick="location.href='${detailUrl(q.ticker)}'"` : '';
     return `<div class="q-q" ${go}>
       <div class="q-q-l">${esc(q.q)}</div>
-      <div class="q-q-a"><span class="q-q-t">${q.ticker ? esc(q.ticker) : 'N/A'}</span><span class="q-q-v">${val || esc(q.na || '')}</span></div>
+      <div class="q-q-a"><span class="q-q-t">${q.ticker ? esc(q.label || q.ticker) : 'N/A'}</span><span class="q-q-v">${val || esc(q.na || '')}</span></div>
       <div class="q-q-b">${esc(q.basis || '')}</div></div>`;
   }).join('');
 }
@@ -410,7 +413,7 @@ function buildFilters() {
   document.getElementById('qIndustry').innerHTML += uniq(C.map(c => c.industry)).map(s => `<option>${esc(s)}</option>`).join('');
 }
 function sortVal(c, col) {
-  if (col.kind === 'co') return c.ticker;
+  if (col.kind === 'co') return c.label;
   if (col.kind === 'label' || col.kind === 'del') return null;
   const r = col.get(c);
   return r && isNum(r.v) ? r.v : null;
@@ -427,7 +430,7 @@ function renderTable() {
   const sec = document.getElementById('qSector').value, ind = document.getElementById('qIndustry').value;
   const col = COLS.find(x => x.k === sortKey) || COLS[10];
   const rows = C.filter(c =>
-      (!q || c.ticker.toLowerCase().includes(q) || (c.name || '').toLowerCase().includes(q)) &&
+      (!q || c.ticker.toLowerCase().includes(q) || (c.label || '').toLowerCase().includes(q) || (c.name || '').toLowerCase().includes(q)) &&
       (!sec || c.sector === sec) && (!ind || c.industry === ind))
     .sort((a, b) => {
       const av = sortVal(a, col), bv = sortVal(b, col);
@@ -441,16 +444,17 @@ function renderTable() {
     `<th class="${x.k === sortKey ? 'sorted' : ''}" onclick="setSort('${x.k}')">${x.label}${x.k === sortKey ? (sortDir === 1 ? ' ▲' : ' ▼') : ''}</th>`
   ).join('') + '</tr></thead>';
 
-  const body = rows.map(c => '<tr onclick="location.href=\'/quality/' + encodeURIComponent(c.ticker) + '\'">' + COLS.map(x => {
+  const body = rows.map(c => '<tr onclick="location.href=\'' + detailUrl(c.ticker) + '\'">' + COLS.map(x => {
     if (x.kind === 'co') {
-      return `<td><div class="q-co-name">${esc(c.ticker)}</div><div class="q-co-sub">${esc(c.name)} · ${esc(c.industry || '')}</div></td>`;
+      const sub = MARKET === 'kr' ? c.ticker.split('.')[0] : c.name;
+      return `<td><div class="q-co-name">${esc(c.label)}</div><div class="q-co-sub">${esc(sub)} · ${esc(c.industry || '')}</div></td>`;
     }
     if (x.kind === 'pct') return `<td>${pctCell(x.get(c))}</td>`;
     if (x.kind === 'score') { const r = x.get(c); return `<td>${scorePill(r.v, r.na)}</td>`; }
     if (x.kind === 'label') return `<td>${c.qp_label ? `<span class="q-label">${esc(c.qp_label)}</span>` : naSpan('점수 산출 불가')}</td>`;
     if (x.kind === 'del') {
-      return `<td><form method="post" action="/portfolio/delete/${c.holding.id}" onsubmit="event.stopPropagation(); return confirm('${esc(c.ticker)}를 보유 목록에서 제거할까요? 분석 데이터는 과거 보유 종목으로 남습니다.');" onclick="event.stopPropagation();" style="display:inline;">
-        <input type="hidden" name="next_url" value="/quality"><button class="q-del" title="보유 목록에서 제거">✕</button></form></td>`;
+      return `<td><form method="post" action="${LINKS.delete_url}/${c.holding.id}" onsubmit="event.stopPropagation(); return confirm('${esc(c.label)}를 보유 목록에서 제거할까요? 분석 데이터는 과거 보유 종목으로 남습니다.');" onclick="event.stopPropagation();" style="display:inline;">
+        <input type="hidden" name="next_url" value="${LINKS.base}"><button class="q-del" title="보유 목록에서 제거">✕</button></form></td>`;
     }
     return '<td></td>';
   }).join('') + '</tr>').join('');
@@ -497,7 +501,7 @@ function bubble(id, points, xLabel, yLabel, tipFn, extraPlugins, extraDatasets) 
   charts[id] = new Chart(cv.getContext('2d'), {
     type: 'bubble',
     data: { datasets: [...points.map(p => ({
-      label: p.ticker, data: [{ x: p.x, y: p.y, r: p.r || 9 }],
+      label: (C.find(c => c.ticker === p.ticker) || {}).label || p.ticker, tk: p.ticker, data: [{ x: p.x, y: p.y, r: p.r || 9 }],
       backgroundColor: colorOf(p.ticker) + 'bb', borderColor: colorOf(p.ticker), borderWidth: 1.5,
     })), ...(extraDatasets || [])] },
     options: {
@@ -505,10 +509,10 @@ function bubble(id, points, xLabel, yLabel, tipFn, extraPlugins, extraDatasets) 
       plugins: { legend: { display: false },
         tooltip: { backgroundColor: t.tip, padding: 10, cornerRadius: 8, displayColors: false,
           filter: it => !it.dataset.noLabel,
-          callbacks: { title: c => c[0].dataset.label, label: c => tipFn(c.dataset.label) } } },
+          callbacks: { title: c => c[0].dataset.label, label: c => tipFn(c.dataset.tk) } } },
       onClick: (e, els) => {
         const ds = els.length && charts[id].data.datasets[els[0].datasetIndex];
-        if (ds && !ds.noLabel) location.href = '/quality/' + encodeURIComponent(ds.label);
+        if (ds && !ds.noLabel) location.href = detailUrl(ds.tk);
       },
       scales: {
         x: { title: { display: true, text: xLabel, color: t.tick, font: { size: 10 } }, ticks: { color: t.tick, font: { size: 10 } }, grid: { color: t.grid }, border: { display: false } },
@@ -526,7 +530,7 @@ function exclNote(id, excluded, what) {
 /* ── 좋은 기업 vs 좋은 주식 ── */
 function renderQP() {
   const ok = C.filter(c => isNum(c.scores.business_quality.score) && isNum(c.scores.valuation.score));
-  exclNote('qQpExcl', C.filter(c => !ok.includes(c)).map(c => c.ticker), 'Quality 또는 Valuation 점수');
+  exclNote('qQpExcl', C.filter(c => !ok.includes(c)).map(c => c.label), 'Quality 또는 Valuation 점수');
   bubble('chQP', ok.map(c => ({ ticker: c.ticker, x: c.scores.valuation.score, y: c.scores.business_quality.score })),
     'Valuation Score (높을수록 가격 매력)', 'Business Quality Score',
     t => { const c = C.find(x => x.ticker === t); return [`Quality ${c.scores.business_quality.score}`, `Valuation ${c.scores.valuation.score}`,
@@ -539,8 +543,8 @@ function renderQP() {
   const rows = C.slice().sort((a, b) => (b.scores.attractiveness.score ?? -1) - (a.scores.attractiveness.score ?? -1));
   document.getElementById('qQpTable').innerHTML =
     '<thead><tr><th>기업</th><th>Business Quality</th><th>Valuation</th><th>Growth</th><th>Attractiveness</th><th>판정</th></tr></thead><tbody>' +
-    rows.map(c => `<tr onclick="location.href='/quality/${encodeURIComponent(c.ticker)}'" style="cursor:pointer;">
-      <td><b>${esc(c.ticker)}</b></td>
+    rows.map(c => `<tr onclick="location.href='${detailUrl(c.ticker)}'" style="cursor:pointer;">
+      <td><b>${esc(c.label)}</b></td>
       <td>${scorePill(c.scores.business_quality.score, c.scores.business_quality.na)}</td>
       <td>${scorePill(c.scores.valuation.score, c.scores.valuation.na)}</td>
       <td>${scorePill(c.scores.groups.growth.score, '성장 점수 없음')}</td>
@@ -555,20 +559,20 @@ function renderCompareCharts() {
   const rOf = c => (maxCap && isNum(c.market_cap && c.market_cap.v)) ? 6 + 14 * Math.sqrt(c.market_cap.v / maxCap) : 9;
 
   const rg = C.filter(c => isNum(c.roic.v) && isNum(per0(c).rev_growth.v));
-  exclNote('qRgExcl', C.filter(c => !rg.includes(c)).map(c => c.ticker), 'ROIC 또는 매출 성장률');
+  exclNote('qRgExcl', C.filter(c => !rg.includes(c)).map(c => c.label), 'ROIC 또는 매출 성장률');
   bubble('chRG', rg.map(c => ({ ticker: c.ticker, x: per0(c).rev_growth.v * 100, y: c.roic.v * 100, r: rOf(c) })),
     '매출 성장률 (최근 FY, %)', 'ROIC (%)',
     t => { const c = C.find(x => x.ticker === t); return [`ROIC ${pct(c.roic.v)}`, `매출 성장 ${pct(per0(c).rev_growth.v)} (${per0(c).rev_growth.period})`,
-      `시가총액 ${c.market_cap.v ? (c.market_cap.v / 1e9).toFixed(0) + 'B ' + (c.quote_currency || '') : 'N/A'}`]; });
+      `시가총액 ${!c.market_cap.v ? 'N/A' : c.quote_currency === 'KRW' ? (c.market_cap.v / 1e12).toFixed(1) + '조원' : (c.market_cap.v / 1e9).toFixed(0) + 'B ' + (c.quote_currency || '')}`]; });
 
   const rf = C.filter(c => isNum(c.roic.v) && isNum(per0(c).fcf_margin.v));
-  exclNote('qRfExcl', C.filter(c => !rf.includes(c)).map(c => c.ticker), 'ROIC 또는 FCF Margin');
+  exclNote('qRfExcl', C.filter(c => !rf.includes(c)).map(c => c.label), 'ROIC 또는 FCF Margin');
   bubble('chRF', rf.map(c => ({ ticker: c.ticker, x: per0(c).fcf_margin.v * 100, y: c.roic.v * 100, r: rOf(c) })),
     'FCF Margin (최근 FY, %)', 'ROIC (%)',
     t => { const c = C.find(x => x.ticker === t); return [`ROIC ${pct(c.roic.v)}`, `FCF Margin ${pct(per0(c).fcf_margin.v)}`]; });
 
   const ce = C.filter(c => isNum(c.rev_cagr3.v) && isNum(c.eps_cagr3.v));
-  exclNote('qCeExcl', C.filter(c => !ce.includes(c)).map(c => c.ticker), '3Y CAGR');
+  exclNote('qCeExcl', C.filter(c => !ce.includes(c)).map(c => c.label), '3Y CAGR');
   const vals = ce.flatMap(c => [c.rev_cagr3.v * 100, c.eps_cagr3.v * 100]);
   const lo = vals.length ? Math.min(0, ...vals) : 0, hi = vals.length ? Math.max(...vals) * 1.1 : 1;
   bubble('chCE', ce.map(c => ({ ticker: c.ticker, x: c.rev_cagr3.v * 100, y: c.eps_cagr3.v * 100 })),
@@ -591,7 +595,7 @@ function renderCompounding() {
   document.getElementById('qCompTable').innerHTML =
     '<thead><tr><th>기업</th><th>ROIC</th><th>×</th><th>재투자율</th><th>=</th><th>내재 성장률</th><th>증분 ROIC</th><th>Growth Duration</th><th>판정</th></tr></thead><tbody>' +
     C.map(c => { const k = c.compounding || {};
-      return `<tr><td><b>${esc(c.ticker)}</b></td><td>${pctCell(k.roic)}</td><td>×</td><td>${pctCell(k.reinvestment)}</td><td>=</td>
+      return `<tr><td><b>${esc(c.label)}</b></td><td>${pctCell(k.roic)}</td><td>×</td><td>${pctCell(k.reinvestment)}</td><td>=</td>
         <td><b>${pctCell(k.implied_growth)}</b></td><td>${pctCell(k.incremental_roic)}</td><td>${dur(c)}</td>
         <td class="wrap">${esc(k.text || '')}<br><span style="opacity:.75;">기준: ${esc(k.bar || '')}</span></td></tr>`; }).join('') +
     '</tbody>';
@@ -601,9 +605,9 @@ function renderCompounding() {
 function renderHistory() {
   const h = Q.history || [];
   document.getElementById('qHistory').innerHTML = h.length
-    ? '<table class="q-mini"><thead><tr><th>티커</th><th>기업</th><th>분석 기준일</th></tr></thead><tbody>' +
-      h.map(x => `<tr onclick="location.href='/quality/${encodeURIComponent(x.ticker)}'" style="cursor:pointer;">
-        <td><b>${esc(x.ticker)}</b></td><td class="wrap">${esc(x.name || '')}</td><td>${esc(x.fetched_at || 'N/A')}</td></tr>`).join('') + '</tbody></table>'
+    ? '<table class="q-mini"><thead><tr><th>' + (MARKET === 'kr' ? '종목코드' : '티커') + '</th><th>기업</th><th>분석 기준일</th></tr></thead><tbody>' +
+      h.map(x => `<tr onclick="location.href='${detailUrl(x.ticker)}'" style="cursor:pointer;">
+        <td><b>${esc(MARKET === 'kr' ? x.ticker.split('.')[0] : x.ticker)}</b></td><td class="wrap">${esc(x.name || '')}</td><td>${esc(x.fetched_at || 'N/A')}</td></tr>`).join('') + '</tbody></table>'
     : '<div class="q-card-sub">포트폴리오에서 제거된 뒤 분석 데이터가 남아 있는 종목이 여기에 표시됩니다.</div>';
 }
 function renderMethod() {
@@ -619,14 +623,15 @@ function renderMethod() {
     <span class="q-basis Calculated">Calculated</span> 공시 값으로 계산한 지표(산식 표시) ·
     <span class="q-basis Estimate">Estimate</span> 가정이 들어간 추정치(WACC 등)<br>
     <b>기간</b> — yfinance 연간 재무는 최대 5개 회계연도라 5Y CAGR(6개 연도 필요)과 10Y는 N/A로 표시합니다. 추정으로 채우지 않습니다.<br>
-    <b>원천 데이터 우선순위</b> — 현재는 Yahoo Finance(yfinance) 단일 소스입니다. SEC 공시 원문 연동은 아직 구현되지 않았습니다.`;
+    <b>원천 데이터 우선순위</b> — 현재는 Yahoo Finance(yfinance) 단일 소스입니다. ${MARKET === 'kr' ? 'DART' : 'SEC'} 공시 원문 연동은 아직 구현되지 않았습니다.
+    ${MARKET === 'kr' ? '<br><b>WACC</b> — 무위험수익률로 미국 10년물(^TNX)을 그대로 쓰므로 국내 종목의 WACC·ROIC 스프레드는 참고치로만 보세요.' : ''}`;
 }
 
 async function refreshData() {
   const b = document.getElementById('qRefresh');
   b.disabled = true; b.textContent = '수집 중… (종목당 약 5초)';
   try {
-    const r = await fetch('/api/research/refresh', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: '{}' });
+    const r = await fetch(LINKS.refresh_url, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: '{}' });
     if (!r.ok) throw new Error('HTTP ' + r.status);
     location.reload();
   } catch (e) { b.disabled = false; b.textContent = '수집 실패 — 다시 시도'; }

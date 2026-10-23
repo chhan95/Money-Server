@@ -1432,9 +1432,9 @@ async def api_kr_research_refresh(request: Request, db: Session = Depends(get_db
 
 
 # ──────────────────────────────────────────────
-#  Portfolio Business Quality Dashboard (/quality)
-#  - 캐시만 읽는다. 페이지 로드 시 네트워크 호출 없음 (수집은 /api/research/refresh).
-#  - 보유 종목은 portfolio 테이블에서 읽는다. 코드에 종목 하드코딩 없음.
+#  Portfolio Business Quality Dashboard (/quality, 국내 /kr-quality)
+#  - 캐시만 읽는다. 페이지 로드 시 네트워크 호출 없음 (수집은 /api/research/refresh, /api/kr-research/refresh).
+#  - 보유 종목은 portfolio / kr_portfolio 테이블에서 읽는다. 코드에 종목 하드코딩 없음.
 # ──────────────────────────────────────────────
 NOTES_PATH = Path("data") / "company_notes.json"
 
@@ -1452,7 +1452,23 @@ def _load_notes() -> dict:
         return {}
 
 
-def _quality_company(stock, holding, notes):
+# 해외(/quality)와 국내(/kr-quality)는 같은 분석·점수 엔진을 쓰고 보유 테이블과 링크만 다르다.
+QUALITY_MARKETS = {
+    "us": {"portfolio": models.Portfolio, "stock": models.Stock, "base": "/quality",
+           "active": "quality", "refresh_url": "/api/research/refresh",
+           "add_url": "/portfolio/add", "delete_url": "/portfolio/delete"},
+    "kr": {"portfolio": models.KrPortfolio, "stock": models.KrStock, "base": "/kr-quality",
+           "active": "kr_quality", "refresh_url": "/api/kr-research/refresh",
+           "add_url": "/kr-portfolio/add", "delete_url": "/kr-portfolio/delete"},
+}
+
+
+def _quality_label(stock, market):
+    # 국내는 종목코드보다 회사명이 읽기 쉽다
+    return (stock.name or stock.ticker) if market == "kr" else stock.ticker
+
+
+def _quality_company(stock, holding, notes, market="us"):
     """캐시된 분석 데이터 → 기업 뷰모델. 데이터가 없으면 None."""
     if not stock or not stock.analysis_json:
         return None
@@ -1461,79 +1477,110 @@ def _quality_company(stock, holding, notes):
     metrics = analytics.analysis_to_dict(payload, forecasts)
     score = scoring.score_all(metrics)
     c = quality.build_company(stock, payload, metrics, score,
-                              notes.get(stock.ticker.upper()), holding)
+                              notes.get(stock.ticker.upper()), holding,
+                              label=_quality_label(stock, market))
     c["stale"] = _analysis_stale(stock)
     c["payload_ver"] = payload.get("v", 1)
     return c
 
 
-def _quality_portfolio(db: Session):
+def _quality_portfolio(db: Session, market="us"):
+    cfg = QUALITY_MARKETS[market]
+    P, S = cfg["portfolio"], cfg["stock"]
     notes = _load_notes()
-    holdings = (db.query(models.Portfolio)
-                  .order_by(models.Portfolio.display_order, models.Portfolio.id).all())
+    holdings = db.query(P).order_by(P.display_order, P.id).all()
     held = {h.ticker for h in holdings}
     companies, pending = [], []
     for h in holdings:
-        stock = db.query(models.Stock).filter(models.Stock.ticker == h.ticker).first()
+        stock = db.query(S).filter(S.ticker == h.ticker).first()
         c = None
         try:
-            c = _quality_company(stock, {"shares_owned": h.shares_owned}, notes)
+            c = _quality_company(stock, {"shares_owned": h.shares_owned}, notes, market)
         except Exception as e:
             logger.error("[%s] 품질 뷰모델 생성 실패: %s", h.ticker, e, exc_info=True)
         if c is None:
             pending.append({"ticker": h.ticker, "id": h.id,
+                            "label": _quality_label(stock, market) if stock else h.ticker,
                             "name": (stock.name if stock else h.ticker)})
         else:
             c["holding"]["id"] = h.id
             companies.append(c)
     built = quality.build_portfolio(companies)
     # 과거 보유 종목: 포트폴리오에서 빠졌지만 분석 캐시가 남아 있는 종목
-    history = [{"ticker": s.ticker, "name": s.name,
+    history = [{"ticker": s.ticker, "label": _quality_label(s, market), "name": s.name,
                 "fetched_at": s.analysis_fetched_at.strftime("%Y-%m-%d") if s.analysis_fetched_at else None}
-               for s in db.query(models.Stock).filter(models.Stock.analysis_json.isnot(None)).all()
+               for s in db.query(S).filter(S.analysis_json.isnot(None)).all()
                if s.ticker not in held]
     return built, pending, history
 
 
-@app.get("/quality", response_class=HTMLResponse)
-def page_quality(request: Request, db: Session = Depends(get_db)):
-    built, pending, history = _quality_portfolio(db)
+def _quality_links(market):
+    cfg = QUALITY_MARKETS[market]
+    return {k: cfg[k] for k in ("base", "refresh_url", "add_url", "delete_url")}
+
+
+def _render_quality(request: Request, db: Session, market: str):
+    built, pending, history = _quality_portfolio(db, market)
     return templates.TemplateResponse("quality.html", {
         "request": request,
-        "active":  "quality",
+        "active":  QUALITY_MARKETS[market]["active"],
+        "market":  market,
+        "links":   _quality_links(market),
         "quality_json": json.dumps({**built, "pending": pending, "history": history},
                                    ensure_ascii=False, default=str),
         "error": request.query_params.get("error", ""),
     })
 
 
-@app.get("/quality/{ticker}", response_class=HTMLResponse)
-def page_quality_detail(ticker: str, request: Request, db: Session = Depends(get_db)):
+def _render_quality_detail(ticker: str, request: Request, db: Session, market: str):
+    cfg = QUALITY_MARKETS[market]
     ticker = ticker.upper()
-    built, _, _ = _quality_portfolio(db)
+    built, _, _ = _quality_portfolio(db, market)
     company = next((c for c in built["companies"] if c["ticker"] == ticker), None)
     is_held = company is not None
     if company is None:
         # 과거 보유 종목 — 캐시가 남아 있으면 단독 기준으로 보여준다
-        stock = db.query(models.Stock).filter(models.Stock.ticker == ticker).first()
-        c = _quality_company(stock, None, _load_notes()) if stock else None
+        stock = db.query(cfg["stock"]).filter(cfg["stock"].ticker == ticker).first()
+        c = _quality_company(stock, None, _load_notes(), market) if stock else None
         if c is None:
-            return RedirectResponse(f"/quality?error={ticker}+분석+데이터가+없습니다", status_code=303)
+            return RedirectResponse(f"{cfg['base']}?error={ticker}+분석+데이터가+없습니다", status_code=303)
         company = quality.build_portfolio([c])["companies"][0]
-    peers = [{"ticker": c["ticker"],
+    peers = [{"ticker": c["ticker"], "label": c["label"],
               "bq": c["scores"]["business_quality"]["score"],
               "val": c["scores"]["valuation"]["score"],
               "roic": c["roic"]["v"]} for c in built["companies"]]
     return templates.TemplateResponse("quality_detail.html", {
         "request": request,
-        "active":  "quality",
+        "active":  cfg["active"],
         "ticker":  ticker,
+        "market":  market,
+        "links":   _quality_links(market),
         "detail_json": json.dumps({
             "company": company, "is_held": is_held, "peers": peers,
             "medians": built["medians"], "portfolio_quality": built["portfolio_quality"],
             "attr_weights": built["attr_weights"],
         }, ensure_ascii=False, default=str),
     })
+
+
+@app.get("/quality", response_class=HTMLResponse)
+def page_quality(request: Request, db: Session = Depends(get_db)):
+    return _render_quality(request, db, "us")
+
+
+@app.get("/quality/{ticker}", response_class=HTMLResponse)
+def page_quality_detail(ticker: str, request: Request, db: Session = Depends(get_db)):
+    return _render_quality_detail(ticker, request, db, "us")
+
+
+@app.get("/kr-quality", response_class=HTMLResponse)
+def page_kr_quality(request: Request, db: Session = Depends(get_db)):
+    return _render_quality(request, db, "kr")
+
+
+@app.get("/kr-quality/{ticker}", response_class=HTMLResponse)
+def page_kr_quality_detail(ticker: str, request: Request, db: Session = Depends(get_db)):
+    return _render_quality_detail(ticker, request, db, "kr")
 
 
 @app.get("/api/settings/{key}")
