@@ -333,6 +333,24 @@ def fcf_yield(payload: dict) -> dict:
              payload.get("fetched_at", ""))
 
 
+FWD_PE_TURNAROUND_MAX = 100   # 적자 기업의 Forward P/E가 이보다 크면 흑자 전환 기저 효과로 본다
+
+
+def forward_pe(payload: dict) -> dict:
+    """Forward P/E. 아직 적자(TTM EPS ≤ 0)인데 예상 EPS가 0에 가까워 P/E가 폭증하면 의미 없는 값이므로 N/A.
+    (예: 적자에서 막 흑자 전환이 예상되는 상장 초기 기업 — 주가 ÷ 거의 0인 EPS)"""
+    ttm = payload.get("ttm") or {}
+    as_of = payload.get("fetched_at", "")
+    v = _num(ttm.get("forward_pe"))
+    if not v:
+        return NA("Forward P/E 없음")
+    ttm_eps = _num((payload.get("ttm_income") or {}).get("diluted_eps"))
+    if ttm_eps is not None and ttm_eps <= 0 and v > FWD_PE_TURNAROUND_MAX:
+        return NA(f"아직 적자(TTM EPS {ttm_eps:.2f})이고 예상 EPS가 0에 가까워 P/E {v:,.0f}배 — "
+                  "흑자 전환 기저 효과로 의미 없음")
+    return M(v, "yfinance forwardPE", as_of)
+
+
 def peg(payload: dict, forecasts: list | None = None) -> dict:
     """PEG. yfinance 값 우선, 없으면 애널리스트 예상 EPS 성장률로 계산."""
     ttm = payload.get("ttm") or {}
@@ -451,8 +469,7 @@ def analysis_to_dict(payload: dict, forecasts: list | None = None,
                             if len(gm_vals) >= 3 else NA("데이터 부족"),
 
         "peg":            peg(payload, forecasts),
-        "forward_pe":     M(_num(ttm.get("forward_pe")), "yfinance forwardPE", as_of)
-                          if ttm.get("forward_pe") else NA("Forward P/E 없음"),
+        "forward_pe":     forward_pe(payload),
         "trailing_pe":    M(_num(ttm.get("trailing_pe")), "yfinance trailingPE", as_of)
                           if ttm.get("trailing_pe") else NA("P/E 없음"),
         # yfinance의 EV/EBITDA·P/S는 시가총액(시세 통화) ÷ 재무제표(보고 통화)라 통화가 다르면 환산해서 다시 계산
