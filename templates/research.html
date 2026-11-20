@@ -340,6 +340,7 @@
         <div>
           <div class="rs-card-title" id="rsTrendTitle">ROIC 추이</div>
           <div class="rs-card-sub">현재 ROIC가 일시적인지 구조적인지 확인 · NOPAT ÷ (총부채+자기자본−현금−단기투자), 기말 기준</div>
+          <div class="rs-card-sub" id="rsTrendClip" style="color:var(--rs-amber);"></div>
         </div>
         <div class="rs-card-sub" id="rsSrc3"></div>
       </div>
@@ -739,7 +740,8 @@ function renderSignals() {
   RESEARCH.forEach(r => {
     const n = nextOf(r);
     if (!n) return;
-    if (n.days < 0 && !n.collected) {
+    if (n.days < 0) {
+      if (n.collected) return;   // 발표 후 이미 수집됨 — 알릴 것 없음
       sig.push({ lv: 'warn', tag: '실적 반영', tk: r.ticker, lb: r.label,
         body: `실적 발표 예정일(${n.date})이 지났습니다. 데이터 수집 / 갱신으로 새 실적을 반영하세요.` });
     } else if (n.days <= 7) {
@@ -962,6 +964,25 @@ function quadrantPlugin(mx, my) {
 }
 
 /* ══════════ Phase E — ROIC 추이 ══════════ */
+/* 극단값 때문에 다른 종목 선이 바닥에 깔리지 않도록 축 범위를 데이터로 정한다.
+   한쪽 끝 값이 그 다음 값보다 3배 이상 멀면 '축 밖'으로 보고 축 끝에 ▲/▼로 표시 (실제 값은 툴팁).
+   임의의 고정 범위를 쓰지 않는다. */
+const CLIP_RATIO = 3;
+function trendBounds(vals) {
+  // 양·음 구분 없이 절댓값 크기로 판단한다 (음수 쪽만 따로 보면 -66%가 -4% 옆에서 극단값으로 오판됨)
+  const abs = vals.map(Math.abs).sort((a, b) => b - a);
+  let i = 0;
+  while (i < abs.length - 1 && abs[i] > CLIP_RATIO * abs[i + 1]) i++;
+  const limit = abs.length ? abs[i] : 0;
+  const hi = Math.max(0, ...vals.filter(v => v <= limit));
+  const lo = Math.min(0, ...vals.filter(v => v >= -limit));
+  const step = v => (v > 200 ? 100 : v > 50 ? 50 : 10);
+  return {
+    max: hi > 0 ? Math.ceil(hi * 1.08 / step(hi)) * step(hi) : 10,
+    min: lo < 0 ? Math.floor(lo * 1.08 / step(-lo)) * step(-lo) : 0,
+  };
+}
+
 function renderTrend() {
   const t = theme();
   const usable = PD.filter(p => p.roicHistory.length >= 2);
@@ -980,22 +1001,35 @@ function renderTrend() {
   const maxLen = Math.max(...usable.map(p => p.roicHistory.length));
   document.getElementById('rsTrendTitle').textContent = `${maxLen}개 회계연도 ROIC 추이`;
 
+  const raw = p => yrs.map(y => { const h = p.roicHistory.find(x => x.fy === y); return h ? h.roic * 100 : null; });
+  const b = trendBounds(usable.flatMap(p => raw(p).filter(v => v !== null)));
+  const clipped = [];
+  usable.forEach(p => raw(p).forEach((v, i) => {
+    if (v !== null && (v > b.max || v < b.min)) clipped.push(`${p.label} FY${yrs[i]} ${v.toFixed(1)}% ${v > b.max ? '▲' : '▼'}`);
+  }));
+  document.getElementById('rsTrendClip').textContent =
+    clipped.length ? `축 범위 밖 (${b.min}% ~ ${b.max}%) — ${clipped.join(' · ')} · 실제 값은 툴팁` : '';
+
   charts.trend = new Chart(cv.getContext('2d'), {
     type: 'line',
     data: {
       labels: yrs.map(y => 'FY' + y),
-      datasets: usable.map(p => ({
-        label: p.label, tk: p.ticker,
-        data: yrs.map(y => {
-          const h = p.roicHistory.find(x => x.fy === y);
-          return h ? h.roic * 100 : null;
-        }),
-        borderColor: colorOf(p.ticker) + (selected && selected !== p.ticker ? '44' : ''),
-        backgroundColor: colorOf(p.ticker),
-        borderWidth: selected === p.ticker ? 3.2 : 1.8,
-        pointRadius: selected === p.ticker ? 4 : 2.5,
-        tension: 0.3, spanGaps: true,
-      })),
+      datasets: usable.map(p => {
+        const r = raw(p);
+        const out = v => v !== null && (v > b.max || v < b.min);
+        const base = selected === p.ticker ? 4 : 2.5;
+        return {
+          label: p.label, tk: p.ticker,
+          data: r.map(v => v === null ? null : Math.min(b.max, Math.max(b.min, v))),
+          pointStyle: r.map(v => out(v) ? 'triangle' : 'circle'),
+          rotation: r.map(v => (v !== null && v < b.min) ? 180 : 0),
+          pointRadius: r.map(v => out(v) ? base + 4 : base),
+          borderColor: colorOf(p.ticker) + (selected && selected !== p.ticker ? '44' : ''),
+          backgroundColor: colorOf(p.ticker),
+          borderWidth: selected === p.ticker ? 3.2 : 1.8,
+          tension: 0.3, spanGaps: true, clip: false,
+        };
+      }),
     },
     options: {
       responsive: true, maintainAspectRatio: false,
@@ -1012,8 +1046,9 @@ function renderTrend() {
               const h = p && p.roicHistory.find(x => x.fy === fy);
               if (!h) return `${c.dataset.label}: N/A`;
               const bn = v => v >= 1e9 ? (v / 1e9).toFixed(1) + 'B' : (v / 1e6).toFixed(0) + 'M';
+              const off = h.roic !== null && (h.roic * 100 > b.max || h.roic * 100 < b.min);
               return [`${c.dataset.label} · FY${fy}`,
-                      `ROIC ${h.roic !== null ? pct1(h.roic) : 'N/A'}`,
+                      `ROIC ${h.roic !== null ? pct1(h.roic) : 'N/A'}${off ? ' (축 범위 밖)' : ''}`,
                       `NOPAT ${bn(h.nopat)}`, `투하자본 ${bn(h.ic)} (${h.basis})`,
                       `yfinance · ${(p.asOf || '').slice(0, 10)}`];
             },
@@ -1026,7 +1061,8 @@ function renderTrend() {
       scales: {
         x: { ticks: { color: t.tick, font: { size: 10 } }, grid: { display: false },
              border: { display: false } },
-        y: { ticks: { color: t.tick, font: { size: 10 }, callback: v => v + '%' },
+        y: { min: b.min, max: b.max,
+             ticks: { color: t.tick, font: { size: 10 }, callback: v => v + '%' },
              grid: { color: t.grid }, border: { display: false } },
       },
     },
