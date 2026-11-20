@@ -1265,7 +1265,7 @@ async def api_milestones_import(request: Request, db: Session = Depends(get_db))
 # 연간 재무는 분기마다 바뀌므로 24h가 아니라 7일 캐시를 쓴다.
 # /research 페이지는 캐시만 읽고 절대 네트워크를 타지 않는다 (수집은 명시적 버튼).
 ANALYSIS_CACHE_HOURS = 24 * 7
-ANALYSIS_VER = 2   # fetcher.ANALYSIS_VER과 맞춘다
+ANALYSIS_VER = 3   # fetcher.ANALYSIS_VER과 맞춘다
 
 
 def _analysis_stale(stock: models.Stock | models.KrStock | None) -> bool:
@@ -1294,7 +1294,30 @@ def refresh_analysis(ticker: str, db: Session, model=models.Stock) -> bool:
     return True
 
 
-def _build_research_row(stock: models.Stock | models.KrStock) -> dict:
+KR_RF_KEY = "kr_risk_free"   # app_settings: {"value": 연 %, "as_of": "YYYY-MM-DD"}
+
+
+def _kr_risk_free(db: Session) -> dict | None:
+    """국내 WACC용 무위험수익률(국고채 10년, 직접 입력). 없으면 None → 수집 시 받은 ^TNX를 쓴다."""
+    s = db.query(models.AppSetting).filter(models.AppSetting.key == KR_RF_KEY).first()
+    try:
+        d = json.loads(s.value) if (s and s.value) else None
+        v = float(d["value"])
+    except Exception:
+        return None
+    if not 0 < v < 20:
+        return None
+    return {"value": v / 100, "src": "국고채 10년 (직접 입력)", "as_of": d.get("as_of", ""),
+            "pct": v}
+
+
+def _with_rf(payload: dict, rf: dict | None) -> dict:
+    if rf:
+        payload["rf"] = {k: rf[k] for k in ("value", "src", "as_of")}
+    return payload
+
+
+def _build_research_row(stock: models.Stock | models.KrStock, rf: dict | None = None) -> dict:
     """캐시된 분석 데이터 → 화면용 행. 네트워크 호출 없음.
     label은 차트·표에 보이는 이름, icon은 /resources/icons 파일명. 해외는 둘 다 티커."""
     base = {
@@ -1309,7 +1332,7 @@ def _build_research_row(stock: models.Stock | models.KrStock) -> dict:
                      "na_reason": "분석 데이터 미수집 — '데이터 수집'을 눌러주세요"})
         return base
     try:
-        payload = json.loads(stock.analysis_json)
+        payload = _with_rf(json.loads(stock.analysis_json), rf)
         forecasts = json.loads(stock.forecasts_json or "[]")
         metrics = analytics.analysis_to_dict(payload, forecasts)
         score = scoring.score_all(metrics)
@@ -1326,8 +1349,52 @@ def _build_research_row(stock: models.Stock | models.KrStock) -> dict:
         "stale":      _analysis_stale(stock),
         "metrics":    metrics,
         "score":      score,
+        "earnings_dates": payload.get("earnings_dates") or {},   # {last, next} 실적 발표일
     })
     return base
+
+
+def _record_score(db: Session, market: str, stock, rf: dict | None = None) -> None:
+    """수집 직후의 점수를 Score 추이에 기록한다 (같은 날 다시 수집하면 덮어씀).
+    기록 실패가 수집 결과를 실패로 바꾸지 않도록 예외는 여기서 삼킨다."""
+    try:
+        _record_score_unsafe(db, market, stock, rf)
+    except Exception as e:
+        db.rollback()
+        logger.warning("[%s] Score 추이 기록 실패: %s", getattr(stock, "ticker", "?"), e)
+
+
+def _record_score_unsafe(db: Session, market: str, stock, rf: dict | None) -> None:
+    row = _build_research_row(stock, rf)
+    if not row.get("has_data"):
+        return
+    today = date.today()
+    h = (db.query(models.ResearchScoreHistory)
+           .filter_by(market=market, ticker=stock.ticker, snap_date=today).first())
+    if h is None:
+        h = models.ResearchScoreHistory(market=market, ticker=stock.ticker, snap_date=today)
+        db.add(h)
+    sc = row["score"]
+    h.score    = sc.get("total")
+    h.coverage = sc.get("coverage")
+    h.roic     = (row["metrics"].get("roic") or {}).get("v")
+    h.subs_json = json.dumps({k: v.get("score") for k, v in (sc.get("subs") or {}).items()})
+    db.commit()
+
+
+def _score_history(db: Session, market: str, tickers: list[str]) -> dict:
+    """{ticker: [{d, score, roic}]} — 최근 1년, 보유 종목만."""
+    since = date.today() - timedelta(days=365)
+    rows = (db.query(models.ResearchScoreHistory)
+              .filter(models.ResearchScoreHistory.market == market,
+                      models.ResearchScoreHistory.ticker.in_(tickers),
+                      models.ResearchScoreHistory.snap_date >= since)
+              .order_by(models.ResearchScoreHistory.snap_date).all())
+    out: dict = {}
+    for r in rows:
+        out.setdefault(r.ticker, []).append(
+            {"d": r.snap_date.isoformat(), "score": r.score, "roic": r.roic})
+    return out
 
 
 @app.get("/research", response_class=HTMLResponse)
@@ -1355,6 +1422,7 @@ def page_research(request: Request, db: Session = Depends(get_db)):
         "market":        "us",
         "refresh_url":   "/api/research/refresh",
         "home_url":      "/",
+        "history_json":  json.dumps(_score_history(db, "us", [h.ticker for h in holdings])),
     })
 
 
@@ -1372,7 +1440,10 @@ async def api_research_refresh(request: Request, db: Session = Depends(get_db)):
         if i:
             await asyncio.sleep(0.5)
         try:
-            results[t] = "ok" if refresh_analysis(t, db) else "fail"
+            ok = refresh_analysis(t, db)
+            results[t] = "ok" if ok else "fail"
+            if ok:
+                _record_score(db, "us", db.query(models.Stock).filter(models.Stock.ticker == t.upper()).first())
         except Exception as e:
             logger.error("[%s] refresh 오류: %s", t, e)
             results[t] = "fail"
@@ -1385,11 +1456,12 @@ def page_kr_research(request: Request, db: Session = Depends(get_db)):
     holdings = (db.query(models.KrPortfolio)
                   .order_by(models.KrPortfolio.display_order, models.KrPortfolio.id).all())
     rows, uncached = [], []
+    kr_rf = _kr_risk_free(db)
     for h in holdings:
         stock = db.query(models.KrStock).filter(models.KrStock.ticker == h.ticker).first()
         if stock is None:
             continue
-        row = _build_research_row(stock)
+        row = _build_research_row(stock, kr_rf)
         # 국내는 종목코드보다 회사명이 읽기 쉽다. 아이콘 파일은 .KS/.KQ 없는 코드로 저장돼 있다.
         row["label"] = stock.name or stock.ticker
         row["icon"]  = stock.ticker.split(".")[0]
@@ -1407,6 +1479,8 @@ def page_kr_research(request: Request, db: Session = Depends(get_db)):
         "market":        "kr",
         "refresh_url":   "/api/kr-research/refresh",
         "home_url":      "/kr-home",
+        "kr_rf":         kr_rf,
+        "history_json":  json.dumps(_score_history(db, "kr", [h.ticker for h in holdings])),
     })
 
 
@@ -1420,11 +1494,15 @@ async def api_kr_research_refresh(request: Request, db: Session = Depends(get_db
         tickers = [h.ticker for h in db.query(models.KrPortfolio).all()]
 
     results = {}
+    kr_rf = _kr_risk_free(db)
     for i, t in enumerate(tickers):
         if i:
             await asyncio.sleep(0.5)
         try:
-            results[t] = "ok" if refresh_analysis(t, db, models.KrStock) else "fail"
+            ok = refresh_analysis(t, db, models.KrStock)
+            results[t] = "ok" if ok else "fail"
+            if ok:
+                _record_score(db, "kr", db.query(models.KrStock).filter(models.KrStock.ticker == t.upper()).first(), kr_rf)
         except Exception as e:
             logger.error("[%s] refresh 오류: %s", t, e)
             results[t] = "fail"
@@ -1468,11 +1546,11 @@ def _quality_label(stock, market):
     return (stock.name or stock.ticker) if market == "kr" else stock.ticker
 
 
-def _quality_company(stock, holding, notes, market="us"):
+def _quality_company(stock, holding, notes, market="us", rf=None):
     """캐시된 분석 데이터 → 기업 뷰모델. 데이터가 없으면 None."""
     if not stock or not stock.analysis_json:
         return None
-    payload = json.loads(stock.analysis_json)
+    payload = _with_rf(json.loads(stock.analysis_json), rf)
     forecasts = json.loads(stock.forecasts_json or "[]")
     metrics = analytics.analysis_to_dict(payload, forecasts)
     score = scoring.score_all(metrics)
@@ -1488,6 +1566,7 @@ def _quality_portfolio(db: Session, market="us"):
     cfg = QUALITY_MARKETS[market]
     P, S = cfg["portfolio"], cfg["stock"]
     notes = _load_notes()
+    rf = _kr_risk_free(db) if market == "kr" else None
     holdings = db.query(P).order_by(P.display_order, P.id).all()
     held = {h.ticker for h in holdings}
     companies, pending = [], []
@@ -1495,7 +1574,7 @@ def _quality_portfolio(db: Session, market="us"):
         stock = db.query(S).filter(S.ticker == h.ticker).first()
         c = None
         try:
-            c = _quality_company(stock, {"shares_owned": h.shares_owned}, notes, market)
+            c = _quality_company(stock, {"shares_owned": h.shares_owned}, notes, market, rf)
         except Exception as e:
             logger.error("[%s] 품질 뷰모델 생성 실패: %s", h.ticker, e, exc_info=True)
         if c is None:
@@ -1526,6 +1605,7 @@ def _render_quality(request: Request, db: Session, market: str):
         "active":  QUALITY_MARKETS[market]["active"],
         "market":  market,
         "links":   _quality_links(market),
+        "kr_rf":   _kr_risk_free(db) if market == "kr" else None,
         "quality_json": json.dumps({**built, "pending": pending, "history": history},
                                    ensure_ascii=False, default=str),
         "error": request.query_params.get("error", ""),
@@ -1541,7 +1621,8 @@ def _render_quality_detail(ticker: str, request: Request, db: Session, market: s
     if company is None:
         # 과거 보유 종목 — 캐시가 남아 있으면 단독 기준으로 보여준다
         stock = db.query(cfg["stock"]).filter(cfg["stock"].ticker == ticker).first()
-        c = _quality_company(stock, None, _load_notes(), market) if stock else None
+        c = _quality_company(stock, None, _load_notes(), market,
+                             _kr_risk_free(db) if market == "kr" else None) if stock else None
         if c is None:
             return RedirectResponse(f"{cfg['base']}?error={ticker}+분석+데이터가+없습니다", status_code=303)
         company = quality.build_portfolio([c])["companies"][0]

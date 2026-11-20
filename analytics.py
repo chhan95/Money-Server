@@ -270,14 +270,67 @@ def multiple_vs_history(payload: dict) -> dict:
     return r
 
 
+def _fx(payload: dict) -> float | None:
+    """재무제표 금액 → 시세 통화 환산 배율. 같은 통화면 1, 다른데 환율이 없으면 None."""
+    if payload.get("fin_currency") == payload.get("quote_currency"):
+        return 1.0
+    return _num((payload.get("fx") or {}).get("rate"))
+
+
+def _fx_note(payload: dict) -> str:
+    fx = payload.get("fx") or {}
+    if payload.get("fin_currency") == payload.get("quote_currency") or not fx:
+        return ""
+    return f" — 재무 금액을 {fx.get('pair', '')} {fx.get('rate'):.4g}로 환산"
+
+
+FX_NA = "재무제표 통화와 시가총액 통화 불일치 (환율 없음 — 재수집 필요)"
+
+
+def ev_ebitda(payload: dict) -> dict:
+    """EV/EBITDA. 통화가 같으면 yfinance 값, 다르면 환율로 맞춰 직접 계산한다
+    (yfinance 값은 시세 통화 EV ÷ 재무 통화 EBITDA라 틀림)."""
+    ttm = payload.get("ttm") or {}
+    as_of = payload.get("fetched_at", "")
+    fx = _fx(payload)
+    if fx is None:
+        return NA(FX_NA)
+    if fx == 1.0:
+        v = _num(ttm.get("ev_ebitda"))
+        return M(v, "yfinance enterpriseToEbitda", as_of) if v else NA("EV/EBITDA 없음")
+    mc, ebitda = _num(ttm.get("market_cap")), _num(ttm.get("ebitda"))
+    debt, cash = _num(ttm.get("total_debt")) or 0.0, _num(ttm.get("total_cash")) or 0.0
+    if not mc or not ebitda or ebitda <= 0:
+        return NA("시가총액 또는 EBITDA 없음")
+    return M((mc + (debt - cash) * fx) / (ebitda * fx),
+             "(시가총액 + 순부채) ÷ EBITDA" + _fx_note(payload), as_of)
+
+
+def ps_ttm(payload: dict) -> dict:
+    ttm = payload.get("ttm") or {}
+    as_of = payload.get("fetched_at", "")
+    fx = _fx(payload)
+    if fx is None:
+        return NA(FX_NA)
+    if fx == 1.0:
+        v = _num(ttm.get("ps_ttm"))
+        return M(v, "yfinance priceToSalesTrailing12Months", as_of) if v else NA("P/S 없음")
+    mc, rev = _num(ttm.get("market_cap")), _num((payload.get("ttm_income") or {}).get("revenue"))
+    if not mc or not rev or rev <= 0:
+        return NA("시가총액 또는 TTM 매출 없음")
+    return M(mc / (rev * fx), "시가총액 ÷ TTM 매출" + _fx_note(payload), as_of)
+
+
 def fcf_yield(payload: dict) -> dict:
     ttm = payload.get("ttm") or {}
     fcf, mc = _num(ttm.get("fcf")), _num(ttm.get("market_cap"))
     if fcf is None or not mc:
         return NA("FCF 또는 시가총액 없음")
-    if payload.get("fin_currency") != payload.get("quote_currency"):
-        return NA("재무제표 통화와 시가총액 통화 불일치")
-    return M(fcf / mc, "yfinance freeCashflow ÷ marketCap", payload.get("fetched_at", ""))
+    fx = _fx(payload)
+    if fx is None:
+        return NA(FX_NA)
+    return M(fcf * fx / mc, "yfinance freeCashflow ÷ marketCap" + _fx_note(payload),
+             payload.get("fetched_at", ""))
 
 
 def peg(payload: dict, forecasts: list | None = None) -> dict:
@@ -308,8 +361,9 @@ def wacc(payload: dict, erp=DEFAULT_ERP, credit_spread=DEFAULT_CREDIT_SPREAD) ->
     ttm = payload.get("ttm") or {}
     years = payload.get("years") or []
 
-    if payload.get("fin_currency") != payload.get("quote_currency"):
-        return NA("재무제표 통화와 시가총액 통화 불일치 — WACC 산출 불가")
+    fx = _fx(payload)
+    if fx is None:
+        return NA(FX_NA + " — WACC 산출 불가")
 
     beta = _num(ttm.get("beta"))
     if beta is None or beta <= 0 or beta > 3:
@@ -320,7 +374,7 @@ def wacc(payload: dict, erp=DEFAULT_ERP, credit_spread=DEFAULT_CREDIT_SPREAD) ->
         return NA("무위험수익률 없음")
 
     e = _num(ttm.get("market_cap"))
-    d = _num(ttm.get("total_debt")) or 0.0
+    d = (_num(ttm.get("total_debt")) or 0.0) * fx   # 부채는 재무 통화 → 시세 통화
     if not e or e <= 0:
         return NA("시가총액 없음")
 
@@ -330,7 +384,7 @@ def wacc(payload: dict, erp=DEFAULT_ERP, credit_spread=DEFAULT_CREDIT_SPREAD) ->
     w = e + d
     val = (e / w) * ke + (d / w) * kd * (1 - tax)
 
-    r = M(val, "CAPM 추정 (가정 포함)", rf_obj.get("as_of", ""))
+    r = M(val, "CAPM 추정 (가정 포함)" + _fx_note(payload), rf_obj.get("as_of", ""))
     r["detail"] = {"rf": rf, "rf_src": rf_obj.get("src", ""), "beta": beta,
                    "erp": erp, "kd": kd, "credit_spread": credit_spread,
                    "tax": tax, "equity": e, "debt": d, "ke": ke}
@@ -347,8 +401,6 @@ def analysis_to_dict(payload: dict, forecasts: list | None = None,
     years = payload.get("years") or []
     ttm = payload.get("ttm") or {}
     as_of = payload.get("fetched_at", "")
-    # yfinance의 EV/EBITDA·P/S는 시가총액(시세 통화) ÷ 재무제표(보고 통화)라 통화가 다르면 틀린 값
-    fx_mismatch = payload.get("fin_currency") != payload.get("quote_currency")
     rs = roic_series(years)
     roic_vals = [r["roic"] for r in rs if r["roic"] is not None]
 
@@ -403,12 +455,9 @@ def analysis_to_dict(payload: dict, forecasts: list | None = None,
                           if ttm.get("forward_pe") else NA("Forward P/E 없음"),
         "trailing_pe":    M(_num(ttm.get("trailing_pe")), "yfinance trailingPE", as_of)
                           if ttm.get("trailing_pe") else NA("P/E 없음"),
-        "ev_ebitda":      (NA("재무제표 통화와 시가총액 통화 불일치") if fx_mismatch else
-                           M(_num(ttm.get("ev_ebitda")), "yfinance enterpriseToEbitda", as_of)
-                           if ttm.get("ev_ebitda") else NA("EV/EBITDA 없음")),
-        "ps_ttm":         (NA("재무제표 통화와 시가총액 통화 불일치") if fx_mismatch else
-                           M(_num(ttm.get("ps_ttm")), "yfinance priceToSalesTrailing12Months", as_of)
-                           if ttm.get("ps_ttm") else NA("P/S 없음")),
+        # yfinance의 EV/EBITDA·P/S는 시가총액(시세 통화) ÷ 재무제표(보고 통화)라 통화가 다르면 환산해서 다시 계산
+        "ev_ebitda":      ev_ebitda(payload),
+        "ps_ttm":         ps_ttm(payload),
         "fcf_yield":      fcf_yield(payload),
         "mult_vs_hist":   multiple_vs_history(payload),
 

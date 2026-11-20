@@ -242,7 +242,7 @@ def fetch_stock(ticker: str) -> dict | None:
 #  ─ 값이 없으면 None을 넣고 missing[]에 기록한다. 절대 추정값을 만들지 않는다.
 # ══════════════════════════════════════════════════════════════════════
 
-ANALYSIS_VER = 2   # v2: 자본배분 행·TTM·실적발표일·기업 프로필 추가 (기존 필드는 그대로)
+ANALYSIS_VER = 3   # v2: 자본배분 행·TTM·실적발표일·기업 프로필 추가 / v3: 재무↔시세 통화 환율(fx) 추가
 
 _GROSS_KEYS    = ["Gross Profit", "GrossProfit"]
 _EBITDA_KEYS   = ["EBITDA", "Normalized EBITDA"]
@@ -315,6 +315,18 @@ def _fetch_risk_free() -> dict | None:
                     "as_of": pd.Timestamp.utcnow().strftime("%Y-%m-%d")}
     except Exception as e:
         logger.debug("^TNX 조회 실패: %s", e)
+    return None
+
+
+def _fetch_fx(src: str, dst: str) -> dict | None:
+    """재무제표 통화 1단위 → 시세 통화 환율 (예: TWD→USD). 실제 시장 데이터만 쓴다."""
+    pair = f"{src}{dst}=X"
+    try:
+        v = yf.Ticker(pair).fast_info.last_price
+        if v and v > 0:
+            return {"rate": float(v), "pair": pair, "as_of": pd.Timestamp.utcnow().strftime("%Y-%m-%d")}
+    except Exception as e:
+        logger.debug("%s 환율 조회 실패: %s", pair, e)
     return None
 
 
@@ -524,7 +536,12 @@ def fetch_analysis(ticker: str) -> dict | None:
                 "price":     _inf("currentPrice") or _inf("regularMarketPrice"),
             },
             "missing":          sorted(set(missing)),
+            # v3: 통화가 다를 때만. 금액 지표를 시세 통화로 맞추는 데 쓴다 (analytics._fx)
+            "fx": (_fetch_fx(fin_currency, quote_currency)
+                   if fin_currency != quote_currency else None),
         }
+        if fin_currency != quote_currency and payload["fx"] is None:
+            payload["missing"] = sorted(set(payload["missing"]) | {"fx"})
         return payload
 
     except Exception as e:

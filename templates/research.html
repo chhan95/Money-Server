@@ -43,6 +43,12 @@
 .rs-btn:hover:not(:disabled) { transform: translateY(-1px); box-shadow: 0 4px 16px rgba(102,126,234,.45); }
 .rs-btn:disabled { opacity: .55; cursor: not-allowed; transform: none; }
 .rs-note { font-size: 11.5px; color: var(--text2); }
+.rs-rf { display: flex; align-items: center; gap: 6px; font-size: 11.5px; color: var(--text2); }
+.rs-rf input { width: 64px; padding: 6px 8px; border: 1px solid var(--border); border-radius: 8px;
+  background: var(--bg); color: var(--text); font-size: 12px; font-family: inherit; }
+.rs-rf button { padding: 6px 10px; border: 1px solid var(--border); border-radius: 8px; background: var(--bg);
+  color: var(--text); font-size: 11.5px; cursor: pointer; }
+.rs-rf button:hover { background: var(--bg2); }
 
 .rs-table-wrap {
   overflow-x: auto; border: 1px solid var(--border);
@@ -282,7 +288,18 @@
 
   <div class="rs-toolbar">
     <div class="rs-note" id="rsMeta"></div>
-    <button class="rs-btn" id="rsRefresh" onclick="refreshAll()">데이터 수집 / 갱신</button>
+    <div style="display:flex;align-items:center;gap:12px;flex-wrap:wrap;">
+      {% if market == 'kr' %}
+      <div class="rs-rf" title="국내 WACC의 무위험수익률. 비우고 저장하면 미국 10년물(^TNX)을 씁니다.">
+        국고채 10년
+        <input type="number" id="rsRf" step="0.01" min="0" max="20" placeholder="^TNX"
+               value="{{ kr_rf.pct if kr_rf else '' }}">%
+        <button onclick="saveRf()">적용</button>
+        <span>{{ ('· ' ~ kr_rf.as_of ~ ' 입력') if kr_rf else '· 미입력 (미국 10년물 사용 중)' }}</span>
+      </div>
+      {% endif %}
+      <button class="rs-btn" id="rsRefresh" onclick="refreshAll()">데이터 수집 / 갱신</button>
+    </div>
   </div>
 
   <!-- 1. 포트폴리오 요약 -->
@@ -308,7 +325,7 @@
         <div class="rs-card-head">
           <div>
             <div class="rs-card-title">성장 × ROIC</div>
-            <div class="rs-card-sub">점선 = 6종목 중앙값 · 우상단이 고성장·고효율</div>
+            <div class="rs-card-sub" id="rsGrowthSub">점선 = 보유 종목 중앙값 · 우상단이 고성장·고효율</div>
           </div>
           <div class="rs-card-sub" id="rsSrc2"></div>
         </div>
@@ -327,6 +344,18 @@
         <div class="rs-card-sub" id="rsSrc3"></div>
       </div>
       <div class="rs-chart"><canvas id="chTrend"></canvas></div>
+    </div>
+
+    <!-- 4-1. Score 추이 (수집할 때마다 기록) -->
+    <div class="rs-section-title">Score 추이</div>
+    <div class="rs-card">
+      <div class="rs-card-head">
+        <div>
+          <div class="rs-card-title">Investment Score 변화</div>
+          <div class="rs-card-sub" id="rsHistSub">데이터 수집 / 갱신을 할 때마다 그날의 점수가 기록됩니다</div>
+        </div>
+      </div>
+      <div class="rs-chart" id="rsHistWrap"><canvas id="chHist"></canvas></div>
     </div>
 
     <!-- 5. 증분 ROIC -->
@@ -377,7 +406,7 @@
     데이터가 없는 항목은 <b>0점이 아니라 총점에서 제외</b>하고 가중치를 재정규화하며, 커버리지를 함께 표시합니다.
     <br><b>ROIC 계열(자본효율·해자·재투자)이 총점의 약 35%를 좌우합니다</b> — 장기 복리투자 관점을 반영한 의도된 가중입니다.
     <br>해자·가격결정력 점수는 숫자에서 도출한 <b>정량 프록시</b>이며 서술형 해자 분석이 아닙니다.
-    {% if market == 'kr' %}<br>WACC의 무위험수익률은 미국 10년물(^TNX)을 그대로 쓰므로 국내 종목의 WACC·스프레드는 참고치로만 보세요.{% endif %}
+    {% if market == 'kr' %}<br>{% if kr_rf %}WACC의 무위험수익률은 직접 입력한 국고채 10년 {{ kr_rf.pct }}%({{ kr_rf.as_of }} 입력)입니다.{% else %}WACC의 무위험수익률은 미국 10년물(^TNX)을 그대로 쓰므로 국내 종목의 WACC·스프레드는 참고치로만 보세요. 위의 "국고채 10년"에 값을 넣으면 그 값으로 바뀝니다.{% endif %}{% endif %}
     <br>이 점수는 공식 기반 자체 산출이며 투자 권유가 아닙니다.
   </div>
 </div>
@@ -386,6 +415,7 @@
 const RESEARCH = {{ research_json | safe }};
 const UNCACHED = {{ uncached | safe }};
 const REFRESH_URL = '{{ refresh_url }}';
+const HISTORY = {{ history_json | safe }};   // {ticker: [{d, score, roic}]}
 const HOME_URL    = '{{ home_url }}';
 
 let sortKey = 'score', sortDir = -1, expanded = null;
@@ -402,7 +432,28 @@ const COLS = [
   { key: 'fcfm',      label: 'FCF 마진',       type: 'pct',  m: 'fcf_margin' },
   { key: 'peg',       label: 'PEG',           type: 'num',  m: 'peg' },
   { key: 'fpe',       label: 'Fwd P/E',       type: 'num',  m: 'forward_pe' },
+  { key: 'surp',      label: 'EPS 서프라이즈',  type: 'surp' },
+  { key: 'next',      label: '다음 실적',       type: 'next' },
 ];
+
+/* ── 실적: 최근 4개 분기 EPS 서프라이즈 · 다음 발표일 ── */
+const TODAY = new Date().toISOString().slice(0, 10);
+function surpOf(row) {
+  if (!row.has_data) return null;
+  const h = (row.metrics.earnings_history || []).filter(q => q.surprise_pct !== null && q.surprise_pct !== undefined).slice(-4);
+  if (!h.length) return null;
+  return { avg: h.reduce((a, q) => a + q.surprise_pct, 0) / h.length,
+           beats: h.filter(q => q.surprise_pct > 0).length, n: h.length, quarters: h };
+}
+function daysUntil(d) { return Math.round((new Date(d) - new Date(TODAY)) / 864e5); }
+// Yahoo의 '다음 발표일'은 발표 후 며칠간 지난 날짜로 남는다.
+// 예정일 이후에 수집했다면 그 실적은 이미 반영된 것이므로 재수집을 요구하지 않는다(collected).
+function nextOf(row) {
+  const d = (row.earnings_dates || {}).next;
+  if (!d) return null;
+  const fetched = (row.as_of || '').slice(0, 10);
+  return { date: d, days: daysUntil(d), collected: !!fetched && fetched > d };
+}
 
 function mv(row, key) {
   if (!row.has_data) return null;
@@ -435,6 +486,8 @@ function fmtNum(v) { return v.toFixed(2); }
 function cellVal(row, col) {
   if (col.type === 'score') return row.has_data && row.score.total !== null ? row.score.total : null;
   if (col.type === 'text')  return row.label;
+  if (col.type === 'surp')  { const s = surpOf(row); return s ? s.avg : null; }
+  if (col.type === 'next')  { const n = nextOf(row); return n ? -n.days : null; }   // 가까운 순이 위로
   return mv(row, col.m);
 }
 
@@ -455,6 +508,20 @@ function renderCell(row, col) {
     if (t === null) return `<span class="rs-score rs-s-na" title="${row.score.na_reason}">N/A</span>`;
     const cls = t >= 80 ? 'rs-s-hi' : t >= 60 ? 'rs-s-mid' : 'rs-s-low';
     return `<span class="rs-score ${cls}" title="커버리지 ${row.score.coverage}%">${t}</span>`;
+  }
+  if (col.type === 'surp') {
+    const s = surpOf(row);
+    if (!s) return `<span class="rs-na" title="실적 서프라이즈 데이터 없음">N/A</span>`;
+    const tipTxt = s.quarters.map(q => `${q.q} 실제 ${q.eps_actual} / 예상 ${q.eps_est?.toFixed(2)} (${(q.surprise_pct * 100).toFixed(1)}%)`).join('&#10;');
+    return `<span class="${s.avg < 0 ? 'rs-neg' : ''}" title="최근 ${s.n}개 분기 평균&#10;${tipTxt}">${s.avg >= 0 ? '+' : ''}${fmtPct(s.avg)}</span>
+            <div class="rs-tk-sub">${s.beats}/${s.n} 상회</div>`;
+  }
+  if (col.type === 'next') {
+    const n = nextOf(row);
+    if (!n) return `<span class="rs-na" title="발표 예정일 정보 없음">N/A</span>`;
+    if (n.days < 0 && n.collected) return `<span title="예정일(${n.date}) 이후 ${row.as_of.slice(0, 10)}에 수집 — 다음 예정일은 Yahoo 갱신 후 표시됩니다">${n.date.slice(5)}</span><div class="rs-tk-sub">발표 후 수집됨</div>`;
+    if (n.days < 0) return `<span style="color:var(--rs-amber);" title="예정일이 지났습니다 — 데이터 수집으로 새 실적을 반영하세요">${n.date.slice(5)}</span><div class="rs-tk-sub" style="color:var(--rs-amber);">지남 · 재수집</div>`;
+    return `<span>${n.date.slice(5)}</span><div class="rs-tk-sub">D-${n.days}</div>`;
   }
   const v = mv(row, col.m);
   if (v === null) return `<span class="rs-na" title="${mna(row, col.m)}">N/A</span>`;
@@ -494,6 +561,17 @@ function renderDetail(row) {
     return `<div><span>${label} <b>${fmt(x.v)}</b></span><span>${x.src}${x.as_of ? ' · ' + x.as_of : ''}</span></div>`;
   };
 
+  const sp = surpOf(row), nx = nextOf(row), ed = row.earnings_dates || {};
+  const fmtEps = v => v === null || v === undefined ? 'N/A' : (Math.abs(v) >= 100 ? Math.round(v).toLocaleString() : v.toFixed(2));
+  const earn = `<h4>실적 · EPS 서프라이즈</h4>
+    <div class="rs-prov">
+      ${(m.earnings_history || []).map(q => `<div><span>${q.q} 실제 <b>${fmtEps(q.eps_actual)}</b> · 예상 ${fmtEps(q.eps_est)}</span>
+        <span class="${q.surprise_pct < 0 ? 'rs-neg' : ''}">${q.surprise_pct === null || q.surprise_pct === undefined ? '미발표/N/A'
+          : (q.surprise_pct >= 0 ? '+' : '') + fmtPct(q.surprise_pct)}</span></div>`).join('') || '<div><span class="rs-na">데이터 없음</span></div>'}
+      <div style="margin-top:6px;">최근 발표 <b>${ed.last || 'N/A'}</b> · 다음 예정 <b>${ed.next || 'N/A'}</b>${nx ? (nx.days < 0 ? (nx.collected ? ' (발표 후 수집됨)' : ' (지남 — 재수집 필요)') : ` (D-${nx.days})`) : ''}
+        ${sp ? ` · 최근 ${sp.n}개 분기 중 ${sp.beats}회 예상 상회` : ''}</div>
+    </div>`;
+
   return `<div class="rs-detail">
     <h4>점수 구성</h4>
     <div class="rs-sub-grid">${subs}</div>
@@ -510,6 +588,7 @@ function renderDetail(row) {
       <div style="margin-top:8px;">커버리지 <b>${s.coverage}%</b>${s.excluded.length ? ' · 제외: ' + s.excluded.join(', ') : ''}</div>
       ${(m.missing && m.missing.length) ? `<div>수집 실패 항목: ${m.missing.join(', ')}</div>` : ''}
     </div>
+    ${earn}
   </div>`;
 }
 
@@ -534,6 +613,7 @@ const PD = RESEARCH.filter(r => r.has_data).map(r => {
     netCagr: g('net_cagr'), fcfCagr: g('fcf_cagr'),
     gmSeries: (m.gross_margin_series || []).filter(x => x.v !== null),
     marketCap: g('market_cap'),
+    value: (r.shares_owned || 0) * (r.price || 0),   // 보유금액 (시장 내 같은 통화)
   };
 });
 
@@ -589,9 +669,16 @@ function renderKpis() {
     kpi('평균 Score',
         scores.length ? (scores.reduce((a, b) => a + b, 0) / scores.length).toFixed(1) : 'N/A',
         `${scores.length}개 종목 기준`),
-    kpi('평균 ROIC',
-        roics.length ? pct1(roics.reduce((a, b) => a + b, 0) / roics.length) : 'N/A',
-        `${roics.length}개 종목 기준`),
+    // 평균은 PLTR 같은 이상치에 끌려가므로 중앙값을 기본으로, 단순·보유금액 가중 평균은 보조로 표시
+    (() => {
+      const wr = PD.filter(p => p.roic !== null && p.value > 0);
+      const tw = wr.reduce((a, p) => a + p.value, 0);
+      const wavg = tw ? wr.reduce((a, p) => a + p.roic * p.value, 0) / tw : null;
+      const avg = roics.length ? roics.reduce((a, b) => a + b, 0) / roics.length : null;
+      return kpi('ROIC 중앙값',
+        roics.length ? pct1(median(roics)) : 'N/A',
+        roics.length ? `단순 평균 ${pct1(avg)}${wavg !== null ? ' · 보유금액 가중 ' + pct1(wavg) : ''}` : '데이터 없음');
+    })(),
     kpi('ROIC &gt; WACC',
         cmp.length ? `${above} / ${cmp.length}` : 'N/A',
         cmp.length < PD.length ? `${PD.length - cmp.length}개 제외 (WACC N/A)` : '전 종목 비교 가능'),
@@ -646,6 +733,19 @@ function renderSignals() {
     sig.push({ lv: 'info', tag: '데이터 커버리지', tk: p.ticker, lb: p.label,
       body: `Score ${p.score}이지만 실제 데이터 반영률이 ${p.coverage}%입니다
              (제외: ${p.excluded.join(', ') || '없음'}). 점수 해석에 주의가 필요합니다.` });
+  });
+
+  // 6) 실적 일정 — 예정일이 지났으면 재수집, 7일 이내면 미리 알림
+  RESEARCH.forEach(r => {
+    const n = nextOf(r);
+    if (!n) return;
+    if (n.days < 0 && !n.collected) {
+      sig.push({ lv: 'warn', tag: '실적 반영', tk: r.ticker, lb: r.label,
+        body: `실적 발표 예정일(${n.date})이 지났습니다. 데이터 수집 / 갱신으로 새 실적을 반영하세요.` });
+    } else if (n.days <= 7) {
+      sig.push({ lv: 'info', tag: '실적 발표 임박', tk: r.ticker, lb: r.label,
+        body: `${n.date} 실적 발표 예정 (D-${n.days}). 발표 후 다시 수집하면 점수에 반영됩니다.` });
+    }
   });
 
   const cmp = PD.filter(p => p.roic !== null && p.wacc !== null);
@@ -786,6 +886,7 @@ function renderGrowth() {
     return;
   }
 
+  document.getElementById('rsGrowthSub').textContent = `점선 = ${usable.length}종목 중앙값 · 우상단이 고성장·고효율`;
   const mg = median(usable.map(p => p.revCagr)) * 100;
   const mr = median(usable.map(p => p.roic)) * 100;
 
@@ -836,7 +937,7 @@ function renderGrowth() {
   });
 }
 
-/* 중앙값 기준 4분면 (임의 기준값을 만들지 않고 6종목 중앙값만 사용) */
+/* 중앙값 기준 4분면 (임의 기준값을 만들지 않고 보유 종목 중앙값만 사용) */
 function quadrantPlugin(mx, my) {
   return {
     id: 'quadrant',
@@ -927,6 +1028,54 @@ function renderTrend() {
              border: { display: false } },
         y: { ticks: { color: t.tick, font: { size: 10 }, callback: v => v + '%' },
              grid: { color: t.grid }, border: { display: false } },
+      },
+    },
+  });
+}
+
+/* ══════════ Score 추이 ══════════ */
+function renderHistory() {
+  const t = theme();
+  const wrap = document.getElementById('rsHistWrap');
+  const series = PD.map(p => ({ p, pts: (HISTORY[p.ticker] || []).filter(x => x.score !== null) }))
+                   .filter(x => x.pts.length);
+  const dates = [...new Set(series.flatMap(x => x.pts.map(q => q.d)))].sort();
+  if (charts.hist) charts.hist.destroy();
+  if (dates.length < 2) {
+    wrap.innerHTML = `<div class="rs-chart-na">기록 ${dates.length}일 — 다음 수집부터 변화가 그려집니다.<br>
+      ${dates.length ? '첫 기록: ' + dates[0] : '아직 기록이 없습니다'}</div><canvas id="chHist" style="display:none;"></canvas>`;
+    return;
+  }
+  document.getElementById('rsHistSub').textContent =
+    `${dates[0]} ~ ${dates[dates.length - 1]} · 기록 ${dates.length}일 · 수집할 때마다 그날의 점수를 저장`;
+  charts.hist = new Chart(document.getElementById('chHist').getContext('2d'), {
+    type: 'line',
+    data: {
+      labels: dates,
+      datasets: series.map(({ p, pts }) => ({
+        label: p.label, tk: p.ticker,
+        data: dates.map(d => { const q = pts.find(x => x.d === d); return q ? q.score : null; }),
+        borderColor: colorOf(p.ticker) + (selected && selected !== p.ticker ? '44' : ''),
+        backgroundColor: colorOf(p.ticker),
+        borderWidth: selected === p.ticker ? 3.2 : 1.8,
+        pointRadius: selected === p.ticker ? 4 : 2.5, tension: 0.25, spanGaps: true,
+      })),
+    },
+    options: {
+      responsive: true, maintainAspectRatio: false,
+      interaction: { mode: 'nearest', intersect: false },
+      plugins: {
+        legend: { position: 'bottom', labels: { color: t.tick, boxWidth: 10, font: { size: 10 }, usePointStyle: true } },
+        tooltip: { backgroundColor: t.tipBg, padding: 11, cornerRadius: 9,
+          callbacks: { label: c => {
+            const q = (HISTORY[c.dataset.tk] || []).find(x => x.d === dates[c.dataIndex]);
+            return `${c.dataset.label}: ${c.parsed.y}${q && q.roic !== null ? ' · ROIC ' + pct1(q.roic) : ''}`;
+          } } },
+      },
+      onClick: (e, els) => { if (els.length) selectTicker(charts.hist.data.datasets[els[0].datasetIndex].tk); },
+      scales: {
+        x: { ticks: { color: t.tick, font: { size: 10 } }, grid: { display: false }, border: { display: false } },
+        y: { ticks: { color: t.tick, font: { size: 10 } }, grid: { color: t.grid }, border: { display: false } },
       },
     },
   });
@@ -1102,6 +1251,7 @@ function renderAll() {
   renderScatter();
   renderGrowth();
   renderTrend();
+  renderHistory();
   renderIncr();
   renderHeat();
   renderComp();
@@ -1153,6 +1303,16 @@ function setSort(key) {
   if (sortKey === key) sortDir *= -1;
   else { sortKey = key; sortDir = key === 'name' ? 1 : -1; }
   render();
+}
+
+async function saveRf() {
+  const raw = document.getElementById('rsRf').value.trim();
+  const v = raw === '' ? null : parseFloat(raw);
+  if (v !== null && !(v > 0 && v < 20)) { alert('0~20 사이의 연 % 값을 넣어주세요 (예: 2.85)'); return; }
+  const today = new Date().toISOString().slice(0, 10);
+  await fetch('/api/settings/kr_risk_free', { method: 'POST', headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ value: v === null ? '' : JSON.stringify({ value: v, as_of: today }) }) });
+  location.reload();
 }
 
 async function refreshAll() {

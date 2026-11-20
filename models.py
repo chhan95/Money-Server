@@ -230,3 +230,20 @@ class AssetSnapshot(Base):
     extra_json = Column(Text, default='{}')
 
     note = Column(String(500), default="")
+
+
+class ResearchScoreHistory(Base):
+    """리서치 터미널 Score 추이 — 분석 데이터를 수집할 때마다 종목별 하루 1건 기록"""
+    __tablename__ = "research_score_history"
+    __table_args__ = (
+        UniqueConstraint("market", "ticker", "snap_date", name="uq_score_hist"),
+    )
+
+    id         = Column(Integer, primary_key=True, autoincrement=True)
+    market     = Column(String(4), nullable=False)    # "us" | "kr"
+    ticker     = Column(String(20), nullable=False)
+    snap_date  = Column(Date, nullable=False)
+    score      = Column(Float)                         # Investment Score (None = 산출 불가)
+    coverage   = Column(Float)
+    roic       = Column(Float)
+    subs_json  = Column(Text, default="{}")            # 항목별 원점수 {key: score}

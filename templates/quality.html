@@ -276,6 +276,7 @@ const Q = {{ quality_json | safe }};
 const C = Q.companies || [];
 const LINKS = {{ links | tojson }};
 const MARKET = '{{ market }}';
+const KR_RF = {{ kr_rf | tojson }};
 const detailUrl = t => LINKS.base + '/' + encodeURIComponent(t);
 
 // 기본은 보유금액 가중. 보유 수량이 없어 계산 불가면 단순 평균으로 대체
@@ -624,7 +625,9 @@ function renderMethod() {
     <span class="q-basis Estimate">Estimate</span> 가정이 들어간 추정치(WACC 등)<br>
     <b>기간</b> — yfinance 연간 재무는 최대 5개 회계연도라 5Y CAGR(6개 연도 필요)과 10Y는 N/A로 표시합니다. 추정으로 채우지 않습니다.<br>
     <b>원천 데이터 우선순위</b> — 현재는 Yahoo Finance(yfinance) 단일 소스입니다. ${MARKET === 'kr' ? 'DART' : 'SEC'} 공시 원문 연동은 아직 구현되지 않았습니다.
-    ${MARKET === 'kr' ? '<br><b>WACC</b> — 무위험수익률로 미국 10년물(^TNX)을 그대로 쓰므로 국내 종목의 WACC·ROIC 스프레드는 참고치로만 보세요.' : ''}`;
+    ${MARKET !== 'kr' ? '' : KR_RF
+      ? `<br><b>WACC</b> — 무위험수익률은 국내 리서치 터미널에서 직접 입력한 국고채 10년 ${KR_RF.pct}% (${esc(KR_RF.as_of)} 입력)입니다.`
+      : '<br><b>WACC</b> — 무위험수익률로 미국 10년물(^TNX)을 그대로 쓰므로 국내 종목의 WACC·ROIC 스프레드는 참고치로만 보세요. 국내 리서치 터미널에서 국고채 10년 금리를 입력할 수 있습니다.'}`;
 }
 
 async function refreshData() {
