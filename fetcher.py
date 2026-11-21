@@ -242,7 +242,7 @@ def fetch_stock(ticker: str) -> dict | None:
 #  ─ 값이 없으면 None을 넣고 missing[]에 기록한다. 절대 추정값을 만들지 않는다.
 # ══════════════════════════════════════════════════════════════════════
 
-ANALYSIS_VER = 3   # v2: 자본배분 행·TTM·실적발표일·기업 프로필 추가 / v3: 재무↔시세 통화 환율(fx) 추가
+ANALYSIS_VER = 4   # v2: 자본배분 행·TTM·실적발표일·기업 프로필 / v3: 재무↔시세 환율(fx) / v4: TTM 세금·CAPEX + 최근 분기말 대차대조표(ttm_bs)
 
 _GROSS_KEYS    = ["Gross Profit", "GrossProfit"]
 _EBITDA_KEYS   = ["EBITDA", "Normalized EBITDA"]
@@ -452,11 +452,31 @@ def fetch_analysis(ticker: str) -> dict | None:
                 "net":              _cell(ti, _NET_KEYS,       col),
                 "diluted_eps":      _cell(ti, _DILEPS_KEYS,    col),
                 "interest_expense": _cell(ti, _INTEXP_KEYS,    col),
+                # v4: TTM NOPAT(세후 영업이익)을 위한 세금 항목
+                "pretax":           _cell(ti, _PRETAX_KEYS,    col),
+                "tax_provision":    _cell(ti, _TAXPROV_KEYS,   col),
+                "tax_rate_calc":    _cell(ti, _TAXRATE_KEYS,   col),
+                "capex":            _cell(tc, _CAPEX_KEYS, ccol) if ccol is not None else None,
                 "fcf":              _cell(tc, _FCF_KEYS, ccol) if ccol is not None else None,
                 "ocf":              _cell(tc, _OCF_KEYS, ccol) if ccol is not None else None,
                 "cf_period_end":    str(ccol)[:10] if ccol is not None else None,
             }
         ttm_income = safe("ttm_income", _ttm)
+
+        # ── 최근 분기말 대차대조표 (TTM ROIC의 투하자본) ──
+        def _qbs():
+            qb = t.quarterly_balance_sheet
+            if qb is None or qb.empty:
+                return None
+            col = qb.columns[0]
+            return {
+                "period_end": str(col)[:10],
+                "total_debt": _cell(qb, _DEBT_KEYS,   col),
+                "equity":     _cell(qb, _EQUITY_KEYS, col),
+                "cash":       _cell(qb, _CASH_KEYS,   col),
+                "sti":        _cell(qb, _STI_KEYS,    col),
+            }
+        ttm_bs = safe("ttm_bs", _qbs)
 
         # ── 실적 발표일 (최근 발표 / 다음 예정) ──
         def _edates():
@@ -525,6 +545,7 @@ def fetch_analysis(ticker: str) -> dict | None:
             "rf":               _fetch_risk_free(),
             # ── v2 추가 ──
             "ttm_income":       ttm_income,
+            "ttm_bs":           ttm_bs,     # v4
             "earnings_dates":   earnings_dates,
             "profile": {
                 "name":      info.get("longName") or info.get("shortName") or tk,

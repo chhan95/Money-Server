@@ -1265,7 +1265,7 @@ async def api_milestones_import(request: Request, db: Session = Depends(get_db))
 # 연간 재무는 분기마다 바뀌므로 24h가 아니라 7일 캐시를 쓴다.
 # /research 페이지는 캐시만 읽고 절대 네트워크를 타지 않는다 (수집은 명시적 버튼).
 ANALYSIS_CACHE_HOURS = 24 * 7
-ANALYSIS_VER = 3   # fetcher.ANALYSIS_VER과 맞춘다
+ANALYSIS_VER = 4   # fetcher.ANALYSIS_VER과 맞춘다
 
 
 def _analysis_stale(stock: models.Stock | models.KrStock | None) -> bool:

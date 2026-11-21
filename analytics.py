@@ -95,6 +95,46 @@ def roic_series(years: list[dict]) -> list[dict]:
     return out
 
 
+def _fy_label(y: dict) -> str:
+    return f"TTM({str(y.get('end', ''))[:7]})" if y.get("fy") == "TTM" else f"FY{y.get('fy')}"
+
+
+def ttm_point(payload: dict) -> dict | None:
+    """최근 4개 분기(TTM)를 연간 행과 같은 모양으로 만든다. 최근 FY보다 새롭지 않으면 None.
+
+    손익·현금흐름은 TTM 합계, 투하자본은 가장 최근 대차대조표(분기말이 FY말보다 새로우면
+    분기말, 아니면 FY말). Yahoo의 분기 대차대조표가 손익보다 한 분기 늦는 경우가 있어
+    실제 사용한 대차대조표 날짜를 bs_end에 남긴다.
+    """
+    years = payload.get("years") or []
+    ti = payload.get("ttm_income") or {}
+    if not years or not ti.get("period_end"):
+        return None
+    last = years[-1]
+    end = ti["period_end"]
+    if end <= str(last.get("end", "")):
+        return None                      # 회계연도가 막 끝남 — FY와 같은 기간
+    if _num(ti.get("revenue")) is None or _num(ti.get("operating_income")) is None:
+        return None
+    qb = payload.get("ttm_bs") or {}
+    fy_bs_end = str(last.get("bs_col") or last.get("end") or "")
+    if qb.get("period_end") and qb["period_end"] > fy_bs_end and _num(qb.get("equity")) is not None:
+        bs, bs_end = qb, qb["period_end"]
+    else:
+        bs, bs_end = last, fy_bs_end
+    capex = _num(ti.get("capex"))
+    return {
+        "fy": "TTM", "end": end, "bs_end": bs_end[:10],
+        "revenue": ti.get("revenue"), "gross_profit": ti.get("gross_profit"),
+        "operating_income": ti.get("operating_income"), "net": ti.get("net"),
+        "pretax": ti.get("pretax"), "tax_provision": ti.get("tax_provision"),
+        "tax_rate_calc": ti.get("tax_rate_calc"),
+        "fcf": ti.get("fcf"), "ocf": ti.get("ocf"), "capex": capex,
+        "total_debt": bs.get("total_debt"), "equity": bs.get("equity"),
+        "cash": bs.get("cash"), "sti": bs.get("sti"),
+    }
+
+
 def roic_yf_latest(years: list[dict]) -> dict:
     """대조용 — yfinance Invested Capital 행 기준 ROIC (현금 미차감)."""
     if not years:
@@ -126,7 +166,7 @@ def incremental_roic(years: list[dict]) -> dict:
         return NA("투하자본 변화 미미 (5% 미만)")
 
     r = M(d_nopat / d_ic,
-          f"FY{first.get('fy')}→FY{last.get('fy')} ΔNOPAT ÷ ΔIC",
+          f"{_fy_label(first)}→{_fy_label(last)} ΔNOPAT ÷ ΔIC",
           str(last.get("end", "")))
     r["detail"] = {"fy_from": first.get("fy"), "fy_to": last.get("fy"),
                    "nopat_from": n0, "nopat_to": n1, "ic_from": ic0, "ic_to": ic1,
@@ -162,19 +202,32 @@ def cagr(years: list[dict], field: str) -> dict:
 
     종목마다 손익 연도 수가 달라(4~5년) '5Y'를 일괄 주장하면 사실과 달라진다.
     """
-    pts = [(y.get("fy"), _num(y.get(field))) for y in years]
-    pts = [(fy, v) for fy, v in pts if v is not None and v > 0]
+    pts = [(y, _num(y.get(field))) for y in years]
+    pts = [(y, v) for y, v in pts if v is not None and v > 0]
     if len(pts) < 2:
         return NA("데이터 부족")
-    (fy0, v0), (fy1, v1) = pts[0], pts[-1]
-    n = len(pts) - 1
+    (y0, v0), (y1, v1) = pts[0], pts[-1]
+    # 끝점이 TTM이면 정수 연수가 아니므로 두 기간 말일 사이의 실제 경과 연수로 연율화한다
+    n = _years_between(y0.get("end"), y1.get("end")) if y1.get("fy") == "TTM" else len(pts) - 1
+    if not n or n <= 0:
+        return NA("계산 불가")
     try:
         g = (v1 / v0) ** (1 / n) - 1
     except (ZeroDivisionError, ValueError):
         return NA("계산 불가")
-    r = M(g, f"{n}Y CAGR (FY{fy0}→FY{fy1})", f"FY{fy1}")
+    n_txt = f"{n:.2f}".rstrip("0").rstrip(".") if y1.get("fy") == "TTM" else str(n)
+    r = M(g, f"{n_txt}Y CAGR ({_fy_label(y0)}→{_fy_label(y1)})", _fy_label(y1))
     r["window"] = n
     return r
+
+
+def _years_between(a, b) -> float | None:
+    from datetime import date
+    try:
+        d0, d1 = date.fromisoformat(str(a)[:10]), date.fromisoformat(str(b)[:10])
+    except ValueError:
+        return None
+    return (d1 - d0).days / 365.25
 
 
 def yoy(years: list[dict], field: str) -> dict:
@@ -200,7 +253,8 @@ def latest_margin(years: list[dict], numer: str, label: str) -> dict:
     v = _safe_div(y.get(numer), y.get("revenue"))
     if v is None:
         return NA(f"{label} 데이터 없음")
-    return M(v, f"FY{y.get('fy')} 손익계산서", str(y.get("end", "")))
+    return M(v, f"{_fy_label(y)} 손익계산서" + (" (최근 4개 분기 합계)" if y.get("fy") == "TTM" else ""),
+             str(y.get("end", "")))
 
 
 # ─────────────────────────────────────────────────────────────
@@ -419,11 +473,24 @@ def analysis_to_dict(payload: dict, forecasts: list | None = None,
     years = payload.get("years") or []
     ttm = payload.get("ttm") or {}
     as_of = payload.get("fetched_at", "")
-    rs = roic_series(years)
+    rs = roic_series(years)                  # 연도별 추이·중앙값·안정성은 회계연도 기준 유지
     roic_vals = [r["roic"] for r in rs if r["roic"] is not None]
 
+    # 최신값(ROIC·마진·성장률 끝점·증분 ROIC)은 최근 4개 분기(TTM)를 우선 쓴다.
+    # 연간 재무제표만 쓰면 회계연도 종료 후 최대 1년 가까이 지난 숫자로 남기 때문.
+    tp = ttm_point(payload)
+    latest_y = tp or (years[-1] if years else {})
+    eff = years + [tp] if tp else years     # 끝점 계산용 (FY … + TTM)
+
     latest_roic = NA("데이터 없음")
-    if rs and rs[-1]["roic"] is not None:
+    if tp:
+        n_t, ic_t = nopat(tp), invested_capital(tp)
+        if n_t is not None and ic_t is not None:
+            latest_roic = M(n_t / ic_t,
+                            f"TTM NOPAT ÷ 투하자본({tp['bs_end']} 대차대조표) — 현금·단기투자 차감",
+                            f"TTM {tp['end']}")
+            latest_roic["detail"] = {"nopat": n_t, "ic": ic_t, "bs_end": tp["bs_end"], "period_end": tp["end"]}
+    if latest_roic["v"] is None and rs and rs[-1]["roic"] is not None:
         last = rs[-1]
         latest_roic = M(last["roic"],
                         f"NOPAT ÷ 투하자본({last['basis']}) — 현금·단기투자 차감",
@@ -447,23 +514,25 @@ def analysis_to_dict(payload: dict, forecasts: list | None = None,
 
         "roic":            latest_roic,
         "roic_series":     rs,
+        "basis":           ({"type": "TTM", "end": tp["end"], "bs_end": tp["bs_end"]} if tp
+                            else {"type": "FY", "end": str((years[-1] if years else {}).get("end", ""))}),
         "roic_yf":         roic_yf_latest(years),
         "roic_median":     M(statistics.median(roic_vals), "연도별 ROIC 중앙값", as_of)
                            if roic_vals else NA("데이터 없음"),
-        "incremental_roic": incremental_roic(years),
-        "reinvestment":     reinvestment_rate(years),
+        "incremental_roic": incremental_roic(eff),
+        "reinvestment":     reinvestment_rate(years),   # 누적 NOPAT 구간이 겹치지 않도록 FY 기준
         "wacc":             w,
         "roic_spread":      spread,
 
-        "rev_cagr":   cagr(years, "revenue"),
+        "rev_cagr":   cagr(eff, "revenue"),
         "rev_yoy":    yoy(years, "revenue"),
-        "net_cagr":   cagr(years, "net"),
-        "fcf_cagr":   cagr(years, "fcf"),
+        "net_cagr":   cagr(eff, "net"),
+        "fcf_cagr":   cagr(eff, "fcf"),
 
-        "gross_margin":     latest_margin(years, "gross_profit", "매출총이익"),
-        "operating_margin": latest_margin(years, "operating_income", "영업이익"),
-        "net_margin":       latest_margin(years, "net", "순이익"),
-        "fcf_margin":       latest_margin(years, "fcf", "FCF"),
+        "gross_margin":     latest_margin([latest_y], "gross_profit", "매출총이익"),
+        "operating_margin": latest_margin([latest_y], "operating_income", "영업이익"),
+        "net_margin":       latest_margin([latest_y], "net", "순이익"),
+        "fcf_margin":       latest_margin([latest_y], "fcf", "FCF"),
         "gross_margin_series": gm,
         "gross_margin_std": M(statistics.pstdev(gm_vals), "매출총이익률 표준편차(5년)", as_of)
                             if len(gm_vals) >= 3 else NA("데이터 부족"),

@@ -281,6 +281,7 @@
     <h1>{% if market == 'kr' %}국내 {% endif %}리서치 터미널</h1>
     <p>보유 종목의 수익성·자본효율·성장의 질을 한 화면에서 비교합니다.
        모든 수치는 yfinance 기준이며 출처와 기준일을 함께 표시합니다.
+       ROIC·마진·성장률은 <b>최근 4개 분기(TTM)</b> 기준으로, 분기 실적이 나오면 다음 수집 때 바로 반영됩니다.
        없는 데이터는 추정하지 않고 <b>N/A</b>로 둡니다.</p>
   </div>
 
@@ -606,7 +607,11 @@ const PD = RESEARCH.filter(r => r.has_data).map(r => {
     score: s.total, coverage: s.coverage, subs: s.subs, excluded: s.excluded,
     roic: g('roic'), roicNa: na('roic'),
     roicMedian: g('roic_median'),
-    roicHistory: (m.roic_series || []).filter(x => x.roic !== null),
+    // 연도별 ROIC 뒤에 현재 ROIC(TTM)를 이어 붙인다 — 최신 분기까지의 흐름을 같은 선에서 보기 위해
+    roicHistory: [...(m.roic_series || []).filter(x => x.roic !== null),
+                  ...((m.roic && m.roic.detail && m.roic.v !== null)
+                      ? [{ fy: 'TTM', roic: m.roic.v, nopat: m.roic.detail.nopat, ic: m.roic.detail.ic,
+                           basis: m.roic.detail.bs_end + ' 대차대조표' }] : [])],
     wacc: g('wacc'), waccNa: na('wacc'),
     spread: g('roic_spread'),
     incr: g('incremental_roic'), incrNa: na('incremental_roic'),
@@ -998,14 +1003,15 @@ function renderTrend() {
   }
 
   const yrs = [...new Set(usable.flatMap(p => p.roicHistory.map(h => h.fy)))].sort();
-  const maxLen = Math.max(...usable.map(p => p.roicHistory.length));
-  document.getElementById('rsTrendTitle').textContent = `${maxLen}개 회계연도 ROIC 추이`;
+  const maxLen = Math.max(...usable.map(p => p.roicHistory.filter(h => h.fy !== 'TTM').length));
+  const hasTtm = usable.some(p => p.roicHistory.some(h => h.fy === 'TTM'));
+  document.getElementById('rsTrendTitle').textContent = `${maxLen}개 회계연도${hasTtm ? ' + TTM' : ''} ROIC 추이`;
 
   const raw = p => yrs.map(y => { const h = p.roicHistory.find(x => x.fy === y); return h ? h.roic * 100 : null; });
   const b = trendBounds(usable.flatMap(p => raw(p).filter(v => v !== null)));
   const clipped = [];
   usable.forEach(p => raw(p).forEach((v, i) => {
-    if (v !== null && (v > b.max || v < b.min)) clipped.push(`${p.label} FY${yrs[i]} ${v.toFixed(1)}% ${v > b.max ? '▲' : '▼'}`);
+    if (v !== null && (v > b.max || v < b.min)) clipped.push(`${p.label} ${yrs[i] === 'TTM' ? 'TTM' : 'FY' + yrs[i]} ${v.toFixed(1)}% ${v > b.max ? '▲' : '▼'}`);
   }));
   document.getElementById('rsTrendClip').textContent =
     clipped.length ? `축 범위 밖 (${b.min}% ~ ${b.max}%) — ${clipped.join(' · ')} · 실제 값은 툴팁` : '';
@@ -1013,7 +1019,7 @@ function renderTrend() {
   charts.trend = new Chart(cv.getContext('2d'), {
     type: 'line',
     data: {
-      labels: yrs.map(y => 'FY' + y),
+      labels: yrs.map(y => y === 'TTM' ? 'TTM' : 'FY' + y),
       datasets: usable.map(p => {
         const r = raw(p);
         const out = v => v !== null && (v > b.max || v < b.min);
@@ -1047,7 +1053,7 @@ function renderTrend() {
               if (!h) return `${c.dataset.label}: N/A`;
               const bn = v => v >= 1e9 ? (v / 1e9).toFixed(1) + 'B' : (v / 1e6).toFixed(0) + 'M';
               const off = h.roic !== null && (h.roic * 100 > b.max || h.roic * 100 < b.min);
-              return [`${c.dataset.label} · FY${fy}`,
+              return [`${c.dataset.label} · ${fy === 'TTM' ? 'TTM' : 'FY' + fy}`,
                       `ROIC ${h.roic !== null ? pct1(h.roic) : 'N/A'}${off ? ' (축 범위 밖)' : ''}`,
                       `NOPAT ${bn(h.nopat)}`, `투하자본 ${bn(h.ic)} (${h.basis})`,
                       `yfinance · ${(p.asOf || '').slice(0, 10)}`];
